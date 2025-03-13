@@ -1,0 +1,29 @@
+package com.idme.storage;
+
+import java.io.RandomAccessFile;
+
+import static com.idme.common.constants.PAGE_SIZE;
+
+public class Disk {
+    RandomAccessFile file;
+
+    public void readPage(String path, int pageId, byte[] data) {
+        try {
+            file = new RandomAccessFile(path, "r");
+            file.seek((long) pageId * PAGE_SIZE);
+            file.read(data);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void writePage(String path, int pageId, byte[] data) {
+        try {
+            file = new RandomAccessFile(path, "rw");
+            file.seek((long) pageId * PAGE_SIZE);
+            file.write(data);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
