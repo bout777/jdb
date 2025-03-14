@@ -7,6 +7,7 @@ import static com.idme.common.constants.PAGE_SIZE;
 public class Disk {
     RandomAccessFile file;
 
+    //页面在磁盘中以pageId连续存储
     public void readPage(String path, int pageId, byte[] data) {
         try {
             file = new RandomAccessFile(path, "r");
