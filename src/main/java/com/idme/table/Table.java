@@ -1,16 +1,19 @@
 package com.idme.table;
 
+import com.idme.catalog.ColumnList;
 import com.idme.storage.BufferPool;
 
 public class Table {
     BufferPool bufferPool;
     int firstPageId = Integer.MAX_VALUE;
-    public Table(BufferPool bufferPool){
+    ColumnList columnList;
+    public Table(BufferPool bufferPool, ColumnList columnList){
         this.bufferPool = bufferPool;
+        this.columnList = columnList;
     }
     public Record  getRecord(int pageId,int slotId){
         Page page = bufferPool.getPage(pageId);
-        Record record = page.getRecord(slotId);
+        Record record = page.getRecord(slotId,columnList);
         return record;
     }
 
@@ -29,13 +32,13 @@ public class Table {
             pageId++;
             page = bufferPool.getPage(pageId);
         }
-
         //如果找不到，创建一个新页面
         if(page.getFreeSpace()<record.getSize()&& page.getNextPageId()==Integer.MAX_VALUE){
             pageId++;
             page.setNextPageId(pageId);
             page = bufferPool.newPage(pageId);
         }
+        System.out.println(page.getFreeSpace());
 
         //插入record
         page.insertRecord(record);
@@ -43,6 +46,6 @@ public class Table {
 
     public void deleteRecord(int pageId,int slotId){
         Page page = bufferPool.getPage(pageId);
-        page.deleteRecord(slotId);
+        page.deleteRecord(slotId,columnList);
     }
 }

@@ -2,7 +2,7 @@ package com.idme.storage;
 
 import java.io.RandomAccessFile;
 
-import static com.idme.common.constants.PAGE_SIZE;
+import static com.idme.common.Constants.PAGE_SIZE;
 
 public class Disk {
     RandomAccessFile file;

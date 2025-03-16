@@ -1,9 +1,11 @@
 package com.idme.table;
 
+import com.idme.catalog.ColumnList;
+
 import java.nio.ByteBuffer;
 
-import static com.idme.common.constants.PAGE_SIZE;
-import static com.idme.common.constants.SLOT_SIZE;
+import static com.idme.common.Constants.PAGE_SIZE;
+import static com.idme.common.Constants.SLOT_SIZE;
 
 public class Page {
 
@@ -11,11 +13,10 @@ public class Page {
     private boolean isDirty;
     public int pageId;
     private int nextPageId;
-    private int freeSpace;
-    private final int HEADER_SIZE = Integer.BYTES * 5;
     private int lower;
     private int upper;
-//    private int recordCount;
+    private int recordCount;
+    private final int HEADER_SIZE = Integer.BYTES * 5;
     private ByteBuffer buffer;
 
     public Page(int id) {
@@ -25,7 +26,7 @@ public class Page {
 
         pageId = id;
         nextPageId = Integer.MAX_VALUE;
-        lower = HEADER_SIZE;
+        lower = HEADER_SIZE+recordCount;
         upper = PAGE_SIZE;
 //        recordCount = 0;
 //        head = new Slot(-1,-1);
@@ -98,9 +99,9 @@ public class Page {
     }
 
     public void insertRecord(Record record) {
-        if (upper - lower < record.size + Integer.SIZE * 2) {
-            return;
-        }
+//        if (upper - lower < record.size + Integer.SIZE * 2) {
+//            return;
+//        }
 
         //移动upper指针
         upper -= record.getSize();
@@ -115,24 +116,24 @@ public class Page {
         this.setDirty(true);
     }
 
-    public void deleteRecord(int slotId) {
+    public void deleteRecord(int slotId, ColumnList columnList) {
         Slot slot = slots[slotId];
         Record record = new Record();
-        record.deserializeFrom(buffer, slot.offset);
+        record.deserializeFrom(buffer, slot.offset,columnList);
         record.setDeleted(true);
         record.serializeTo(buffer, slot.offset);
     }
 
-    public Record getRecord(int slotId) {
+    public Record getRecord(int slotId , ColumnList columnList) {
         Record record = new Record();
         Slot slot = new Slot();
         slot.deserialize(slotId);
         record.size = slot.size;
-        record.deserializeFrom(buffer, slot.offset);
+        record.deserializeFrom(buffer, slot.offset,columnList);
         return record;
     }
 
-    //读取页头信息
+    //写入页头信息
     public int serialize() {
         int offset = 0;
         buffer.putInt(offset, pageId);
@@ -155,7 +156,7 @@ public class Page {
         return offset;
     }
 
-    //写入页头信息
+    //写页头信息
     public int deserialize() {
         int offset = 0;
         pageId = buffer.getInt(offset);
@@ -165,6 +166,8 @@ public class Page {
         lower = buffer.getInt(offset);
         offset += Integer.BYTES;
         upper = buffer.getInt(offset);
+        offset += Integer.BYTES;
+        recordCount = buffer.getInt(offset);
         offset += Integer.BYTES;
 //        recordCount = buffer.getInt(offset);
 //        offset += Integer.BYTES;

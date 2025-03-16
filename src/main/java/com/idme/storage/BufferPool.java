@@ -17,6 +17,7 @@ public class BufferPool {
         if(page == null){
             page = new Page(pageId);
             disk.readPage("test.db",pageId,page.getData());
+            page.deserialize();
         }else {
             return page;
         }
@@ -32,13 +33,17 @@ public class BufferPool {
      public void flush(){
         for(Page page : buffers.values()){
             if(page.isDirty()){
+                page.serialize();
                 disk.writePage("test.db",page.pageId,page.getData());
             }
         }
      }
 
-    void flushPage(){
-
+    void flushPage(int pageId){
+        Page page = buffers.get(pageId);
+        if(page==null)
+            throw new RuntimeException("page not found");
+        disk.writePage("test.db",pageId,page.getData());
     }
 
 
