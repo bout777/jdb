@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 
 
 // Value 基类
-public abstract class Value<T> {
+public abstract class Value<T> implements Comparable<Value> {
     protected final DataType type;
     protected final T value;
 
@@ -103,7 +103,14 @@ class IntValue extends Value<Integer> {
 //    public String toString() {
 //        return value.toString();
 //    }
-
+    @Override
+    public int compareTo(Value o) {
+        if (o instanceof IntValue) {
+            return Integer.compare(value, ((IntValue) o).value);
+        } else {
+            throw new IllegalArgumentException("Unsupported type: " + o.getClass());
+        }
+    }
 
     public static IntValue deserialize(ByteBuffer buffer, int offset) {
         return new IntValue(buffer.getInt(offset));
@@ -149,6 +156,8 @@ class StringValue extends Value<String> {
         return offset;
     }
 
+
+
     public static StringValue deserialize(ByteBuffer buffer, int offset) {
         short length = buffer.getShort(offset);
         offset += Short.BYTES;
@@ -159,6 +168,14 @@ class StringValue extends Value<String> {
 
 
         return new StringValue(new String(bytes,StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public int compareTo(Value o) {
+        if(o instanceof StringValue){
+            return ((String)value).compareTo((String)o.value);
+        }
+        throw new IllegalArgumentException("Unsupported type: " + o.getClass());
     }
 }
 

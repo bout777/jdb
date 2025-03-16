@@ -3,6 +3,8 @@ package com.idme.table;
 import com.idme.catalog.ColumnList;
 import com.idme.storage.BufferPool;
 
+import static com.idme.common.Constants.SLOT_SIZE;
+
 public class Table {
     BufferPool bufferPool;
     int firstPageId = Integer.MAX_VALUE;
@@ -11,6 +13,7 @@ public class Table {
         this.bufferPool = bufferPool;
         this.columnList = columnList;
     }
+    // TODO 把get相关的逻辑弄好，测试，下一步才可以对接索引
     public Record  getRecord(int pageId,int slotId){
         Page page = bufferPool.getPage(pageId);
         Record record = page.getRecord(slotId,columnList);
@@ -28,17 +31,17 @@ public class Table {
         Page page = bufferPool.getPage(pageId);
 
         //遍历页面，找到一个能插入的
-        while (page.getFreeSpace()<record.getSize()&& page.getNextPageId()!=Integer.MAX_VALUE){
+        while (page.getFreeSpace()<record.getSize()+SLOT_SIZE && page.getNextPageId()!=Integer.MAX_VALUE){
             pageId++;
             page = bufferPool.getPage(pageId);
         }
         //如果找不到，创建一个新页面
-        if(page.getFreeSpace()<record.getSize()&& page.getNextPageId()==Integer.MAX_VALUE){
+        if(page.getFreeSpace()<record.getSize()+SLOT_SIZE && page.getNextPageId()==Integer.MAX_VALUE){
             pageId++;
             page.setNextPageId(pageId);
             page = bufferPool.newPage(pageId);
         }
-        System.out.println(page.getFreeSpace());
+//        System.out.println(page.getFreeSpace());
 
         //插入record
         page.insertRecord(record);

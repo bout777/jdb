@@ -5,9 +5,11 @@ import com.idme.common.DataType;
 import com.idme.common.Value;
 import com.idme.storage.BufferPool;
 import com.idme.storage.Disk;
+import com.idme.table.PagePointer;
 import com.idme.table.Record;
 import com.idme.table.Table;
 
+import com.idme.table.TableScanner;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -26,6 +28,7 @@ public class TableTest {
         columnList = new ColumnList();
         columnList.add(new ColumnDef(DataType.STRING, "name"));
         columnList.add(new ColumnDef(DataType.INTEGER, "age"));
+
         table = new Table(bufferPool,columnList);
     }
     @Test
@@ -34,7 +37,6 @@ public class TableTest {
         System.out.println("insert");
         for (int i = 0; i < 10000; i++)
             table.insertRecord(generateRecord());
-
         bufferPool.flush();
     }
 
@@ -65,5 +67,24 @@ public class TableTest {
 
     public Value generateValue() {
         return Value.ofInt(1);
+    }
+
+    @Test
+    public void ScannerTest(){
+        testInert();
+        TableScanner sc = new TableScanner(bufferPool,table);
+        PagePointer p = new PagePointer(0,0);
+
+//        while(true){
+//            Record r = sc.getNextRecord(p);
+//            if(r == null)
+//                break;
+//            System.out.println(r);
+//        }
+        for (int i = 0; i < 10020; i++) {
+
+            Record r = sc.getNextRecord(p);
+            System.out.println(i+":"+r);
+        }
     }
 }
