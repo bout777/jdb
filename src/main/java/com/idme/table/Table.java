@@ -47,8 +47,8 @@ public class Table {
         page.insertRecord(record);
     }
 
-    public void deleteRecord(int pageId,int slotId){
-        Page page = bufferPool.getPage(pageId);
-        page.deleteRecord(slotId,columnList);
+    public void deleteRecord(PagePointer p){
+        Page page = bufferPool.getPage(p.pageId);
+        page.deleteRecord(p.slotId);
     }
 }

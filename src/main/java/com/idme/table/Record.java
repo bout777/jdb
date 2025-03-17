@@ -23,20 +23,20 @@ public class Record {
         return primaryKey;
     }
 
-    public int serializeTo(ByteBuffer buffer, int offset) {
+    public int serializeHeader(ByteBuffer buffer , int offset) {
         buffer.put(offset,isDeleted);
         offset += Byte.BYTES;
+
         buffer.putInt(offset,primaryKey);
         offset += Integer.BYTES;
+
         buffer.putInt(offset, size);
         offset += Integer.BYTES;
-        for (Value v : values) {
-            offset = v.serialize(buffer,offset);
-        }
+
         return offset;
     }
 
-    public int deserializeFrom(ByteBuffer buffer, int offset, ColumnList columnList) {
+    public int deserializeHeader(ByteBuffer buffer , int offset) {
         isDeleted = buffer.get(offset);
         offset += Byte.BYTES;
 
@@ -45,6 +45,22 @@ public class Record {
 
         size = buffer.getInt(offset);
         offset += Integer.BYTES;
+
+        return offset;
+    }
+
+    public int serializeTo(ByteBuffer buffer, int offset) {
+        offset = serializeHeader(buffer,offset);
+
+        for (Value v : values) {
+            offset = v.serialize(buffer,offset);
+        }
+
+        return offset;
+    }
+
+    public int deserializeFrom(ByteBuffer buffer, int offset, ColumnList columnList) {
+        offset = deserializeHeader(buffer,offset);
         //TODO 这里暂时写死，后期要改
 //        value = new int[10];
 
@@ -57,6 +73,7 @@ public class Record {
             values.add(value);
             offset += value.getBytes();
         }
+
         return offset;
     }
 

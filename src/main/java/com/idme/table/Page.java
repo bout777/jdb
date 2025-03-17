@@ -116,12 +116,12 @@ public class Page {
         this.setDirty(true);
     }
 
-    public void deleteRecord(int slotId, ColumnList columnList) {
+    public void deleteRecord(int slotId) {
         Slot slot = slots[slotId];
         Record record = new Record();
-        record.deserializeFrom(buffer, slot.offset,columnList);
+        record.deserializeHeader(buffer, slot.offset);
         record.setDeleted(true);
-        record.serializeTo(buffer, slot.offset);
+        record.serializeHeader(buffer, slot.offset);
     }
 
     public Record getRecord(int slotId , ColumnList columnList) {
