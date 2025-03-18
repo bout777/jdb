@@ -7,15 +7,18 @@ public class ColumnDef {
     String name;
     int Bytes;
     int length;
-    public ColumnDef(DataType type, String name){
+
+    public ColumnDef(DataType type, String name) {
         this.type = type;
         this.name = name;
         this.Bytes = Bytes;
     }
-    public String getName(){
+
+    public String getName() {
         return name;
     }
-    public DataType getType(){
+
+    public DataType getType() {
         return type;
     }
 }

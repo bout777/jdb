@@ -2,19 +2,17 @@ package com.idme.index;
 
 import com.idme.common.Value;
 import com.idme.table.PagePointer;
-import com.idme.table.Record;
 
-public class IndexEntry implements Comparable<IndexEntry>{
+public class IndexEntry implements Comparable<IndexEntry> {
     Value<?> key;
     PagePointer pointer;
 
-    public IndexEntry(Value<?> key, PagePointer pointer)
-    {
+    public IndexEntry(Value<?> key, PagePointer pointer) {
         this.key = key;
         this.pointer = pointer;
     }
-    public Value<?> getKey()
-    {
+
+    public Value<?> getKey() {
         return key;
     }
 

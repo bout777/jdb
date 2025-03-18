@@ -7,12 +7,13 @@ public class BPTree implements Index {
     private BufferPool bufferPool;
     private Node root;
 
-    public BPTree(){
+    public BPTree() {
         root = new LeafNode();
     }
+
     @Override
     public IndexEntry searchEqual(Value<?> key) {
-        IndexEntry entry = new IndexEntry(key,null);
+        IndexEntry entry = new IndexEntry(key, null);
         entry.pointer = root.search(key);
         return entry;
     }

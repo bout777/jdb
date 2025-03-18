@@ -1,10 +1,3 @@
-import com.idme.storage.Disk;
-import com.idme.table.Page;
-import com.idme.table.Record;
-import org.junit.Test;
-
-import java.util.Arrays;
-
 public class PageTest {
 //    @Test
 //    public void testInsertRecord(){

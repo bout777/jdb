@@ -16,7 +16,7 @@ public class BPTreeTest {
     @Test
     public void insertTest() {
         for (int i = 0; i < 1000; i++) {
-        bpTree.insert(generateEntry(i));
+            bpTree.insert(generateEntry(i));
         }
         System.out.println(bpTree);
 
@@ -26,9 +26,14 @@ public class BPTreeTest {
     public void searchTest() {
         insertTest();
         for (int i = 0; i < 1000; i++) {
-        IndexEntry indexEntry = bpTree.searchEqual(Value.ofInt(i));
+            IndexEntry indexEntry = bpTree.searchEqual(Value.ofInt(i));
             System.out.println(indexEntry.getKey());
         }
+    }
+
+    @Test
+    public void loadfromPage() {
+
     }
 
     IndexEntry generateEntry(int i) {

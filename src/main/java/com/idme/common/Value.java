@@ -1,7 +1,6 @@
 package com.idme.common;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 // 基础类型枚举（可扩展）
@@ -12,15 +11,10 @@ public abstract class Value<T> implements Comparable<Value> {
     protected final DataType type;
     protected final T value;
 
-    public abstract int getBytes();
-
     public Value(DataType type, T value) {
         this.type = type;
         this.value = value;
     }
-
-    // 序列化为字节数组（包含类型标记）
-    public abstract int serialize(ByteBuffer buffer, int offset);
 
     // 反序列化静态方法（工厂模式）
     public static Value<?> deserialize(ByteBuffer buffer, int offset, DataType type) {
@@ -40,20 +34,7 @@ public abstract class Value<T> implements Comparable<Value> {
         }
     }
 
-    // 类型安全检查
-    public <E> E getValue(Class<E> expectedType) {
-        if (!expectedType.isAssignableFrom(value.getClass())) {
-            throw new ClassCastException("Type mismatch: expected " +
-                    expectedType + ", actual " + value.getClass());
-        }
-        return expectedType.cast(value);
-    }
-
-    public DataType getType() {
-        return type;
-    }
-
-//    public static Value<?> of(Object value) {
+    //    public static Value<?> of(Object value) {
 //        if (value instanceof Integer) {
 //            return new IntValue((Integer) value);
 //        } else if (value instanceof String) {
@@ -70,9 +51,28 @@ public abstract class Value<T> implements Comparable<Value> {
         return new StringValue(value);
     }
 
-    public  String toString(){
+    public abstract int getBytes();
+
+    // 序列化为字节数组（包含类型标记）
+    public abstract int serialize(ByteBuffer buffer, int offset);
+
+    // 类型安全检查
+    public <E> E getValue(Class<E> expectedType) {
+        if (!expectedType.isAssignableFrom(value.getClass())) {
+            throw new ClassCastException("Type mismatch: expected " +
+                    expectedType + ", actual " + value.getClass());
+        }
+        return expectedType.cast(value);
+    }
+
+    public DataType getType() {
+        return type;
+    }
+
+    public String toString() {
         return value.toString();
-    };
+    }
+
 }
 
 // --- 具体子类型实现 ---
@@ -81,6 +81,10 @@ public abstract class Value<T> implements Comparable<Value> {
 class IntValue extends Value<Integer> {
     public IntValue(int value) {
         super(DataType.INTEGER, value);
+    }
+
+    public static IntValue deserialize(ByteBuffer buffer, int offset) {
+        return new IntValue(buffer.getInt(offset));
     }
 
     @Override
@@ -99,21 +103,17 @@ class IntValue extends Value<Integer> {
         return offset;
     }
 
-//    @Override
+    //    @Override
 //    public String toString() {
 //        return value.toString();
 //    }
     @Override
     public int compareTo(Value o) {
         if (o instanceof IntValue) {
-            return Integer.compare(value, ((IntValue) o).value);
+            return Integer.compare(value, o.value);
         } else {
             throw new IllegalArgumentException("Unsupported type: " + o.getClass());
         }
-    }
-
-    public static IntValue deserialize(ByteBuffer buffer, int offset) {
-        return new IntValue(buffer.getInt(offset));
     }
 }
 
@@ -121,6 +121,18 @@ class IntValue extends Value<Integer> {
 class StringValue extends Value<String> {
     public StringValue(String value) {
         super(DataType.STRING, value);
+    }
+
+    public static StringValue deserialize(ByteBuffer buffer, int offset) {
+        short length = buffer.getShort(offset);
+        offset += Short.BYTES;
+        byte[] bytes = new byte[length];
+        for (int i = 0; i < length; i++) {
+            bytes[i] = buffer.get(offset + i);
+        }
+
+
+        return new StringValue(new String(bytes, StandardCharsets.UTF_8));
     }
 
     @Override
@@ -144,7 +156,7 @@ class StringValue extends Value<String> {
 
         byte[] strBytes = value.getBytes(StandardCharsets.UTF_8);
 
-        buffer.putShort(offset,(short) strBytes.length);
+        buffer.putShort(offset, (short) strBytes.length);
         offset += Short.BYTES;
 
 //        buffer.put(strBytes,offset,strBytes.length);
@@ -156,24 +168,10 @@ class StringValue extends Value<String> {
         return offset;
     }
 
-
-
-    public static StringValue deserialize(ByteBuffer buffer, int offset) {
-        short length = buffer.getShort(offset);
-        offset += Short.BYTES;
-        byte[] bytes = new byte[length];
-        for (int i = 0; i < length; i++) {
-            bytes[i] = buffer.get(offset + i);
-        }
-
-
-        return new StringValue(new String(bytes,StandardCharsets.UTF_8));
-    }
-
     @Override
     public int compareTo(Value o) {
-        if(o instanceof StringValue){
-            return ((String)value).compareTo((String)o.value);
+        if (o instanceof StringValue) {
+            return value.compareTo((String) o.value);
         }
         throw new IllegalArgumentException("Unsupported type: " + o.getClass());
     }

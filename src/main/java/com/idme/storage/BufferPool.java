@@ -5,45 +5,55 @@ import com.idme.table.Page;
 import java.util.HashMap;
 
 public class BufferPool {
-    private Disk disk;
-    private HashMap<Integer,Page> buffers;
+    private static BufferPool instance;
+    private final Disk disk;
+    private final HashMap<Integer, Page> buffers;
 
-    public BufferPool(Disk disk) {
-        buffers = new HashMap<Integer,Page>();
+    private BufferPool(Disk disk) {
+        buffers = new HashMap<Integer, Page>();
         this.disk = disk;
     }
-     public Page getPage(int pageId) {
-        Page page= buffers.get(pageId);
-        if(page == null){
+
+    public static BufferPool getInstance() {
+        if (instance == null) {
+            instance = new BufferPool(new Disk());
+            return instance;
+        }
+        return instance;
+    }
+
+    public Page getPage(int pageId) {
+        Page page = buffers.get(pageId);
+        if (page == null) {
             page = new Page(pageId);
-            disk.readPage("test.db",pageId,page.getData());
+            disk.readPage("test.db", pageId, page.getData());
             page.deserialize();
-        }else {
+        } else {
             return page;
         }
         return page;
-     }
+    }
 
-     public Page newPage(int pageId){
+    public Page newPage(int pageId) {
         Page page = new Page(pageId);
-        buffers.put(pageId,page);
+        buffers.put(pageId, page);
         return page;
-     }
+    }
 
-     public void flush(){
-        for(Page page : buffers.values()){
-            if(page.isDirty()){
+    public void flush() {
+        for (Page page : buffers.values()) {
+            if (page.isDirty()) {
                 page.serialize();
-                disk.writePage("test.db",page.pageId,page.getData());
+                disk.writePage("test.db", page.pageId, page.getData());
             }
         }
-     }
+    }
 
-    void flushPage(int pageId){
+    void flushPage(int pageId) {
         Page page = buffers.get(pageId);
-        if(page==null)
+        if (page == null)
             throw new RuntimeException("page not found");
-        disk.writePage("test.db",pageId,page.getData());
+        disk.writePage("test.db", pageId, page.getData());
     }
 
 

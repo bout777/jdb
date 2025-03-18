@@ -1,6 +1,7 @@
 package com.idme.index;
 
 import com.idme.common.Value;
+import com.idme.storage.BufferPool;
 import com.idme.table.Page;
 import com.idme.table.PagePointer;
 
@@ -9,25 +10,32 @@ import java.util.Collections;
 import java.util.List;
 
 public abstract class Node {
+
     static final int ORDER = 4;
     public int pageId;
-    Page page;
+    //不应该保存对页对象的引用，而是从BufferPool随用随取，否则会造成大量内存无法回收，
+//    Page page;
+    List<Value<?>> keys;
 
-    Node(){
+    Node() {
         keys = new ArrayList<>();
     }
-    List<Value<?>> keys;
 
     public abstract PagePointer search(Value<?> key);
 
     public abstract Node insert(IndexEntry entry);
 
     public abstract Value<?> getMinKey();
+
+    public abstract void readFromPage(int pageId);
+
+    public abstract void write2Page();
 }
 
 class InnerNode extends Node {
-    List<Node> children ;
-    public InnerNode(){
+    List<Node> children;
+
+    public InnerNode() {
         super();
         children = new ArrayList<>();
     }
@@ -35,9 +43,9 @@ class InnerNode extends Node {
     @Override
     public PagePointer search(Value<?> key) {
         int i = Collections.binarySearch(keys, key);
-        if(i>=0)
-        return children.get(i+1).search(key);
-        else return children.get(-i-1).search(key);
+        if (i >= 0)
+            return children.get(i + 1).search(key);
+        else return children.get(-i - 1).search(key);
 
     }
 
@@ -69,6 +77,17 @@ class InnerNode extends Node {
         return children.get(0).getMinKey();
     }
 
+    @Override
+    public void readFromPage(int pageId) {
+        //TODO
+
+    }
+
+    @Override
+    public void write2Page() {
+
+    }
+
     private InnerNode split() {
         InnerNode newNode = new InnerNode();
         int splitIndex = keys.size() / 2;
@@ -84,11 +103,11 @@ class InnerNode extends Node {
 
     private int findChild(Value<?> key) {
         int i = Collections.binarySearch(keys, key);
-        if(i>=0){
-        return i;
+        if (i >= 0) {
+            return i;
 //            throw new RuntimeException("key already exist");
         }
-        return -i-1;
+        return -i - 1;
     }
 }
 
@@ -96,15 +115,16 @@ class LeafNode extends Node {
     private List<IndexEntry> entries;
     private LeafNode nextLeaf;
 
-    LeafNode(){
+    LeafNode() {
         super();
         entries = new ArrayList<>();
     }
+
     @Override
     public PagePointer search(Value<?> key) {
-        IndexEntry e = new IndexEntry(key,null);
-        int i = Collections.binarySearch(entries,e);
-        if(i>=0)
+        IndexEntry e = new IndexEntry(key, null);
+        int i = Collections.binarySearch(entries, e);
+        if (i >= 0)
             return entries.get(i).pointer;
         else
             throw new RuntimeException("key not found");
@@ -112,7 +132,7 @@ class LeafNode extends Node {
 
     @Override
     public Node insert(IndexEntry entry) {
-        int insertIndex = Collections.binarySearch(entries,entry);
+        int insertIndex = Collections.binarySearch(entries, entry);
         //暂时只能插入唯一键
         if (insertIndex >= 0) {
             throw new RuntimeException("key already exist");
@@ -130,6 +150,21 @@ class LeafNode extends Node {
     @Override
     public Value<?> getMinKey() {
         return entries.get(0).getKey();
+    }
+
+    @Override
+    public void readFromPage(int pageId) {
+        Page page = BufferPool.getInstance().getPage(pageId);
+        List<Page.Slot> slots = page.getSlots();
+        for (int i = 0; i < slots.size(); i++) {
+            Page.Slot slot = slots.get(i);
+            entries.add(new IndexEntry(Value.ofInt(slot.getPrimaryKey()), new PagePointer(pageId, i)));
+        }
+    }
+
+    @Override
+    public void write2Page() {
+
     }
 
     private LeafNode split() {

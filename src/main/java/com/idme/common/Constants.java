@@ -1,6 +1,8 @@
 package com.idme.common;
 
- public class Constants {
-  public final static int PAGE_SIZE = 16*1024;
-  public final static int SLOT_SIZE = 2*Integer.BYTES;
+public class Constants {
+    public final static int PAGE_SIZE = 16 * 1024;
+
+    //offset,size,primary key
+    public final static int SLOT_SIZE = 3 * Integer.BYTES;
 }
