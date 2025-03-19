@@ -16,14 +16,14 @@ public class TableScanner {
         if (pointer.pageId == Integer.MAX_VALUE)
             return null;
 
-        Page page = bufferPool.getPage(pointer.pageId);
-        Record record = page.getRecord(pointer.slotId, table.columnList);
+        DataPage dataPage = new DataPage(pointer.pageId,bufferPool.getPage(pointer.pageId));
+        Record record = dataPage.getRecord(pointer.slotId, table.columnList);
 
 
-        if (pointer.slotId < page.getRecordCount() - 1) {
+        if (pointer.slotId < dataPage.getRecordCount() - 1) {
             pointer.slotId++;
         } else {
-            pointer.pageId = page.getNextPageId();
+            pointer.pageId = dataPage.getNextPageId();
             pointer.slotId = 0;
         }
 

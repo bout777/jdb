@@ -2,12 +2,24 @@ package com.idme.index;
 
 import com.idme.common.Value;
 import com.idme.storage.BufferPool;
-import com.idme.table.Page;
+import com.idme.storage.Page;
+import com.idme.table.DataPage;
 import com.idme.table.PagePointer;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+/*
+* TODO 内部节点children保存子节点的页号
+* TODO 用代理模式，写两种page的代理类，内部页和数据页，再写read和write方法
+*
+*
+*
+*
+*
+*
+*
+* */
 
 public abstract class Node {
 
@@ -155,9 +167,10 @@ class LeafNode extends Node {
     @Override
     public void readFromPage(int pageId) {
         Page page = BufferPool.getInstance().getPage(pageId);
-        List<Page.Slot> slots = page.getSlots();
+        DataPage dataPage = new DataPage(pageId,page);
+        List<DataPage.Slot> slots = dataPage.getSlots();
         for (int i = 0; i < slots.size(); i++) {
-            Page.Slot slot = slots.get(i);
+            DataPage.Slot slot = slots.get(i);
             entries.add(new IndexEntry(Value.ofInt(slot.getPrimaryKey()), new PagePointer(pageId, i)));
         }
     }

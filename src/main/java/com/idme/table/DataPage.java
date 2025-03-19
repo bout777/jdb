@@ -1,6 +1,8 @@
 package com.idme.table;
 
 import com.idme.catalog.ColumnList;
+import com.idme.storage.BufferPool;
+import com.idme.storage.Page;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -8,8 +10,18 @@ import java.util.List;
 
 import static com.idme.common.Constants.PAGE_SIZE;
 import static com.idme.common.Constants.SLOT_SIZE;
-
-public class Page {
+/*
+*
+* TODO: 添加空闲槽位列表，继续优化插入逻辑
+* 
+*
+*
+*
+*
+*
+*
+* */
+public class DataPage {
 
     private final int HEADER_SIZE = Integer.BYTES * 5;
     public int pageId;
@@ -21,16 +33,23 @@ public class Page {
     private int upper;
     private int recordCount;
     private final ByteBuffer buffer;
+    private Page page;
 
-    public Page(int id) {
-        data = new byte[PAGE_SIZE];
+    public DataPage(int id, Page page) {
+        data = page.getData();
         isDirty = false;
         buffer = ByteBuffer.wrap(data);
-
         pageId = id;
+        this.page = page;
+        //从page中读取页头信息，槽位数组
+        deserialize();
+    }
+
+    public void init(){
         nextPageId = Integer.MAX_VALUE;
-        lower = HEADER_SIZE + recordCount;
+        lower = HEADER_SIZE;
         upper = PAGE_SIZE;
+        serializeHeader();
     }
 
     public int getRecordCount() {
@@ -38,11 +57,11 @@ public class Page {
     }
 
     public boolean isDirty() {
-        return isDirty;
+        return page.isDirty();
     }
 
     public void setDirty(boolean dirty) {
-        isDirty = dirty;
+        page.setDirty(dirty);
     }
 
     public byte[] getData() {
@@ -55,7 +74,6 @@ public class Page {
 
     public void setNextPageId(int nextPageId) {
         this.nextPageId = nextPageId;
-
     }
 
     public List<PagePointer> getPointers() {
@@ -89,7 +107,7 @@ public class Page {
 
         //写入record
         record.serializeTo(buffer, upper);
-
+        serializeHeader();
         this.setDirty(true);
     }
 
@@ -110,36 +128,29 @@ public class Page {
         return record;
     }
 
-    public int serialize() {
+    public void serialize() {
+        serializeHeader();
+        serializeSlots();
+    }
+
+    private void serializeHeader() {
         int offset = 0;
-
-        offset = serializeHeader(offset);
-        offset = serializeSlots(offset);
-
-        return offset;
-    }
-
-    private int serializeHeader(int offset) {
         buffer.putInt(offset, pageId);
-        offset += Integer.BYTES;
 
+        offset += Integer.BYTES;
         buffer.putInt(offset, nextPageId);
-        offset += Integer.BYTES;
 
+        offset += Integer.BYTES;
         buffer.putInt(offset, lower);
-        offset += Integer.BYTES;
 
+        offset += Integer.BYTES;
         buffer.putInt(offset, upper);
-        offset += Integer.BYTES;
 
-        buffer.putInt(offset, getRecordCount());
-        offset += Integer.BYTES;
-
-        return offset;
     }
 
-    private int deserializeHeader(int offset) {
-        pageId = buffer.getInt(offset);
+    private void deserializeHeader() {
+        int offset = 0;
+//        pageId = buffer.getInt(offset);
         offset += Integer.BYTES;
 
         nextPageId = buffer.getInt(offset);
@@ -150,40 +161,31 @@ public class Page {
 
         upper = buffer.getInt(offset);
         offset += Integer.BYTES;
-
-        recordCount = buffer.getInt(offset);
-        offset += Integer.BYTES;
-
-        return offset;
     }
 
-    private int serializeSlots(int offset) {
+    private void serializeSlots() {
         int n = getRecordCount();
         for (int i = 0; i < n; i++) {
-            offset = slots.get(i).serialize(offset);
+            slots.get(i).serialize(i);
         }
-        return offset;
     }
 
-    private int deserializeSlots(int offset) {
+    private void deserializeSlots() {
         if (!slots.isEmpty())
             throw new RuntimeException("slots is not empty");
 
         int n = getRecordCount();
         for (int i = 0; i < n; i++) {
             Slot slot = new Slot();
-            offset = slot.deserialize(i);
+            slot.deserialize(i);
             slots.add(slot);
         }
-        return offset;
     }
 
     //写页头信息
-    public int deserialize() {
-        int offset = 0;
-        offset = deserializeHeader(offset);
-        offset = deserializeSlots(offset);
-        return offset;
+    public void deserialize() {
+        deserializeHeader();
+        deserializeSlots();
     }
 
     private void insertSlot(Slot slot) {
@@ -233,14 +235,15 @@ public class Page {
             return offset;
         }
 
-        public int serialize(int offset) {
+        public void serialize(int slotId) {
+            int offset = HEADER_SIZE + slotId * SLOT_SIZE;
             buffer.putInt(offset, this.offset);
             offset += Integer.BYTES;
             buffer.putInt(offset, this.size);
             offset += Integer.BYTES;
             buffer.putInt(offset, this.primaryKey);
             offset += Integer.BYTES;
-            return offset;
+
         }
     }
 
