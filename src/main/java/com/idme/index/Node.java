@@ -5,6 +5,7 @@ import com.idme.storage.BufferPool;
 import com.idme.storage.Page;
 import com.idme.table.DataPage;
 import com.idme.table.PagePointer;
+import com.idme.table.Slot;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -168,9 +169,9 @@ class LeafNode extends Node {
     public void readFromPage(int pageId) {
         Page page = BufferPool.getInstance().getPage(pageId);
         DataPage dataPage = new DataPage(pageId,page);
-        List<DataPage.Slot> slots = dataPage.getSlots();
-        for (int i = 0; i < slots.size(); i++) {
-            DataPage.Slot slot = slots.get(i);
+        int n = dataPage.getRecordCount();
+        for (int i = 0; i < n; i++) {
+            Slot slot = dataPage.getSlot(i);
             entries.add(new IndexEntry(Value.ofInt(slot.getPrimaryKey()), new PagePointer(pageId, i)));
         }
     }

@@ -74,7 +74,7 @@ public class TableTest {
         TableScanner sc = new TableScanner(bufferPool, table);
         PagePointer p = new PagePointer(0, 0);
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10000; i++) {
             Record r = sc.getNextRecord(p);
             System.out.println(i + ":" + r);
         }
