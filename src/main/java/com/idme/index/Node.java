@@ -1,44 +1,63 @@
 package com.idme.index;
 
+import com.idme.catalog.ColumnList;
 import com.idme.common.Value;
 import com.idme.storage.BufferPool;
 import com.idme.storage.Page;
 import com.idme.table.DataPage;
+import com.idme.table.IndexPage;
 import com.idme.table.PagePointer;
-import com.idme.table.Slot;
+import com.idme.table.Record;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import static com.idme.common.Constants.NULL_PAGE_ID;
+import static com.idme.common.Constants.SLOT_SIZE;
 /*
-* TODO 内部节点children保存子节点的页号
-* TODO 用代理模式，写两种page的代理类，内部页和数据页，再写read和write方法
-*
-*
-*
-*
-*
-*
-*
-* */
+ * TODO 内部节点children保存子节点的页号
+ * TODO 用代理模式，写两种page的代理类，内部页和数据页，再写read和write方法
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ * */
 
 public abstract class Node {
-
     static final int ORDER = 4;
     public int pageId;
+    Page page;
     //不应该保存对页对象的引用，而是从BufferPool随用随取，否则会造成大量内存无法回收，
 //    Page page;
-    List<Value<?>> keys;
+//    List<Value<?>> keys;
 
     Node() {
-        keys = new ArrayList<>();
+//        keys = new ArrayList<>();
     }
 
-    public abstract PagePointer search(Value<?> key);
+    public static Node load(int pageId) {
+        BufferPool bp = BufferPool.getInstance();
+        Page page = bp.getPage(pageId);
+        byte[] data = page.getData();
+        switch (data[0]) {
+            case 0x01:
+                return new InnerNode(pageId, page);
+            case 0x02:
+                return new LeafNode(pageId, page);
+            default:
+                throw new RuntimeException("unknown page type");
+        }
+    }
 
-    public abstract Node insert(IndexEntry entry);
+    public abstract IndexEntry search(Value<?> key);
 
-    public abstract Value<?> getMinKey();
+    public abstract int insert(IndexEntry entry);
+
+    public abstract Value<?> getFloorKey();
 
     public abstract void readFromPage(int pageId);
 
@@ -46,48 +65,78 @@ public abstract class Node {
 }
 
 class InnerNode extends Node {
-    List<Node> children;
 
-    public InnerNode() {
-        super();
-        children = new ArrayList<>();
+    IndexPage indexPage;
+
+    public InnerNode(int pageId, Page page) {
+        this.page = page;
+        this.pageId = pageId;
+        indexPage = new IndexPage(pageId, page);
     }
 
     @Override
-    public PagePointer search(Value<?> key) {
-        int i = Collections.binarySearch(keys, key);
-        if (i >= 0)
-            return children.get(i + 1).search(key);
-        else return children.get(-i - 1).search(key);
+    public IndexEntry search(Value<?> key) {
+//        int i = Collections.binarySearch(keys, key);
+//        if (i >= 0)
+//            return children.get(i + 1).search(key);
+//        else return children.get(-i - 1).search(key);
+        int eid = indexPage.binarySearch(key);
+//        if(eid<0)
+////            throw new RuntimeException("key not found");
+//            eid = -eid;
+        IndexEntry floorEntry = indexPage.getEntry(eid);
+        PagePointer p = (PagePointer) floorEntry.getValue();
+        int pid = p.pageId;
 
+        Node child = Node.load(pid);
+        return child.search(key);
     }
 
     @Override
-    public Node insert(IndexEntry entry) {
-        int childIndex = findChild(entry.getKey());
-        Node child = children.get(childIndex);
+    public int insert(IndexEntry entry) {
+//        int childIndex = findChild(entry.getKey());
+//        int childId = children.get(childIndex);
+        int eid = indexPage.binarySearch(entry.getKey());
+//        Node newChile = child.insert(entry);
+//        if (newChile == null) {
+//            return null;
+//        }
+//        if(eid>=0)
+//            throw new RuntimeException("key already exist");
+//
+//        eid = -eid-1;
+        IndexEntry floorEntry = indexPage.getEntry(eid);
+        PagePointer p = (PagePointer) floorEntry.getValue();
+        int pid = p.pageId;
 
-        Node newChile = child.insert(entry);
-        if (newChile == null) {
-            return null;
+        Node child = Node.load(pid);
+
+        int newChild = child.insert(entry);
+        if (newChild == NULL_PAGE_ID) {
+            return NULL_PAGE_ID;
         }
-
         //子节点分裂后，将新节点最小键和指针加入当前节点
-        keys.add(childIndex, newChile.getMinKey());
-        children.add(childIndex + 1, newChile);
-
-        if (keys.size() >= ORDER) {
-            //分裂内部节点
-            return split();
+//        keys.add(childIndex, newChile.getMinKey());
+//        children.add(childIndex + 1, newChild);
+//        if (keys.size() >= ORDER) {
+//            //分裂内部节点
+//            return split();
+//        }
+        if (indexPage.getEntryCount() >= 100) {
+            IndexPage niPage = indexPage.split();
+            niPage.insert(new SecondaryIndexEntry(entry.getKey(), p));
+            return niPage.getPageId();
         }
+
+        indexPage.insert(new SecondaryIndexEntry(entry.getKey(), p));
 
         //无需分裂
-        return null;
+        return NULL_PAGE_ID;
     }
 
     @Override
-    public Value<?> getMinKey() {
-        return children.get(0).getMinKey();
+    public Value<?> getFloorKey() {
+        return indexPage.getFloorKey();
     }
 
     @Override
@@ -101,50 +150,67 @@ class InnerNode extends Node {
 
     }
 
-    private InnerNode split() {
-        InnerNode newNode = new InnerNode();
-        int splitIndex = keys.size() / 2;
+//    private InnerNode split() {
+//        InnerNode newNode = new InnerNode();
+//        int splitIndex = keys.size() / 2;
+//
+//        newNode.keys = new ArrayList<>(keys.subList(splitIndex + 1, keys.size()));
+//        newNode.children = new ArrayList<>(children.subList(splitIndex + 1, children.size()));
+//
+//        keys = new ArrayList<>(keys.subList(0, splitIndex));
+//        children = new ArrayList<>(children.subList(0, splitIndex + 1));
+//
+//        return newNode;
+//    }
 
-        newNode.keys = new ArrayList<>(keys.subList(splitIndex + 1, keys.size()));
-        newNode.children = new ArrayList<>(children.subList(splitIndex + 1, children.size()));
-
-        keys = new ArrayList<>(keys.subList(0, splitIndex));
-        children = new ArrayList<>(children.subList(0, splitIndex + 1));
-
-        return newNode;
-    }
-
-    private int findChild(Value<?> key) {
-        int i = Collections.binarySearch(keys, key);
-        if (i >= 0) {
-            return i;
-//            throw new RuntimeException("key already exist");
-        }
-        return -i - 1;
-    }
+//    private int findChild(Value<?> key) {
+//        int i = Collections.binarySearch(keys, key);
+//        if (i >= 0) {
+//            return i;
+////            throw new RuntimeException("key already exist");
+//        }
+//        return -i - 1;
+//    }
 }
 
 class LeafNode extends Node {
     private List<IndexEntry> entries;
     private LeafNode nextLeaf;
+    private int pageId;
 
-    LeafNode() {
+    LeafNode(int pageId, Page page) {
         super();
+        this.page = page;
+        this.pageId = pageId;
         entries = new ArrayList<>();
+
+        //for test 从页中撸出来，叶子节点暂时只能放数据页
+        DataPage dataPage = new DataPage(pageId, page);
+        int cnt = dataPage.getRecordCount();
+        for (int i = 0; i < cnt; i++) {
+            Record record = dataPage.getRecord(i, ColumnList.instance);
+            entries.add(new ClusterIndexEntry(Value.ofInt(record.getPrimaryKey()), record));
+        }
     }
 
     @Override
-    public PagePointer search(Value<?> key) {
-        IndexEntry e = new IndexEntry(key, null);
-        int i = Collections.binarySearch(entries, e);
-        if (i >= 0)
-            return entries.get(i).pointer;
-        else
-            throw new RuntimeException("key not found");
+    public IndexEntry search(Value<?> key) {
+        int low = 0, high = entries.size() - 1;
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            IndexEntry e = entries.get(mid);
+            if (e.getKey().compareTo(key) > 0)
+                high = mid - 1;
+            else if (e.getKey().compareTo(key) < 0)
+                low = mid + 1;
+            else
+                return e;
+        }
+        throw new RuntimeException("key not found");
     }
 
     @Override
-    public Node insert(IndexEntry entry) {
+    public int insert(IndexEntry entry) {
         int insertIndex = Collections.binarySearch(entries, entry);
         //暂时只能插入唯一键
         if (insertIndex >= 0) {
@@ -153,27 +219,42 @@ class LeafNode extends Node {
         insertIndex = -insertIndex - 1;
         entries.add(insertIndex, entry);
 
-        if (entries.size() >= ORDER) {
-            return split();
+        if (entry instanceof ClusterIndexEntry) {
+            DataPage dataPage = new DataPage(pageId, page);
+            Record record = ((ClusterIndexEntry) entry).getRecord();
+            if (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE) {
+                //空间不足，页分裂
+                DataPage newDataPage = dataPage.split();
+                newDataPage.insertRecord(record);
+                return newDataPage.getPageId();
+//                return split();
+            } else {
+                //插入页中
+                dataPage.insertRecord(record);
+                return NULL_PAGE_ID;
+            }
+        } else {
+
         }
 
-        return null;
+
+        return NULL_PAGE_ID;
     }
 
     @Override
-    public Value<?> getMinKey() {
+    public Value<?> getFloorKey() {
         return entries.get(0).getKey();
     }
 
     @Override
     public void readFromPage(int pageId) {
-        Page page = BufferPool.getInstance().getPage(pageId);
-        DataPage dataPage = new DataPage(pageId,page);
-        int n = dataPage.getRecordCount();
-        for (int i = 0; i < n; i++) {
-            Slot slot = dataPage.getSlot(i);
-            entries.add(new IndexEntry(Value.ofInt(slot.getPrimaryKey()), new PagePointer(pageId, i)));
-        }
+//        Page page = BufferPool.getInstance().getPage(pageId);
+//        DataPage dataPage = new DataPage(pageId, page);
+//        int n = dataPage.getRecordCount();
+//        for (int i = 0; i < n; i++) {
+//            Slot slot = dataPage.getSlot(i);
+//            entries.add(new IndexEntry(Value.ofInt(slot.getPrimaryKey()), new PagePointer(pageId, i)));
+//        }
     }
 
     @Override
@@ -182,7 +263,10 @@ class LeafNode extends Node {
     }
 
     private LeafNode split() {
-        LeafNode newLeaf = new LeafNode();
+        BufferPool bp = BufferPool.getInstance();
+        Page newPage = bp.getPage(bp.getMaxPageId());
+
+        LeafNode newLeaf = new LeafNode(bp.getMaxPageId() - 1, newPage);
 
         int splitIndex = entries.size() / 2;
 

@@ -1,6 +1,7 @@
 package com.idme.table;
 
 public class PagePointer {
+    public static final int SIZE = Integer.BYTES * 2;
     public int pageId;
     public int slotId;
 

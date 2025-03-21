@@ -110,7 +110,7 @@ class IntValue extends Value<Integer> {
     @Override
     public int compareTo(Value o) {
         if (o instanceof IntValue) {
-            return Integer.compare(value,(int)o.value);
+            return Integer.compare(value, (int) o.value);
         } else {
             throw new IllegalArgumentException("Unsupported type: " + o.getClass());
         }

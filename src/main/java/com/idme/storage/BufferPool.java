@@ -7,6 +7,11 @@ import java.util.Set;
 
 public class BufferPool {
     private static BufferPool instance;
+    /*
+     * 为了实现单表暂时这样写
+     * 后续要根据表空间来分配
+     * 缓冲池内应该有多张表的页*/
+    private static int maxPageId = 0;
     private final Disk disk;
     private final HashMap<Integer, Page> buffers;
 
@@ -21,6 +26,10 @@ public class BufferPool {
             return instance;
         }
         return instance;
+    }
+
+    public int getMaxPageId() {
+        return maxPageId;
     }
 
     public Page getPage(int pageId) {
@@ -38,22 +47,17 @@ public class BufferPool {
     public Page newPage(int pageId) {
         Page page = new Page();
         buffers.put(pageId, page);
+        maxPageId = pageId + 1;
         return page;
     }
 
     public void flush() {
-//        for (Page page : buffers.values()) {
-//            if (page.isDirty()) {
-////                page.serialize();
-//                disk.writePage("test.db", page.pageId, page.getData());
-//            }
-//        }
         Set<Map.Entry<Integer, Page>> entries = buffers.entrySet();
         for (Map.Entry<Integer, Page> entry : entries) {
             Page page = entry.getValue();
-//            if (page.isDirty()) {
+            if (page.isDirty()) {
                 disk.writePage("test.db", entry.getKey(), page.getData());
-//            }
+            }
         }
     }
 

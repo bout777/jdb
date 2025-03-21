@@ -4,20 +4,21 @@ import static com.idme.common.Constants.PAGE_SIZE;
 
 public class Page {
     private byte[] data;
-    private  boolean isDirty;
+    private boolean isDirty;
 
-    public Page(){
+    public Page() {
         this.data = new byte[PAGE_SIZE];
     }
-    public void setDirty(boolean dirty){
-        this.isDirty = dirty;
-    }
 
-    public boolean isDirty(){
+    public boolean isDirty() {
         return this.isDirty;
     }
 
-    public byte[] getData(){
+    public void setDirty(boolean dirty) {
+        this.isDirty = dirty;
+    }
+
+    public byte[] getData() {
         return this.data;
     }
 

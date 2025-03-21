@@ -2,8 +2,6 @@ package com.idme.table;
 
 import java.nio.ByteBuffer;
 
-import static com.idme.common.Constants.SLOT_SIZE;
-
 public class Slot {
     //两个int，占用
     int offset;
@@ -22,10 +20,6 @@ public class Slot {
     public Slot() {
     }
 
-    public int getPrimaryKey() {
-        return primaryKey;
-    }
-
     public static Slot deserialize(int offset, ByteBuffer buffer) {
         Slot slot = new Slot();
         slot.offset = buffer.getInt(offset);
@@ -36,7 +30,11 @@ public class Slot {
         return slot;
     }
 
-    public void serialize(int offset,ByteBuffer buffer) {
+    public int getPrimaryKey() {
+        return primaryKey;
+    }
+
+    public void serialize(int offset, ByteBuffer buffer) {
         buffer.putInt(offset, this.offset);
         offset += Integer.BYTES;
         buffer.putInt(offset, this.size);

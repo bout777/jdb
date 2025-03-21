@@ -1,14 +1,12 @@
 package com.idme.table;
 
 import com.idme.catalog.ColumnList;
+import com.idme.storage.BufferPool;
 import com.idme.storage.Page;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
-import static com.idme.common.Constants.PAGE_SIZE;
-import static com.idme.common.Constants.SLOT_SIZE;
+import static com.idme.common.Constants.*;
 
 /*
  *
@@ -23,14 +21,16 @@ import static com.idme.common.Constants.SLOT_SIZE;
  * */
 public class DataPage {
 
-    private static final int HEADER_SIZE = Integer.BYTES * 4;
-    private static final int PAGE_ID_OFFSET = 0;
-    private static final int NEXT_PAGE_ID_OFFSET = Integer.BYTES;
+    private static final int HEADER_SIZE = Integer.BYTES * 4 + Byte.BYTES;
+    private static final int PAGE_TYPE_OFFSET = 0;
+    private static final int PAGE_ID_OFFSET = Byte.BYTES;
+    private static final int NEXT_PAGE_ID_OFFSET = PAGE_ID_OFFSET + Integer.BYTES;
     private static final int LOWER_OFFSET = NEXT_PAGE_ID_OFFSET + Integer.BYTES;
     private static final int UPPER_OFFSET = LOWER_OFFSET + Integer.BYTES;
 
     private final ByteBuffer buffer;
     private Page page;
+
 
     public DataPage(int id, Page page) {
         buffer = ByteBuffer.wrap(page.getData());
@@ -39,10 +39,13 @@ public class DataPage {
     }
 
     public void init() {
-        setNextPageId(Integer.MAX_VALUE);
+        setNextPageId(NULL_PAGE_ID);
         setLower(HEADER_SIZE);
         setUpper(PAGE_SIZE);
+        byte b= 2;
+        buffer.put(0,b);
     }
+
     public int getNextPageId() {
         return buffer.getInt(NEXT_PAGE_ID_OFFSET);
     }
@@ -51,7 +54,7 @@ public class DataPage {
         buffer.putInt(NEXT_PAGE_ID_OFFSET, nextPageId);
     }
 
-    public int getPageId(){
+    public int getPageId() {
         return buffer.getInt(PAGE_ID_OFFSET);
     }
 
@@ -76,7 +79,6 @@ public class DataPage {
     }
 
 
-
     public int getRecordCount() {
         return (getLower() - HEADER_SIZE) / SLOT_SIZE;
     }
@@ -88,14 +90,15 @@ public class DataPage {
     public void setDirty(boolean dirty) {
         page.setDirty(dirty);
     }
-    public Slot getSlot(int slotId){
+
+    public Slot getSlot(int slotId) {
         int offset = HEADER_SIZE + slotId * SLOT_SIZE;
-        return Slot.deserialize(offset,buffer);
+        return Slot.deserialize(offset, buffer);
     }
 
-    private void putSlot(Slot slot){
+    private void putSlot(Slot slot) {
         int offset = HEADER_SIZE + slot.offset * SLOT_SIZE;
-        slot.serialize(offset,buffer);
+        slot.serialize(offset, buffer);
     }
 //    public List<PagePointer> getPointers() {
 //        List<PagePointer> pointers = new ArrayList<>();
@@ -229,10 +232,34 @@ public class DataPage {
         byte[] data = page.getData();
         //本地方法移动byte数组，腾出插入位置
         int offset = HEADER_SIZE + low * SLOT_SIZE;
-        System.arraycopy(data, offset, data, offset+SLOT_SIZE, (getRecordCount() - low) * SLOT_SIZE);
+        System.arraycopy(data, offset, data, offset + SLOT_SIZE, (getRecordCount() - low) * SLOT_SIZE);
         slot.serialize(offset, buffer);
     }
 
 
+    /*
+     * 为了测试索引的查找和升序插入，暂时不理会插入的有序性
+     * 在测试代码中保证按照主键的升序插入*/
+    public DataPage split() {
+        BufferPool bp = BufferPool.getInstance();
+        Page newPage = bp.newPage(bp.getMaxPageId());
+
+        DataPage newDataPage = new DataPage(bp.getMaxPageId() - 1, newPage);
+//        int count = getRecordCount() / 2;
+//        for (int i = count/2; i < count; i++) {
+//            Record record = getRecord(i, ColumnList.instance);
+//            newDataPage.insertRecord(record);
+//        }
+        newDataPage.init();
+
+        newDataPage.setNextPageId(this.getNextPageId());
+        this.setNextPageId(newDataPage.getPageId());
+
+        return newDataPage;
+    }
+
+
+    public void optimize() {
+    }
 
 }

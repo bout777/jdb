@@ -4,11 +4,12 @@ import com.idme.catalog.ColumnList;
 import com.idme.storage.BufferPool;
 import com.idme.storage.Page;
 
+import static com.idme.common.Constants.NULL_PAGE_ID;
 import static com.idme.common.Constants.SLOT_SIZE;
 
 public class Table {
     BufferPool bufferPool;
-    int firstPageId = Integer.MAX_VALUE;
+    int firstPageId = NULL_PAGE_ID;
     ColumnList columnList;
 
     public Table(BufferPool bufferPool, ColumnList columnList) {
@@ -26,7 +27,7 @@ public class Table {
 
     public void insertRecord(Record record) {
         //表还没有页面，创建一个
-        if (firstPageId == Integer.MAX_VALUE) {
+        if (firstPageId == NULL_PAGE_ID) {
             firstPageId = 0;
             bufferPool.newPage(firstPageId);
             DataPage dataPage = new DataPage(firstPageId, bufferPool.getPage(firstPageId));
@@ -38,12 +39,12 @@ public class Table {
         DataPage dataPage = new DataPage(pageId, bufferPool.getPage(pageId));
 
         //遍历页面，找到一个能插入的
-        while (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE && dataPage.getNextPageId() != Integer.MAX_VALUE) {
+        while (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE && dataPage.getNextPageId() != NULL_PAGE_ID) {
             pageId++;
             dataPage = new DataPage(pageId, bufferPool.getPage(pageId));
         }
         //如果找不到，创建一个新页面
-        if (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE && dataPage.getNextPageId() == Integer.MAX_VALUE) {
+        if (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE && dataPage.getNextPageId() == NULL_PAGE_ID) {
             pageId++;
             dataPage.setNextPageId(pageId);
             Page page = bufferPool.newPage(pageId);

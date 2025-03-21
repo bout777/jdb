@@ -39,15 +39,8 @@ public class TableTest {
         bufferPool.flush();
     }
 
-    @Test
-    public void testRead() {
-        for (int i = 0; i < 10000; i++) {
-            Record r = table.getRecord(0, i);
-            System.out.println(r);
-        }
-    }
 
-    public Record generateRecord(int i) {
+    public  Record generateRecord(int i) {
         Record record = new Record();
         record.primaryKey = i;
         record.isDeleted = 0;

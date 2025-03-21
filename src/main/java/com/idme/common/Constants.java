@@ -5,4 +5,6 @@ public class Constants {
 
     //offset,size,primary key
     public final static int SLOT_SIZE = 3 * Integer.BYTES;
+
+    public final static int NULL_PAGE_ID = -1;
 }

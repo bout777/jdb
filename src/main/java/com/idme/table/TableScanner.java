@@ -2,6 +2,8 @@ package com.idme.table;
 
 import com.idme.storage.BufferPool;
 
+import static com.idme.common.Constants.NULL_PAGE_ID;
+
 public class TableScanner {
     private final BufferPool bufferPool;
     private final Table table;
@@ -13,10 +15,10 @@ public class TableScanner {
 
     public Record getNextRecord(PagePointer pointer) {
         System.out.println(pointer);
-        if (pointer.pageId == Integer.MAX_VALUE)
+        if (pointer.pageId == NULL_PAGE_ID)
             return null;
 
-        DataPage dataPage = new DataPage(pointer.pageId,bufferPool.getPage(pointer.pageId));
+        DataPage dataPage = new DataPage(pointer.pageId, bufferPool.getPage(pointer.pageId));
         Record record = dataPage.getRecord(pointer.slotId, table.columnList);
 
 
