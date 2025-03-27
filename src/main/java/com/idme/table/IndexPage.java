@@ -102,6 +102,7 @@ public class IndexPage {
             bf.putInt(offset + Integer.BYTES, p.slotId);
 
             setEntryCount(count + 1);
+            page.setDirty(true);
             return;
         }
         throw new RuntimeException("wrong entry type");
@@ -131,6 +132,20 @@ public class IndexPage {
 
         return newIndexPage;
     }
+
+
+
+    public Value<?> getKey(int kno) {
+        int offset = HEADER_SIZE + Integer.SIZE * kno + PagePointer.SIZE * (kno + 1);
+        return Value.deserialize(bf, offset, DataType.INTEGER);
+    }
+
+    public int getChild(int cno) {
+        int offset = HEADER_SIZE + Integer.SIZE * cno + PagePointer.SIZE * cno;
+        return bf.getInt(offset);
+    }
+
+
 
     public Value<?> getFloorKey() {
         return Value.deserialize(bf, HEADER_SIZE, DataType.INTEGER);

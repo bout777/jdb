@@ -42,8 +42,8 @@ public class DataPage {
         setNextPageId(NULL_PAGE_ID);
         setLower(HEADER_SIZE);
         setUpper(PAGE_SIZE);
-        byte b= 2;
-        buffer.put(0,b);
+        byte b = 2;
+        buffer.put(0, b);
     }
 
     public int getNextPageId() {

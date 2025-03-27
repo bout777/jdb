@@ -7,7 +7,11 @@ import com.idme.table.Record;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Random;
+
 public class DuraBPTest {
+    Random r = new Random();
+
 
     BPTree bpTree;
     TableTest tt;
@@ -27,7 +31,21 @@ public class DuraBPTest {
             bpTree.insert(e);
         }
         for (int i = 0; i < 1000; i++) {
-            IndexEntry e = bpTree.searchEqual(Value.ofInt(i));
+            IndexEntry e = bpTree.searchEqual(Value.ofInt(r.nextInt(1000)));
+            System.out.println(e);
+        }
+//
+//        for (int i = 0; i < 100; i++){
+//            IndexEntry e = bpTree.searchEqual(Value.ofInt(30));
+//            System.out.println(e);
+//        }
+        BufferPool.getInstance().flush();
+    }
+
+    @Test
+    public void testSearch(){
+        for (int i = 0; i < 1000; i++) {
+            IndexEntry e = bpTree.searchEqual(Value.ofInt(r.nextInt(1000)));
             System.out.println(e);
         }
     }

@@ -4,10 +4,7 @@ import com.idme.catalog.ColumnList;
 import com.idme.common.Value;
 import com.idme.storage.BufferPool;
 import com.idme.storage.Page;
-import com.idme.table.DataPage;
-import com.idme.table.IndexPage;
-import com.idme.table.PagePointer;
-import com.idme.table.Record;
+import com.idme.table.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -177,47 +174,54 @@ class LeafNode extends Node {
     private List<IndexEntry> entries;
     private LeafNode nextLeaf;
     private int pageId;
+    private DataPage dataPage;
 
     LeafNode(int pageId, Page page) {
         super();
         this.page = page;
         this.pageId = pageId;
-        entries = new ArrayList<>();
+//        entries = new ArrayList<>();
 
         //for test 从页中撸出来，叶子节点暂时只能放数据页
-        DataPage dataPage = new DataPage(pageId, page);
-        int cnt = dataPage.getRecordCount();
-        for (int i = 0; i < cnt; i++) {
-            Record record = dataPage.getRecord(i, ColumnList.instance);
-            entries.add(new ClusterIndexEntry(Value.ofInt(record.getPrimaryKey()), record));
-        }
+//        DataPage dataPage = new DataPage(pageId, page);
+//        int cnt = dataPage.getRecordCount();
+//        for (int i = 0; i < cnt; i++) {
+//            Record record = dataPage.getRecord(i, ColumnList.instance);
+//            entries.add(new ClusterIndexEntry(Value.ofInt(record.getPrimaryKey()), record));
+//        }
+
+        dataPage = new DataPage(pageId, page);
     }
 
     @Override
     public IndexEntry search(Value<?> key) {
-        int low = 0, high = entries.size() - 1;
-        while (low <= high) {
+        int low = 0, high = dataPage.getRecordCount() - 1;
+        Record r;
+        while (low <= high){
             int mid = (low + high) >>> 1;
-            IndexEntry e = entries.get(mid);
-            if (e.getKey().compareTo(key) > 0)
+            Slot slot = dataPage.getSlot(mid);
+            int mk = slot.getPrimaryKey();
+            if(key.getValue(Integer.class)<mk)
                 high = mid - 1;
-            else if (e.getKey().compareTo(key) < 0)
+            else if(key.getValue(Integer.class)>mk)
                 low = mid + 1;
-            else
-                return e;
+            else {
+                r = dataPage.getRecord(mid, ColumnList.instance);
+                return new ClusterIndexEntry(Value.ofInt(mk), r);
+            }
         }
         throw new RuntimeException("key not found");
     }
 
     @Override
     public int insert(IndexEntry entry) {
-        int insertIndex = Collections.binarySearch(entries, entry);
-        //暂时只能插入唯一键
-        if (insertIndex >= 0) {
-            throw new RuntimeException("key already exist");
-        }
-        insertIndex = -insertIndex - 1;
-        entries.add(insertIndex, entry);
+//        int insertIndex = Collections.binarySearch(entries, entry);
+//        //暂时只能插入唯一键
+//        if (insertIndex >= 0) {
+//            throw new RuntimeException("key already exist");
+//        }
+//        insertIndex = -insertIndex - 1;
+//        entries.add(insertIndex, entry);
 
         if (entry instanceof ClusterIndexEntry) {
             DataPage dataPage = new DataPage(pageId, page);
@@ -243,7 +247,8 @@ class LeafNode extends Node {
 
     @Override
     public Value<?> getFloorKey() {
-        return entries.get(0).getKey();
+        int key = dataPage.getSlot(0).getPrimaryKey();
+        return Value.ofInt(key);
     }
 
     @Override
