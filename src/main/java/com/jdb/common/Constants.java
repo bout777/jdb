@@ -1,4 +1,4 @@
-package com.idme.common;
+package com.jdb.common;
 
 public class Constants {
     public final static int PAGE_SIZE = 16 * 1024;

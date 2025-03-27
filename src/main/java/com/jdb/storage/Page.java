@@ -1,6 +1,6 @@
-package com.idme.storage;
+package com.jdb.storage;
 
-import static com.idme.common.Constants.PAGE_SIZE;
+import static com.jdb.common.Constants.PAGE_SIZE;
 
 public class Page {
     private byte[] data;

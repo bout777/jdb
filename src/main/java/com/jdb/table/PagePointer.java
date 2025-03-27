@@ -1,4 +1,4 @@
-package com.idme.table;
+package com.jdb.table;
 
 public class PagePointer {
     public static final int SIZE = Integer.BYTES * 2;

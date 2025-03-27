@@ -1,16 +1,15 @@
-package com.idme.table;
+package com.jdb.table;
 
-import com.idme.common.DataType;
-import com.idme.common.Value;
-import com.idme.index.IndexEntry;
-import com.idme.index.SecondaryIndexEntry;
-import com.idme.storage.BufferPool;
-import com.idme.storage.Page;
+import com.jdb.common.DataType;
+import com.jdb.common.Value;
+import com.jdb.index.IndexEntry;
+import com.jdb.index.SecondaryIndexEntry;
+import com.jdb.storage.BufferPool;
+import com.jdb.storage.Page;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 
-import static com.idme.common.Constants.NULL_PAGE_ID;
+import static com.jdb.common.Constants.NULL_PAGE_ID;
 
 public class IndexPage {
     private static final int HEADER_SIZE = Integer.BYTES * 3 + Byte.BYTES;

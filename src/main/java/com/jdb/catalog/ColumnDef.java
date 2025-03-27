@@ -1,6 +1,6 @@
-package com.idme.catalog;
+package com.jdb.catalog;
 
-import com.idme.common.DataType;
+import com.jdb.common.DataType;
 
 public class ColumnDef {
     DataType type;

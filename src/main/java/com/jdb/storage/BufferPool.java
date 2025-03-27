@@ -1,4 +1,4 @@
-package com.idme.storage;
+package com.jdb.storage;
 
 
 import java.util.HashMap;

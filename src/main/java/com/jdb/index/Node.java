@@ -1,17 +1,16 @@
-package com.idme.index;
+package com.jdb.index;
 
-import com.idme.catalog.ColumnList;
-import com.idme.common.Value;
-import com.idme.storage.BufferPool;
-import com.idme.storage.Page;
-import com.idme.table.*;
+import com.jdb.catalog.ColumnList;
+import com.jdb.common.Value;
+import com.jdb.storage.BufferPool;
+import com.jdb.storage.Page;
+import com.jdb.table.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import static com.idme.common.Constants.NULL_PAGE_ID;
-import static com.idme.common.Constants.SLOT_SIZE;
+import static com.jdb.common.Constants.NULL_PAGE_ID;
+import static com.jdb.common.Constants.SLOT_SIZE;
 /*
  * TODO 内部节点children保存子节点的页号
  * TODO 用代理模式，写两种page的代理类，内部页和数据页，再写read和write方法

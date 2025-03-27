@@ -1,9 +1,9 @@
-import com.idme.common.Value;
-import com.idme.index.BPTree;
-import com.idme.index.ClusterIndexEntry;
-import com.idme.index.IndexEntry;
-import com.idme.storage.BufferPool;
-import com.idme.table.Record;
+import com.jdb.common.Value;
+import com.jdb.index.BPTree;
+import com.jdb.index.ClusterIndexEntry;
+import com.jdb.index.IndexEntry;
+import com.jdb.storage.BufferPool;
+import com.jdb.table.Record;
 import org.junit.Before;
 import org.junit.Test;
 

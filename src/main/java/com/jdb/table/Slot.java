@@ -1,4 +1,4 @@
-package com.idme.table;
+package com.jdb.table;
 
 import java.nio.ByteBuffer;
 

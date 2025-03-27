@@ -1,13 +1,13 @@
-package com.idme.index;
+package com.jdb.index;
 
-import com.idme.common.Value;
-import com.idme.storage.BufferPool;
-import com.idme.storage.Page;
-import com.idme.table.DataPage;
-import com.idme.table.IndexPage;
-import com.idme.table.PagePointer;
+import com.jdb.common.Value;
+import com.jdb.storage.BufferPool;
+import com.jdb.storage.Page;
+import com.jdb.table.DataPage;
+import com.jdb.table.IndexPage;
+import com.jdb.table.PagePointer;
 
-import static com.idme.common.Constants.NULL_PAGE_ID;
+import static com.jdb.common.Constants.NULL_PAGE_ID;
 
 public class BPTree implements Index {
     private BufferPool bufferPool;

@@ -1,12 +1,12 @@
-package com.idme.table;
+package com.jdb.table;
 
-import com.idme.catalog.ColumnList;
-import com.idme.storage.BufferPool;
-import com.idme.storage.Page;
+import com.jdb.catalog.ColumnList;
+import com.jdb.storage.BufferPool;
+import com.jdb.storage.Page;
 
 import java.nio.ByteBuffer;
 
-import static com.idme.common.Constants.*;
+import static com.jdb.common.Constants.*;
 
 /*
  *

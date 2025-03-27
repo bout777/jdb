@@ -1,4 +1,4 @@
-package com.idme.common;
+package com.jdb.common;
 
 public enum DataType {
     NULL,       // 0

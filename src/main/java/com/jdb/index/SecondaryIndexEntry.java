@@ -1,7 +1,7 @@
-package com.idme.index;
+package com.jdb.index;
 
-import com.idme.common.Value;
-import com.idme.table.PagePointer;
+import com.jdb.common.Value;
+import com.jdb.table.PagePointer;
 
 public class SecondaryIndexEntry extends IndexEntry {
     Value<?> key;

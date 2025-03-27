@@ -1,4 +1,4 @@
-package com.idme.common;
+package com.jdb.common;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;

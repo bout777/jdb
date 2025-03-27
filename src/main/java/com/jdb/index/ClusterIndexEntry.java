@@ -1,7 +1,7 @@
-package com.idme.index;
+package com.jdb.index;
 
-import com.idme.common.Value;
-import com.idme.table.Record;
+import com.jdb.common.Value;
+import com.jdb.table.Record;
 
 public class ClusterIndexEntry extends IndexEntry {
     Value<?> key;

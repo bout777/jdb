@@ -1,8 +1,8 @@
-package com.idme.table;
+package com.jdb.table;
 
-import com.idme.catalog.ColumnDef;
-import com.idme.catalog.ColumnList;
-import com.idme.common.Value;
+import com.jdb.catalog.ColumnDef;
+import com.jdb.catalog.ColumnList;
+import com.jdb.common.Value;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

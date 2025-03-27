@@ -1,6 +1,6 @@
-package com.idme.index;
+package com.jdb.index;
 
-import com.idme.common.Value;
+import com.jdb.common.Value;
 
 public abstract class IndexEntry implements Comparable<IndexEntry> {
 

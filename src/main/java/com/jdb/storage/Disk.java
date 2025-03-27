@@ -1,8 +1,8 @@
-package com.idme.storage;
+package com.jdb.storage;
 
 import java.io.RandomAccessFile;
 
-import static com.idme.common.Constants.PAGE_SIZE;
+import static com.jdb.common.Constants.PAGE_SIZE;
 
 public class Disk {
     RandomAccessFile file;

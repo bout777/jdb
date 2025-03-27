@@ -1,8 +1,8 @@
-package com.idme.table;
+package com.jdb.table;
 
-import com.idme.storage.BufferPool;
+import com.jdb.storage.BufferPool;
 
-import static com.idme.common.Constants.NULL_PAGE_ID;
+import static com.jdb.common.Constants.NULL_PAGE_ID;
 
 public class TableScanner {
     private final BufferPool bufferPool;

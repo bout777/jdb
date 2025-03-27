@@ -1,13 +1,13 @@
-import com.idme.catalog.ColumnDef;
-import com.idme.catalog.ColumnList;
-import com.idme.common.DataType;
-import com.idme.common.Value;
-import com.idme.storage.BufferPool;
-import com.idme.storage.Disk;
-import com.idme.table.PagePointer;
-import com.idme.table.Record;
-import com.idme.table.Table;
-import com.idme.table.TableScanner;
+import com.jdb.catalog.ColumnDef;
+import com.jdb.catalog.ColumnList;
+import com.jdb.common.DataType;
+import com.jdb.common.Value;
+import com.jdb.storage.BufferPool;
+import com.jdb.storage.Disk;
+import com.jdb.table.PagePointer;
+import com.jdb.table.Record;
+import com.jdb.table.Table;
+import com.jdb.table.TableScanner;
 import org.junit.Before;
 import org.junit.Test;
 
