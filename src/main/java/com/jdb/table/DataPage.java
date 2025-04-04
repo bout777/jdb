@@ -46,6 +46,10 @@ public class DataPage {
         buffer.put(0, b);
     }
 
+    public long getLsn() {
+        return 0;
+    }
+
     public int getNextPageId() {
         return buffer.getInt(NEXT_PAGE_ID_OFFSET);
     }
@@ -138,6 +142,27 @@ public class DataPage {
         this.setDirty(true);
     }
 
+    /**
+     * 原地更新记录
+     *
+     * @param record
+     */
+    public void insertRecord(int slotId, Record record) {
+        Slot slot = getSlot(slotId);
+        int offset = slot.offset;
+        record.serializeTo(buffer, offset);
+    }
+
+    public void deleteRecord(int slotId) {
+        Slot slot = getSlot(slotId);
+        deleteSlot(slotId);
+
+        Record record = new Record();
+        record.deserializeHeader(buffer, slot.offset);
+        record.setDeleted(true);
+        record.serializeHeader(buffer, slot.offset);
+    }
+
 //    public void deleteRecord(int slotId) {
 //        Slot slot = slots.get(slotId);
 //        Record record = new Record();
@@ -145,6 +170,7 @@ public class DataPage {
 //        record.setDeleted(true);
 //        record.serializeHeader(buffer, slot.offset);
 //    }
+
 
     public Record getRecord(int slotId, ColumnList columnList) {
         Record record = new Record();
@@ -234,6 +260,13 @@ public class DataPage {
         int offset = HEADER_SIZE + low * SLOT_SIZE;
         System.arraycopy(data, offset, data, offset + SLOT_SIZE, (getRecordCount() - low) * SLOT_SIZE);
         slot.serialize(offset, buffer);
+    }
+
+    private void deleteSlot(int slotId) {
+        int offset = HEADER_SIZE + slotId * SLOT_SIZE;
+        byte[] data = page.getData();
+        System.arraycopy(data, offset + SLOT_SIZE, data, offset, (getRecordCount() - slotId - 1) * SLOT_SIZE);
+        setLower(getLower() - SLOT_SIZE);
     }
 
 

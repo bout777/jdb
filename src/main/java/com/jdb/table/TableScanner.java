@@ -13,7 +13,7 @@ public class TableScanner {
         this.table = table;
     }
 
-    public Record getNextRecord(PagePointer pointer) {
+    public Record getNextRecord(RecordID pointer) {
         System.out.println(pointer);
         if (pointer.pageId == NULL_PAGE_ID)
             return null;

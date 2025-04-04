@@ -1,3 +1,5 @@
+package Table;
+
 public class PageTest {
 //    @Test
 //    public void testInsertRecord(){

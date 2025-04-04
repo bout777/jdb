@@ -73,7 +73,7 @@ public class IndexPage {
 //            }
 //        }
         //返回的是offset！！不是sequence
-        int low = 0,high = getEntryCount()-1;
+        int low = 0, high = getEntryCount() - 1;
         while (low <= high) {
             int mid = (low + high) >>> 1;
             IndexEntry e = getEntry(mid);
@@ -84,7 +84,7 @@ public class IndexPage {
             else
                 return mid;
         }
-        return low-1;
+        return low - 1;
 
     }
 
@@ -96,7 +96,7 @@ public class IndexPage {
 
             offset = entry.getKey().serialize(bf, offset);
 
-            PagePointer p = (PagePointer) entry.getValue();
+            RecordID p = (RecordID) entry.getValue();
             bf.putInt(offset, p.pageId);
             bf.putInt(offset + Integer.BYTES, p.slotId);
 
@@ -107,15 +107,15 @@ public class IndexPage {
         throw new RuntimeException("wrong entry type");
     }
 
-    public IndexEntry getEntry(int eid){
+    public IndexEntry getEntry(int eid) {
 //        Value<?> key = Value.ofInt(bf.getInt(offset));
 //        offset+=key.getBytes();
 //        PagePointer p = new PagePointer(bf.getInt(offset), bf.getInt(offset+Integer.BYTES));
 //        return new SecondaryIndexEntry(key, p);
-        int offset = HEADER_SIZE + eid * (Integer.BYTES + PagePointer.SIZE);
+        int offset = HEADER_SIZE + eid * (Integer.BYTES + RecordID.SIZE);
         Value<?> key = Value.deserialize(bf, offset, DataType.INTEGER);
         offset += key.getBytes();
-        PagePointer p = new PagePointer(bf.getInt(offset), bf.getInt(offset+Integer.BYTES));
+        RecordID p = new RecordID(bf.getInt(offset), bf.getInt(offset + Integer.BYTES));
         return new SecondaryIndexEntry(key, p);
     }
 
@@ -133,27 +133,25 @@ public class IndexPage {
     }
 
 
-
     public Value<?> getKey(int kno) {
-        int offset = HEADER_SIZE + Integer.SIZE * kno + PagePointer.SIZE * (kno + 1);
+        int offset = HEADER_SIZE + Integer.SIZE * kno + RecordID.SIZE * (kno + 1);
         return Value.deserialize(bf, offset, DataType.INTEGER);
     }
 
     public int getChild(int cno) {
-        int offset = HEADER_SIZE + Integer.SIZE * cno + PagePointer.SIZE * cno;
+        int offset = HEADER_SIZE + Integer.SIZE * cno + RecordID.SIZE * cno;
         return bf.getInt(offset);
     }
-
 
 
     public Value<?> getFloorKey() {
         return Value.deserialize(bf, HEADER_SIZE, DataType.INTEGER);
     }
 
-//    private IndexEntry deserializeEntry(int offset){
+    //    private IndexEntry deserializeEntry(int offset){
 //
 //    }
-    private void serializeEntry(IndexEntry entry, int offset){
+    private void serializeEntry(IndexEntry entry, int offset) {
 
     }
 }

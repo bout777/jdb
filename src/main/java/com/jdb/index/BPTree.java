@@ -5,7 +5,7 @@ import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
 import com.jdb.table.IndexPage;
-import com.jdb.table.PagePointer;
+import com.jdb.table.RecordID;
 
 import static com.jdb.common.Constants.NULL_PAGE_ID;
 
@@ -51,8 +51,8 @@ public class BPTree implements Index {
             InnerNode newRoot = new InnerNode(newpageId, newpage);
 
             //撸出新节点的两个儿子
-            PagePointer p1 = new PagePointer(root.pageId, 0);
-            PagePointer p2 = new PagePointer(newNode, 0);
+            RecordID p1 = new RecordID(root.pageId, 0);
+            RecordID p2 = new RecordID(newNode, 0);
             Node c2 = Node.load(newNode);
             IndexEntry e1 = new SecondaryIndexEntry(root.getFloorKey(), p1);
             IndexEntry e2 = new SecondaryIndexEntry(c2.getFloorKey(), p2);

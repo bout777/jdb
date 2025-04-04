@@ -4,6 +4,7 @@ import com.jdb.catalog.ColumnList;
 import com.jdb.common.Value;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
+import com.jdb.table.Record;
 import com.jdb.table.*;
 
 import java.util.ArrayList;
@@ -81,7 +82,7 @@ class InnerNode extends Node {
 ////            throw new RuntimeException("key not found");
 //            eid = -eid;
         IndexEntry floorEntry = indexPage.getEntry(eid);
-        PagePointer p = (PagePointer) floorEntry.getValue();
+        RecordID p = (RecordID) floorEntry.getValue();
         int pid = p.pageId;
 
         Node child = Node.load(pid);
@@ -102,7 +103,7 @@ class InnerNode extends Node {
 //
 //        eid = -eid-1;
         IndexEntry floorEntry = indexPage.getEntry(eid);
-        PagePointer p = (PagePointer) floorEntry.getValue();
+        RecordID p = (RecordID) floorEntry.getValue();
         int pid = p.pageId;
 
         Node child = Node.load(pid);
@@ -196,13 +197,13 @@ class LeafNode extends Node {
     public IndexEntry search(Value<?> key) {
         int low = 0, high = dataPage.getRecordCount() - 1;
         Record r;
-        while (low <= high){
+        while (low <= high) {
             int mid = (low + high) >>> 1;
             Slot slot = dataPage.getSlot(mid);
             int mk = slot.getPrimaryKey();
-            if(key.getValue(Integer.class)<mk)
+            if (key.getValue(Integer.class) < mk)
                 high = mid - 1;
-            else if(key.getValue(Integer.class)>mk)
+            else if (key.getValue(Integer.class) > mk)
                 low = mid + 1;
             else {
                 r = dataPage.getRecord(mid, ColumnList.instance);

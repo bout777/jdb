@@ -6,6 +6,7 @@ import com.jdb.table.Record;
 public class ClusterIndexEntry extends IndexEntry {
     Value<?> key;
     Record record;
+
     public ClusterIndexEntry(Value<?> key, Record record) {
         this.key = key;
         this.record = record;

@@ -7,6 +7,7 @@ import com.jdb.common.Value;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Record {
     public int primaryKey;
@@ -63,12 +64,6 @@ public class Record {
     public int deserializeFrom(ByteBuffer buffer, int offset, ColumnList columnList) {
         offset = deserializeHeader(buffer, offset);
         //TODO 这里暂时写死，后期要改
-//        value = new int[10];
-
-//        for (int i = 0; i < value.length; i++) {
-//            value[i] = buffer.getInt(offset);
-//            offset += Integer.BYTES;
-//        }
         for (ColumnDef def : columnList.columns()) {
             Value value = Value.deserialize(buffer, offset, def.getType());
             values.add(value);
@@ -93,6 +88,17 @@ public class Record {
     @Override
     public String toString() {
         return String.format("Record{primaryKey=%d, isDeleted=%d, size=%d, values=%s}", primaryKey, isDeleted, size, values);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Record record = (Record) o;
+        return primaryKey == record.primaryKey &&
+                Objects.equals(isDeleted, record.isDeleted) &&
+                size == record.size &&
+                values.equals(record.values);
     }
 
 

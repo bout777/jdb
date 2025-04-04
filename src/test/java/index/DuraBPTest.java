@@ -1,3 +1,6 @@
+package index;
+
+import Table.TableTest;
 import com.jdb.common.Value;
 import com.jdb.index.BPTree;
 import com.jdb.index.ClusterIndexEntry;
@@ -43,7 +46,7 @@ public class DuraBPTest {
     }
 
     @Test
-    public void testSearch(){
+    public void testSearch() {
         for (int i = 0; i < 1000; i++) {
             IndexEntry e = bpTree.searchEqual(Value.ofInt(r.nextInt(1000)));
             System.out.println(e);

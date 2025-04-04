@@ -25,6 +25,7 @@ public class Table {
         return record;
     }
 
+    //需要改成走索引插入
     public void insertRecord(Record record) {
         //表还没有页面，创建一个
         if (firstPageId == NULL_PAGE_ID) {
