@@ -18,6 +18,9 @@ public class BufferPool {
     // 临时修改，为了配合日志文件的测试
     private final Map<String, Page> buf = new HashMap<>();
 
+    // (filename->nextPageId)
+    private final Map<String, Integer> nextPage = new HashMap<>();
+
     private BufferPool(Disk disk) {
         buffers = new ConcurrentHashMap<>();
         this.disk = disk;
@@ -43,7 +46,6 @@ public class BufferPool {
         if (page == null) {
             page = new Page();
             disk.readPage("test.db", pageId, page.getData());
-//            page.deserialize();
         } else {
             return page;
         }
@@ -62,10 +64,11 @@ public class BufferPool {
         return page;
     }
 
-    public Page newPage(int pageId) {
+    public Page newPage(String fileName) {
         Page page = new Page();
-        buffers.put(pageId, page);
-        maxPageId = pageId + 1;
+        page.pid = nextPage.getOrDefault(fileName, 0);
+        nextPage.put(fileName, page.pid + 1);
+        buffers.put(page.pid, page);
         return page;
     }
 
@@ -100,6 +103,10 @@ public class BufferPool {
             throw new RuntimeException("page not found");
         disk.writePage(fileName, pageId, page.getData());
         page.setDirty(false);
+    }
+
+    public void shutdown() {
+        buffers.clear();
     }
 
 }

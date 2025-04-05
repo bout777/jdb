@@ -14,11 +14,10 @@ public class TableScanner {
     }
 
     public Record getNextRecord(RecordID pointer) {
-        System.out.println(pointer);
         if (pointer.pageId == NULL_PAGE_ID)
             return null;
 
-        DataPage dataPage = new DataPage(pointer.pageId, bufferPool.getPage(pointer.pageId));
+        DataPage dataPage = new DataPage(bufferPool.getPage(pointer.pageId));
         Record record = dataPage.getRecord(pointer.slotId, table.columnList);
 
 

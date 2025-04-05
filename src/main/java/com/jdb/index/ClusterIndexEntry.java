@@ -43,4 +43,13 @@ public class ClusterIndexEntry extends IndexEntry {
                 ", record=" + record +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ClusterIndexEntry that = (ClusterIndexEntry) o;
+        return key.equals(that.key) &&
+                record.equals(that.record);
+    }
 }

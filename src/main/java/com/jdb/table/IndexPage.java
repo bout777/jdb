@@ -19,7 +19,7 @@ public class IndexPage {
     private static final int ENTRY_COUNT_OFFSET = NEXT_PAGE_ID_OFFSET + Integer.BYTES;
     private final ByteBuffer bf;
     private Page page;
-
+    private String tableName = "test";
     public IndexPage(int id, Page page) {
         this.page = page;
         this.bf = ByteBuffer.wrap(page.getData());
@@ -121,9 +121,9 @@ public class IndexPage {
 
     public IndexPage split() {
         BufferPool bp = BufferPool.getInstance();
-        Page newPage = bp.newPage(bp.getMaxPageId());
+        Page newPage = bp.newPage(tableName);
 
-        IndexPage newIndexPage = new IndexPage(bp.getMaxPageId() - 1, newPage);
+        IndexPage newIndexPage = new IndexPage(newPage.pid, newPage);
         newIndexPage.init();
 
         newIndexPage.setNextPageId(this.getNextPageId());

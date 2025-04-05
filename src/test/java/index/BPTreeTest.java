@@ -1,16 +1,20 @@
-//import com.idme.common.Value;
-//import com.idme.index.BPTree;
-//import com.idme.index.IndexEntry;
-//import com.idme.table.PagePointer;
-//import org.junit.Before;
-//import org.junit.Test;
-//
-//public class BPTreeTest {
-//    BPTree bpTree;
-//
+package index;
+
+import com.jdb.common.Value;
+import com.jdb.index.BPTree;
+import com.jdb.index.ClusterIndexEntry;
+import com.jdb.index.IndexEntry;
+import com.jdb.storage.BufferPool;
+import com.jdb.table.RecordID;
+import org.junit.Before;
+import org.junit.Test;
+
+public class BPTreeTest {
+    BPTree bpTree;
+
 //    @Before
 //    public void init() {
-//        bpTree = new BPTree();
+//        bpTree = new BPTree(BufferPool.getInstance());
 //    }
 //
 //    @Test
@@ -37,6 +41,6 @@
 //    }
 //
 //    IndexEntry generateEntry(int i) {
-//        return new IndexEntry(Value.ofInt(i), new PagePointer(1, 1));
+//        return new ClusterIndexEntry(Value.ofInt(i), new RecordID(1, 1));
 //    }
-//}
+}

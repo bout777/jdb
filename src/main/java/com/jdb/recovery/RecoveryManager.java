@@ -117,7 +117,7 @@ public class RecoveryManager {
 
             //TODO 查询页表中对应页的reclsn
 
-            DataPage dataPage = new DataPage(pageId, BufferPool.getInstance().getPage(LOG_FILE_PATH, pageId));
+            DataPage dataPage = new DataPage( BufferPool.getInstance().getPage(LOG_FILE_PATH, pageId));
             if (dataPage.getLsn() > i) {
                 continue;
             }

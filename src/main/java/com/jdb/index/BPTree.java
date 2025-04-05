@@ -12,11 +12,11 @@ import static com.jdb.common.Constants.NULL_PAGE_ID;
 public class BPTree implements Index {
     private BufferPool bufferPool;
     private Node root;
-
+    private String tableName = "test";
     public BPTree(BufferPool bp) {
         bufferPool = bp;
-        Page page = bufferPool.newPage(bufferPool.getMaxPageId());
-        DataPage dataPage = new DataPage(bufferPool.getMaxPageId() - 1, page);
+        Page page = bufferPool.newPage(tableName);
+        DataPage dataPage = new DataPage(page);
         dataPage.init();
         root = new LeafNode(dataPage.getPageId(), page);
     }
@@ -41,14 +41,14 @@ public class BPTree implements Index {
 //            newRoot.children.add(root);
 //            newRoot.children.add(newNode);
             //新建一个索引页
-            int newpageId = bufferPool.getMaxPageId();
-            Page newpage = bufferPool.newPage(newpageId);
+//            int newpageId = bufferPool.getMaxPageId();
+            Page newpage = bufferPool.newPage(tableName);
 
-            IndexPage nipage = new IndexPage(newpageId, newpage);
+            IndexPage nipage = new IndexPage(newpage.pid, newpage);
             nipage.init();
 
             //新建内部节点，作为新的root
-            InnerNode newRoot = new InnerNode(newpageId, newpage);
+            InnerNode newRoot = new InnerNode(newpage.pid, newpage);
 
             //撸出新节点的两个儿子
             RecordID p1 = new RecordID(root.pageId, 0);

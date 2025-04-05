@@ -28,17 +28,20 @@ public class DataPage {
     private static final int LOWER_OFFSET = NEXT_PAGE_ID_OFFSET + Integer.BYTES;
     private static final int UPPER_OFFSET = LOWER_OFFSET + Integer.BYTES;
 
+    private String tableName = "test";
+
     private final ByteBuffer buffer;
     private Page page;
 
 
-    public DataPage(int id, Page page) {
+    public DataPage(Page page) {
         buffer = ByteBuffer.wrap(page.getData());
-        setPageId(id);
+        setPageId(page.pid);
         this.page = page;
     }
 
     public void init() {
+
         setNextPageId(NULL_PAGE_ID);
         setLower(HEADER_SIZE);
         setUpper(PAGE_SIZE);
@@ -275,14 +278,9 @@ public class DataPage {
      * 在测试代码中保证按照主键的升序插入*/
     public DataPage split() {
         BufferPool bp = BufferPool.getInstance();
-        Page newPage = bp.newPage(bp.getMaxPageId());
+        Page newPage = bp.newPage(tableName);
 
-        DataPage newDataPage = new DataPage(bp.getMaxPageId() - 1, newPage);
-//        int count = getRecordCount() / 2;
-//        for (int i = count/2; i < count; i++) {
-//            Record record = getRecord(i, ColumnList.instance);
-//            newDataPage.insertRecord(record);
-//        }
+        DataPage newDataPage = new DataPage( newPage);
         newDataPage.init();
 
         newDataPage.setNextPageId(this.getNextPageId());

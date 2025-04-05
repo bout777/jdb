@@ -31,6 +31,7 @@ public abstract class Node {
     //不应该保存对页对象的引用，而是从BufferPool随用随取，否则会造成大量内存无法回收，
 //    Page page;
 //    List<Value<?>> keys;
+    String tableName = "test";
 
     Node() {
 //        keys = new ArrayList<>();
@@ -82,8 +83,8 @@ class InnerNode extends Node {
 ////            throw new RuntimeException("key not found");
 //            eid = -eid;
         IndexEntry floorEntry = indexPage.getEntry(eid);
-        RecordID p = (RecordID) floorEntry.getValue();
-        int pid = p.pageId;
+        RecordID rid = (RecordID) floorEntry.getValue();
+        int pid = rid.pageId;
 
         Node child = Node.load(pid);
         return child.search(key);
@@ -183,14 +184,14 @@ class LeafNode extends Node {
 //        entries = new ArrayList<>();
 
         //for test 从页中撸出来，叶子节点暂时只能放数据页
-//        DataPage dataPage = new DataPage(pageId, page);
+//        DataPage dataPage = new DataPage(page);
 //        int cnt = dataPage.getRecordCount();
 //        for (int i = 0; i < cnt; i++) {
 //            Record record = dataPage.getRecord(i, ColumnList.instance);
 //            entries.add(new ClusterIndexEntry(Value.ofInt(record.getPrimaryKey()), record));
 //        }
 
-        dataPage = new DataPage(pageId, page);
+        dataPage = new DataPage(page);
     }
 
     @Override
@@ -224,14 +225,13 @@ class LeafNode extends Node {
 //        entries.add(insertIndex, entry);
 
         if (entry instanceof ClusterIndexEntry) {
-            DataPage dataPage = new DataPage(pageId, page);
+            DataPage dataPage = new DataPage(page);
             Record record = ((ClusterIndexEntry) entry).getRecord();
             if (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE) {
                 //空间不足，页分裂
                 DataPage newDataPage = dataPage.split();
                 newDataPage.insertRecord(record);
                 return newDataPage.getPageId();
-//                return split();
             } else {
                 //插入页中
                 dataPage.insertRecord(record);
@@ -254,7 +254,7 @@ class LeafNode extends Node {
     @Override
     public void readFromPage(int pageId) {
 //        Page page = BufferPool.getInstance().getPage(pageId);
-//        DataPage dataPage = new DataPage(pageId, page);
+//        DataPage dataPage = new DataPage(page);
 //        int n = dataPage.getRecordCount();
 //        for (int i = 0; i < n; i++) {
 //            Slot slot = dataPage.getSlot(i);
@@ -269,9 +269,9 @@ class LeafNode extends Node {
 
     private LeafNode split() {
         BufferPool bp = BufferPool.getInstance();
-        Page newPage = bp.getPage(bp.getMaxPageId());
+        Page newPage = bp.newPage(tableName);
 
-        LeafNode newLeaf = new LeafNode(bp.getMaxPageId() - 1, newPage);
+        LeafNode newLeaf = new LeafNode(newPage.pid, newPage);
 
         int splitIndex = entries.size() / 2;
 

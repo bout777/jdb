@@ -46,8 +46,7 @@ public class LogManagerTest {
             logManager.append(l);
         }
 
-
-        Iterator<LogRecord> iter = logManager.scanFrom(expected.get(0).getLsn());
+        var iter = logManager.scanFrom(expected.get(0).getLsn());
 
         for (int i = 0; i < 4; i++) {
             assertEquals(expected.get(i),iter.next());
@@ -68,9 +67,9 @@ public class LogManagerTest {
     }
 
     private LogRecord genatateLogRecord(LogType type) {
-        byte[] before = new byte[] { 1,1,1,1 };
-        byte[] after = new byte[] {7,7,7,7};
-        LogRecord log = new UpdateLog(11L,0,0L, (short) 0, before, after);
+        var before = new byte[]{1, 1, 1, 1};
+        var after = new byte[]{7, 7, 7, 7};
+        LogRecord log = new UpdateLog(11L, 0, 0L, (short) 0, before, after);
         return log;
     }
 

@@ -23,7 +23,7 @@ public class logRecordTest {
 
     @Before
     public void init() {
-        dataPage = new DataPage(0, BufferPool.getInstance().getPage(0));
+        dataPage = new DataPage( BufferPool.getInstance().getPage(0));
 
     }
 

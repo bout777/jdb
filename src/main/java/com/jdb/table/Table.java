@@ -11,7 +11,7 @@ public class Table {
     BufferPool bufferPool;
     int firstPageId = NULL_PAGE_ID;
     ColumnList columnList;
-
+    String tableName = "test";
     public Table(BufferPool bufferPool, ColumnList columnList) {
         this.bufferPool = bufferPool;
         this.columnList = columnList;
@@ -20,7 +20,7 @@ public class Table {
     // TODO 把get相关的逻辑弄好，测试，下一步才可以对接索引
     public Record getRecord(int pageId, int slotId) {
         Page page = bufferPool.getPage(pageId);
-        DataPage dataPage = new DataPage(pageId, page);
+        DataPage dataPage = new DataPage(page);
         Record record = dataPage.getRecord(slotId, columnList);
         return record;
     }
@@ -30,26 +30,26 @@ public class Table {
         //表还没有页面，创建一个
         if (firstPageId == NULL_PAGE_ID) {
             firstPageId = 0;
-            bufferPool.newPage(firstPageId);
-            DataPage dataPage = new DataPage(firstPageId, bufferPool.getPage(firstPageId));
+            bufferPool.newPage(tableName);
+            DataPage dataPage = new DataPage(bufferPool.getPage(firstPageId));
             dataPage.init();
         }
 
         int pageId = firstPageId;
 
-        DataPage dataPage = new DataPage(pageId, bufferPool.getPage(pageId));
+        DataPage dataPage = new DataPage(bufferPool.getPage(pageId));
 
         //遍历页面，找到一个能插入的
         while (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE && dataPage.getNextPageId() != NULL_PAGE_ID) {
             pageId++;
-            dataPage = new DataPage(pageId, bufferPool.getPage(pageId));
+            dataPage = new DataPage(bufferPool.getPage(pageId));
         }
         //如果找不到，创建一个新页面
         if (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE && dataPage.getNextPageId() == NULL_PAGE_ID) {
             pageId++;
             dataPage.setNextPageId(pageId);
-            Page page = bufferPool.newPage(pageId);
-            dataPage = new DataPage(pageId, page);
+            Page page = bufferPool.newPage(tableName);
+            dataPage = new DataPage(page);
             dataPage.init();
         }
 

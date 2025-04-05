@@ -10,7 +10,11 @@ import com.jdb.table.Record;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+
+import static org.junit.Assert.assertEquals;
 
 public class DuraBPTest {
     Random r = new Random();
@@ -27,29 +31,27 @@ public class DuraBPTest {
     }
 
     @Test
-    public void testInsert() {
+    public void testSimpleInsertAndSearch() {
+        List<IndexEntry> expect = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             Record record = tt.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), record);
             bpTree.insert(e);
+            expect.add(e);
         }
-        for (int i = 0; i < 1000; i++) {
-            IndexEntry e = bpTree.searchEqual(Value.ofInt(r.nextInt(1000)));
-            System.out.println(e);
-        }
-//
-//        for (int i = 0; i < 100; i++){
-//            IndexEntry e = bpTree.searchEqual(Value.ofInt(30));
-//            System.out.println(e);
-//        }
         BufferPool.getInstance().flush();
+        BufferPool.getInstance().shutdown();
+        for (int i = 0; i < 1000; i++) {
+            IndexEntry e = bpTree.searchEqual(Value.ofInt(i));
+            assertEquals(expect.get(i), e);
+        }
+
     }
 
     @Test
     public void testSearch() {
         for (int i = 0; i < 1000; i++) {
             IndexEntry e = bpTree.searchEqual(Value.ofInt(r.nextInt(1000)));
-            System.out.println(e);
         }
     }
 }

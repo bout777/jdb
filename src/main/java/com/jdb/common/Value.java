@@ -115,6 +115,14 @@ class IntValue extends Value<Integer> {
             throw new IllegalArgumentException("Unsupported type: " + o.getClass());
         }
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        IntValue intValue = (IntValue) o;
+        return value.equals(intValue.value);
+    }
 }
 
 // 字符串值（UTF-8编码）
@@ -174,6 +182,14 @@ class StringValue extends Value<String> {
             return value.compareTo((String) o.value);
         }
         throw new IllegalArgumentException("Unsupported type: " + o.getClass());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        StringValue that = (StringValue) o;
+        return value.equals(that.value);
     }
 }
 

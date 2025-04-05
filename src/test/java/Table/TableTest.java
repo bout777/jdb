@@ -13,7 +13,11 @@ import com.jdb.table.TableScanner;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+
+import static org.junit.Assert.assertEquals;
 
 public class TableTest {
     static Random r = new Random();
@@ -54,9 +58,22 @@ public class TableTest {
     @Test
     public void testInert() {
         System.out.println("insert");
-        for (int i = 0; i < 10000; i++)
-            table.insertRecord(generateRecord(i));
+        List<Record> expected = new ArrayList<>();
+        for (int i = 0; i < 10000; i++) {
+            Record re = generateRecord(i);
+            expected.add(re);
+            table.insertRecord(re);
+        }
         bufferPool.flush();
+        bufferPool.shutdown();
+
+        TableScanner sc = new TableScanner(bufferPool, table);
+        RecordID p = new RecordID(0, 0);
+
+        for (int i = 0; i < 10000; i++) {
+            Record r = sc.getNextRecord(p);
+            assertEquals(r, expected.get(i));
+        }
     }
 
     public Value generateValue() {
@@ -65,13 +82,7 @@ public class TableTest {
 
     @Test
     public void ScannerTest() {
-        testInert();
-        TableScanner sc = new TableScanner(bufferPool, table);
-        RecordID p = new RecordID(0, 0);
+//        testInert();
 
-        for (int i = 0; i < 10000; i++) {
-            Record r = sc.getNextRecord(p);
-            System.out.println(i + ":" + r);
-        }
     }
 }
