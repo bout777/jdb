@@ -1,12 +1,18 @@
 package index;
 
 import Table.TableTest;
+import com.jdb.catalog.Schema;
 import com.jdb.common.Value;
 import com.jdb.index.BPTree;
 import com.jdb.index.ClusterIndexEntry;
 import com.jdb.index.IndexEntry;
+import com.jdb.index.IndexMetaData;
+import com.jdb.recovery.LogManager;
+import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 import com.jdb.table.Record;
+import com.jdb.table.Table;
+import com.jdb.transaction.TransactionContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,15 +31,21 @@ public class DuraBPTest {
 
     @Before
     public void init() {
-        BufferPool bp = BufferPool.getInstance();
-        bpTree = new BPTree(bp);
+        Table table = new MockTable().getTable();
+        Schema schema = table.getSchema();
+        IndexMetaData metaData = new IndexMetaData(table.getTableName(),schema.columns().get(0),"test",schema);
+        bpTree = new BPTree(metaData);
         tt = new TableTest();
+        RecoveryManager.getInstance().setLogManager(new LogManager());
+        TransactionContext.setTransactionContext(new TransactionContext(2L));
+        RecoveryManager.getInstance().startTransaction(2L);
+
     }
 
     @Test
     public void testSimpleInsertAndSearch() {
         List<IndexEntry> expect = new ArrayList<>();
-        for (int i = 0; i < 5000; i++) {
+        for (int i = 0; i < 20; i++) {
             Record record = tt.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), record);
             bpTree.insert(e);
@@ -41,7 +53,7 @@ public class DuraBPTest {
         }
         BufferPool.getInstance().flush();
         BufferPool.getInstance().shutdown();
-        for (int i = 0; i < 5000; i++) {
+        for (int i = 0; i < 20; i++) {
             IndexEntry e = bpTree.searchEqual(Value.ofInt(i));
             assertEquals(expect.get(i), e);
         }

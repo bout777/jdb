@@ -1,7 +1,7 @@
 package com.jdb.table;
 
 import com.jdb.catalog.ColumnDef;
-import com.jdb.catalog.ColumnList;
+import com.jdb.catalog.Schema;
 import com.jdb.common.Value;
 
 import java.nio.ByteBuffer;
@@ -61,10 +61,10 @@ public class Record {
         return offset;
     }
 
-    public int deserializeFrom(ByteBuffer buffer, int offset, ColumnList columnList) {
+    public int deserializeFrom(ByteBuffer buffer, int offset, Schema schema) {
         offset = deserializeHeader(buffer, offset);
         //TODO 这里暂时写死，后期要改
-        for (ColumnDef def : columnList.columns()) {
+        for (ColumnDef def : schema.columns()) {
             Value value = Value.deserialize(buffer, offset, def.getType());
             values.add(value);
             offset += value.getBytes();
@@ -87,7 +87,7 @@ public class Record {
 
     @Override
     public String toString() {
-        return String.format("Record{primaryKey=%d, isDeleted=%d, size=%d, values=%s}", primaryKey, isDeleted, size, values);
+        return String.format("Record{primaryKey=%d, isDeleted=%b, size=%d, values=%s}", primaryKey, isDeleted, size, values);
     }
 
     @Override

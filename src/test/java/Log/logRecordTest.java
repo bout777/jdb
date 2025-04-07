@@ -1,21 +1,16 @@
 package Log;
 
-import Table.TableTest;
-import com.jdb.catalog.ColumnList;
-import com.jdb.common.Value;
 import com.jdb.recovery.LogRecord;
 import com.jdb.recovery.logs.InsertLog;
 import com.jdb.recovery.logs.MasterLog;
 import com.jdb.recovery.logs.UpdateLog;
 import com.jdb.storage.BufferPool;
 import com.jdb.table.DataPage;
-import com.jdb.table.Record;
 import com.jdb.table.RecordID;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 

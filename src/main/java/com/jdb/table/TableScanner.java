@@ -18,7 +18,7 @@ public class TableScanner {
             return null;
 
         DataPage dataPage = new DataPage(bufferPool.getPage(pointer.pageId));
-        Record record = dataPage.getRecord(pointer.slotId, table.columnList);
+        Record record = dataPage.getRecord(pointer.slotId, table.schema);
 
 
         if (pointer.slotId < dataPage.getRecordCount() - 1) {

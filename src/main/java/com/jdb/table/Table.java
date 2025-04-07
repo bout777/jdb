@@ -1,6 +1,6 @@
 package com.jdb.table;
 
-import com.jdb.catalog.ColumnList;
+import com.jdb.catalog.Schema;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 
@@ -10,18 +10,29 @@ import static com.jdb.common.Constants.SLOT_SIZE;
 public class Table {
     BufferPool bufferPool;
     int firstPageId = NULL_PAGE_ID;
-    ColumnList columnList;
+
+    public Schema getSchema() {
+        return schema;
+    }
+
+    Schema schema;
     String tableName = "test";
-    public Table(BufferPool bufferPool, ColumnList columnList) {
-        this.bufferPool = bufferPool;
-        this.columnList = columnList;
+    public Table(String name, Schema schema) {
+        this.bufferPool = BufferPool.getInstance();
+        this.schema = schema;
+        this.tableName = name;
+    }
+
+    public String getTableName() {
+
+        return tableName;
     }
 
     // TODO 把get相关的逻辑弄好，测试，下一步才可以对接索引
-    public Record getRecord(int pageId, int slotId) {
-        Page page = bufferPool.getPage(pageId);
+    public Record getRecord(RecordID rid) {
+        Page page = bufferPool.getPage(rid.pageId);
         DataPage dataPage = new DataPage(page);
-        Record record = dataPage.getRecord(slotId, columnList);
+        Record record = dataPage.getRecord(rid.slotId, schema);
         return record;
     }
 

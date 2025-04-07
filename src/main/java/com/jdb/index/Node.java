@@ -1,6 +1,6 @@
 package com.jdb.index;
 
-import com.jdb.catalog.ColumnList;
+import com.jdb.catalog.Schema;
 import com.jdb.common.Value;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
@@ -15,6 +15,7 @@ import static com.jdb.common.Constants.NULL_PAGE_ID;
 import static com.jdb.common.Constants.SLOT_SIZE;
 
 public abstract class Node {
+    protected IndexMetaData metaData;
     static final int ORDER = 4;
     public int pageId;
     Page page;
@@ -27,18 +28,15 @@ public abstract class Node {
 //        keys = new ArrayList<>();
     }
 
-    public static Node load(int pageId) {
+    public static Node load(IndexMetaData metaData,int pageId) {
         BufferPool bp = BufferPool.getInstance();
-        Page page = bp.getPage(pageId);
+        Page page = bp.getPage(metaData.getTableName(), pageId);
         byte[] data = page.getData();
-        switch (data[0]) {
-            case 0x01:
-                return new InnerNode(pageId, page);
-            case 0x02:
-                return new LeafNode(pageId, page);
-            default:
-                throw new UnsupportedOperationException("unknown page type");
-        }
+        return switch (data[0]) {
+            case 0x01 -> new InnerNode(metaData,pageId, page);
+            case 0x02 -> new LeafNode(metaData,pageId, page);
+            default -> throw new UnsupportedOperationException("unknown page type");
+        };
     }
 
     public abstract IndexEntry search(Value<?> key);
@@ -55,10 +53,10 @@ public abstract class Node {
 class InnerNode extends Node {
 
     IndexPage indexPage;
-
-    public InnerNode(int pageId, Page page) {
+    public InnerNode(IndexMetaData metaData,int pageId, Page page) {
         this.page = page;
         this.pageId = pageId;
+        this.metaData = metaData;
         indexPage = new IndexPage(pageId, page);
     }
 
@@ -76,7 +74,7 @@ class InnerNode extends Node {
         RecordID rid = (RecordID) floorEntry.getValue();
         int pid = rid.pageId;
 
-        Node child = Node.load(pid);
+        Node child = Node.load(metaData,pid);
         return child.search(key);
     }
 
@@ -97,13 +95,13 @@ class InnerNode extends Node {
         RecordID p = (RecordID) floorEntry.getValue();
         int pid = p.pageId;
 
-        Node child = Node.load(pid);
+        Node child = Node.load(metaData,pid);
 
         int newChildPid = child.insert(entry);
         if (newChildPid == NULL_PAGE_ID) {
             return NULL_PAGE_ID;
         }
-        Node newChild = Node.load(newChildPid);
+        Node newChild = Node.load(metaData,newChildPid);
         indexPage.insert(new SecondaryIndexEntry(newChild.getFloorKey(),new RecordID(newChildPid,0)));
 
 //        if (indexPage.getEntryCount() >= 100) {
@@ -161,8 +159,9 @@ class LeafNode extends Node {
     private LeafNode nextLeaf;
     private DataPage dataPage;
 
-    LeafNode(int pageId, Page page) {
+    LeafNode(IndexMetaData metaData,int pageId, Page page) {
         super();
+        this.metaData = metaData;
         this.page = page;
         this.pageId = pageId;
 
@@ -182,7 +181,7 @@ class LeafNode extends Node {
             else if (key.getValue(Integer.class) > mk)
                 low = mid + 1;
             else {
-                r = dataPage.getRecord(mid, ColumnList.instance);
+                r = dataPage.getRecord(mid,metaData.getTableSchema());
                 return new ClusterIndexEntry(Value.ofInt(mk), r);
             }
         }
@@ -246,7 +245,7 @@ class LeafNode extends Node {
         BufferPool bp = BufferPool.getInstance();
         Page newPage = bp.newPage(tableName);
 
-        LeafNode newLeaf = new LeafNode(newPage.pid, newPage);
+        LeafNode newLeaf = new LeafNode(metaData,newPage.pid, newPage);
 
         int splitIndex = entries.size() / 2;
 

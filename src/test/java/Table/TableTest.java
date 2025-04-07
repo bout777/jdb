@@ -1,7 +1,7 @@
 package Table;
 
 import com.jdb.catalog.ColumnDef;
-import com.jdb.catalog.ColumnList;
+import com.jdb.catalog.Schema;
 import com.jdb.common.DataType;
 import com.jdb.common.Value;
 import com.jdb.storage.BufferPool;
@@ -24,7 +24,7 @@ public class TableTest {
     Table table;
     BufferPool bufferPool;
     Disk disk;
-    ColumnList columnList;
+    Schema schema;
 
     public static Record generateRecord(int i) {
         Record record = new Record();
@@ -48,11 +48,11 @@ public class TableTest {
     public void init() {
 //        disk = new Disk();
         bufferPool = BufferPool.getInstance();
-        columnList = new ColumnList();
-        columnList.add(new ColumnDef(DataType.STRING, "name"));
-        columnList.add(new ColumnDef(DataType.INTEGER, "age"));
+        schema = new Schema();
+        schema.add(new ColumnDef(DataType.STRING, "name"));
+        schema.add(new ColumnDef(DataType.INTEGER, "age"));
 
-        table = new Table(bufferPool, columnList);
+        table = new Table("test", schema);
     }
 
     @Test

@@ -6,20 +6,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class ColumnList {
+public class Schema {
     //for test
-    public static final ColumnList instance;
+    public static final Schema instance;
 
     static {
-        instance = new ColumnList();
+        instance = new Schema();
         instance.add(new ColumnDef(DataType.STRING, "name"));
         instance.add(new ColumnDef(DataType.INTEGER, "age"));
     }
 
-    private final List<ColumnDef> columns;
-    private final HashMap<String, ColumnDef> columnsMap;
+    private List<ColumnDef> columns;
+    private HashMap<String, ColumnDef> columnsMap;
 
-    public ColumnList() {
+    public Schema() {
         columns = new ArrayList<>();
         columnsMap = new HashMap<>();
 

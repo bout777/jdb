@@ -1,6 +1,6 @@
 package com.jdb.table;
 
-import com.jdb.catalog.ColumnList;
+import com.jdb.catalog.Schema;
 import com.jdb.exception.DuplicateInsertException;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
@@ -41,7 +41,7 @@ public class DataPage {
     private final ByteBuffer buffer;
     private Page page;
 
-    private ColumnList columnList = ColumnList.instance;
+    private Schema schema = Schema.instance;
 
     public DataPage(Page page) {
         buffer = ByteBuffer.wrap(page.getData());
@@ -166,7 +166,7 @@ public class DataPage {
      */
     public void insertRecord(int slotId, byte[] image) throws DuplicateInsertException{
         Record record = new Record();
-        record.deserializeFrom(ByteBuffer.wrap(image), 0,columnList);
+        record.deserializeFrom(ByteBuffer.wrap(image), 0, schema);
         insertRecord(record);
     }
 
@@ -189,11 +189,11 @@ public class DataPage {
 //    }
 
 
-    public Record getRecord(int slotId, ColumnList columnList) {
+    public Record getRecord(int slotId, Schema schema) {
         Record record = new Record();
         Slot slot = getSlot(slotId);
         record.size = slot.size;
-        record.deserializeFrom(buffer, slot.offset, columnList);
+        record.deserializeFrom(buffer, slot.offset, schema);
         return record;
     }
 
@@ -341,7 +341,7 @@ public class DataPage {
         public Record next() {
             if (!hasNext())
                 throw new NoSuchElementException();
-            return getRecord(slotId++, columnList);
+            return getRecord(slotId++, schema);
         }
     }
 
