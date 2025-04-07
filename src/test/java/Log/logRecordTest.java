@@ -4,6 +4,7 @@ import Table.TableTest;
 import com.jdb.catalog.ColumnList;
 import com.jdb.common.Value;
 import com.jdb.recovery.LogRecord;
+import com.jdb.recovery.logs.InsertLog;
 import com.jdb.recovery.logs.MasterLog;
 import com.jdb.recovery.logs.UpdateLog;
 import com.jdb.storage.BufferPool;
@@ -30,11 +31,18 @@ public class logRecordTest {
     @Test
     public void SimpleSerialize() {
         MasterLog expected = new MasterLog(10L);
-        byte[] bytes = new byte[10];
-        expected.serialize(ByteBuffer.wrap(bytes), 0);
+        var buf =  ByteBuffer.allocate(200);
+        expected.serialize(buf, 0);
 
-        LogRecord log = LogRecord.deserialize(ByteBuffer.wrap(bytes), 0);
+        LogRecord log = LogRecord.deserialize(buf, 0);
         assertEquals(expected, log);
+
+        var image = new byte[]{1,2,3,4,5,6,7,8,9,10};
+        InsertLog insertLog = new InsertLog(114514L, 0,23L, new RecordID(0, 0),image);
+        insertLog.serialize(buf,0);
+
+        log = LogRecord.deserialize(buf, 0);
+        assertEquals(insertLog, log);
     }
 
     @Test
@@ -46,12 +54,4 @@ public class logRecordTest {
         assertEquals(expected, log);
     }
 
-    @Test
-    public void f() {
-        Record record = dataPage.getRecord(10, ColumnList.instance);
-        record.values.set(0, Value.ofString("xixi"));
-        record.values.set(1, Value.ofInt(100));
-        dataPage.insertRecord(10, record);
-        System.out.println(dataPage.getRecord(10, ColumnList.instance));
-    }
 }

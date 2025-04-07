@@ -33,7 +33,7 @@ public class DuraBPTest {
     @Test
     public void testSimpleInsertAndSearch() {
         List<IndexEntry> expect = new ArrayList<>();
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 5000; i++) {
             Record record = tt.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), record);
             bpTree.insert(e);
@@ -41,7 +41,7 @@ public class DuraBPTest {
         }
         BufferPool.getInstance().flush();
         BufferPool.getInstance().shutdown();
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 5000; i++) {
             IndexEntry e = bpTree.searchEqual(Value.ofInt(i));
             assertEquals(expect.get(i), e);
         }

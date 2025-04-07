@@ -1,5 +1,6 @@
 package com.jdb.recovery;
 
+import com.jdb.recovery.logs.InsertLog;
 import com.jdb.recovery.logs.MasterLog;
 import com.jdb.recovery.logs.UpdateLog;
 
@@ -10,10 +11,8 @@ import java.nio.ByteBuffer;
  */
 public abstract class LogRecord {
     protected long lsn;
-    protected long prevLsn;
-    protected long xid;
     protected LogType type;
-
+    protected static final int HEADER_SIZE = Byte.BYTES;
     protected LogRecord(LogType type) {
         this.type = type;
     }
@@ -27,14 +26,13 @@ public abstract class LogRecord {
         return switch (LogType.fromInt(type)) {
             case UPDATE -> UpdateLog.deserialize(buffer, offset);
             case MASTER -> MasterLog.deserialize(buffer, offset);
+            case INSERT -> InsertLog.deserialize(buffer, offset);
             default -> throw new UnsupportedOperationException("bad log type");
         };
 
     }
 
-    public long getPrevLsn() {
-        return prevLsn;
-    }
+    public long getPrevLsn(){return -1L;} ;
 
     public abstract int getPageId();
 
@@ -42,9 +40,9 @@ public abstract class LogRecord {
 
     public void setLsn(long lsn){this.lsn = lsn;};
 
-    public abstract long getXid();
+    public long getXid(){return -1L;};
 
-    public abstract void setXid(long xid);
+//    public void setXid(long xid){};
 
     public abstract int getSize();
 

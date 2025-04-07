@@ -36,12 +36,9 @@ public class BPTree implements Index {
         int newNode = root.insert(entry);
         if (newNode != NULL_PAGE_ID) {
             //分裂根节点
-//            InnerNode newRoot = new InnerNode();
-//            newRoot.keys.add(newNode.getFloorKey());
-//            newRoot.children.add(root);
-//            newRoot.children.add(newNode);
+
             //新建一个索引页
-//            int newpageId = bufferPool.getMaxPageId();
+
             Page newpage = bufferPool.newPage(tableName);
 
             IndexPage nipage = new IndexPage(newpage.pid, newpage);

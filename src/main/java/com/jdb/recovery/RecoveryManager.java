@@ -1,9 +1,6 @@
 package com.jdb.recovery;
 
-import com.jdb.recovery.logs.BeginLog;
-import com.jdb.recovery.logs.CommitLog;
-import com.jdb.recovery.logs.CompensationLog;
-import com.jdb.recovery.logs.UpdateLog;
+import com.jdb.recovery.logs.*;
 import com.jdb.storage.BufferPool;
 import com.jdb.table.DataPage;
 import com.jdb.table.Record;
@@ -11,6 +8,7 @@ import com.jdb.table.RecordID;
 import com.jdb.transaction.Transaction;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.jdb.common.Constants.*;
 
@@ -23,34 +21,61 @@ import static com.jdb.common.Constants.*;
 public class RecoveryManager {
     private BufferPool bufferPool;
     private List<LogRecord> logBuffer;
-
+    private LogManager logManager;
     //脏页表 <tablePagePtr,recLsn>
-    private Map<TablePageInfo, Integer> dirtyPagesTable;
+    private Map<Integer, Long> dirtyPagesTable =new ConcurrentHashMap<>();
     //活跃事务表 <xid,lsn>
-    private Map<Integer, Integer> transactionsTable;
+    private Map<Long, Long> transactionsTable = new ConcurrentHashMap<>();
 
-    public RecoveryManager() {
+    private RecoveryManager() {
         logBuffer = new ArrayList<>();
+
+    }
+    public void setLogManager(LogManager logManager) {
+        this.logManager = logManager;
+    }
+    public static RecoveryManager instance = new RecoveryManager();
+    public static RecoveryManager getInstance() {
+        return instance;
     }
 
     public void append(LogRecord logRecord) {
         logBuffer.add(logRecord);
     }
 
-    public void appendBeginLog(long xid) {
+    public synchronized void startTransaction(long xid) {
+        transactionsTable.put(xid, 0L);
+    }
+    //====== 追加日志 ======//
+    public void begin(long xid) {
         LogRecord log = new BeginLog(xid);
         append(log);
     }
 
-    public void appendUpdateLog(long xid, int pid, short offset, byte[] oldData, byte[] newData) {
+    public void logUpdate(long xid, int pid, short offset, byte[] oldData, byte[] newData) {
 //        UpdateLog log = new UpdateLog(xid, pid, offset, oldData, newData);
 //        append(log);
     }
 
-    public void appendInsertLog(long xid, RecordID rid, Record record) {
+    public long logInsert(long xid,int fid,RecordID rid, byte[] image) {
+        assert transactionsTable.containsKey(xid);
+
+        //获得事务表中对应事务的lastLsn，作为下一个日志记录的prevLsn
+        long prevLsn = transactionsTable.get(xid);
+        LogRecord log = new InsertLog(xid, fid, prevLsn,rid, image);
+
+        //追加日志
+        long lsn = logManager.append(log);
+
+        //更新活跃事务表
+        transactionsTable.put(xid, lsn);
+
+        //更新脏页表
+        dirtyPage(rid.pageId,lsn);
+        return lsn;
     }
 
-    public void appendCommitLog(long xid) {
+    public void commit(long xid) {
         LogRecord log = new CommitLog(xid);
         append(log);
     }
@@ -71,6 +96,11 @@ public class RecoveryManager {
                 log.undo();
             }
         }
+    }
+
+    private void dirtyPage(int pid,long lsn){
+        dirtyPagesTable.putIfAbsent(pid,lsn);
+        dirtyPagesTable.computeIfPresent(pid,(k,v)->Math.min(v,lsn));
     }
 
     //在recover中的每次日志写入都要刷盘！
@@ -157,10 +187,4 @@ public class RecoveryManager {
     public int getNextLsn() {
         return 0;
     }
-}
-
-class TablePageInfo {
-    private int tableId;
-    //已经被刷到磁盘的最大lsn
-    private int pageId;
 }

@@ -15,6 +15,11 @@ public class Page {
         this.buffer = ByteBuffer.wrap(this.data);
     }
 
+    public Page(byte[] data){
+        this.data = data;
+        this.buffer = ByteBuffer.wrap(this.data);
+    }
+
     public boolean isDirty() {
         return this.isDirty;
     }

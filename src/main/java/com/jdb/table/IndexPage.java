@@ -20,6 +20,7 @@ public class IndexPage {
     private final ByteBuffer bf;
     private Page page;
     private String tableName = "test";
+
     public IndexPage(int id, Page page) {
         this.page = page;
         this.bf = ByteBuffer.wrap(page.getData());
@@ -56,43 +57,38 @@ public class IndexPage {
     }
 
 
+    // return the index of max floor entry of key
     public int binarySearch(Value<?> key) {
-//        int size = PagePointer.SIZE+Integer.BYTES;
-//        int low = HEADER_SIZE, high = low+(getEntryCount()-1)*size;
-//        //TODO 先这样吧，测试一下
-//        int k = key.getValue(Integer.class);
-//        while (low<high+size){
-//            int mid = (low + high) >>> 1;
-//            int m = bf.getInt(mid);
-//            if (m > k)
-//                high = mid - size;
-//            else if (m < k)
-//                low = mid + size;
-//            else{
-//                return m;
-//            }
-//        }
-        //返回的是offset！！不是sequence
         int low = 0, high = getEntryCount() - 1;
         while (low <= high) {
             int mid = (low + high) >>> 1;
             IndexEntry e = getEntry(mid);
-            if (e.getKey().compareTo(key) > 0)
-                high = mid - 1;
-            else if (e.getKey().compareTo(key) < 0)
+            if (e.getKey().compareTo(key) <= 0) {
                 low = mid + 1;
-            else
-                return mid;
+            } else if (e.getKey().compareTo(key) > 0) {
+                high = mid - 1;
+            }
         }
-        return low - 1;
-
+        return low-1;
     }
 
     public void insert(IndexEntry entry) {
-        if (entry instanceof SecondaryIndexEntry) {
+        if (entry instanceof SecondaryIndexEntry ) {
             // TODO 先顺序插入，后面再改
-            int count = getEntryCount();
-            int offset = HEADER_SIZE + entry.getBytes() * count;
+//            int count = getEntryCount();
+//            int offset = HEADER_SIZE + entry.getBytes() * count;
+//
+//            offset = entry.getKey().serialize(bf, offset);
+//
+//            RecordID p = (RecordID) entry.getValue();
+//            bf.putInt(offset, p.pageId);
+//            bf.putInt(offset + Integer.BYTES, p.slotId);
+//
+//            setEntryCount(count + 1);
+//            page.setDirty(true);
+//            return;
+            int eid = binarySearch(entry.getKey())+1;
+            int offset = HEADER_SIZE + entry.getBytes()*eid;
 
             offset = entry.getKey().serialize(bf, offset);
 
@@ -100,11 +96,11 @@ public class IndexPage {
             bf.putInt(offset, p.pageId);
             bf.putInt(offset + Integer.BYTES, p.slotId);
 
-            setEntryCount(count + 1);
+            setEntryCount(getEntryCount()+1);
             page.setDirty(true);
             return;
         }
-        throw new RuntimeException("wrong entry type");
+        throw new UnsupportedOperationException("wrong entry type");
     }
 
     public IndexEntry getEntry(int eid) {

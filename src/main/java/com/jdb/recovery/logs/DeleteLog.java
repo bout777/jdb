@@ -26,20 +26,13 @@ public class DeleteLog extends LogRecord {
         return 0;
     }
 
-    @Override
-    public void setLsn(long lsn) {
 
-    }
 
     @Override
     public long getXid() {
         return 0;
     }
 
-    @Override
-    public void setXid(long xid) {
-
-    }
 
     @Override
     public int getSize() {

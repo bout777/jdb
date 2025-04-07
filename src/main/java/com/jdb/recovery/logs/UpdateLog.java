@@ -53,6 +53,11 @@ public class UpdateLog extends LogRecord {
     }
 
     @Override
+    public long getPrevLsn() {
+        return prevLsn;
+    }
+
+    @Override
     public int serialize(ByteBuffer buffer, int offset) {
         buffer.position(offset);
         buffer.put((byte) getType().getValue())
@@ -73,10 +78,6 @@ public class UpdateLog extends LogRecord {
     @Override
     public long getXid() {
         return xid;
-    }
-
-    @Override
-    public void setXid(long xid) {
     }
 
     @Override

@@ -1,17 +1,28 @@
 package com.jdb.transaction;
 
 public class TransactionContext {
-    private ThreadLocal<TransactionContext> threadTrx = new ThreadLocal<>();
+    private static ThreadLocal<TransactionContext> threadTrx = new ThreadLocal<>();
 
-    public TransactionContext getTransactionContext() {
+    private long xid;
+    public static TransactionContext getTransaction() {
         return threadTrx.get();
     }
 
-    public void setTransactionContext(TransactionContext transactionContext) {
-        this.threadTrx.set(transactionContext);
+    public TransactionContext(long xid) {
+        this.xid = xid;
     }
 
-    public void unsetTransaction() {
-        this.threadTrx.remove();
+    public static void setTransactionContext(TransactionContext transactionContext) {
+        threadTrx.set(transactionContext);
     }
+
+    public static void unsetTransaction() {
+        threadTrx.remove();
+    }
+
+    public long getXid() {
+        return xid;
+    }
+
+
 }

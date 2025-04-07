@@ -4,16 +4,20 @@ import com.jdb.common.Value;
 import com.jdb.recovery.LogManager;
 import com.jdb.recovery.LogRecord;
 import com.jdb.recovery.LogType;
+import com.jdb.recovery.RecoveryManager;
+import com.jdb.recovery.logs.InsertLog;
 import com.jdb.recovery.logs.MasterLog;
 import com.jdb.recovery.logs.UpdateLog;
 import com.jdb.storage.BufferPool;
+import com.jdb.storage.Page;
+import com.jdb.table.DataPage;
 import com.jdb.table.Record;
 import com.jdb.table.RecordID;
+import com.jdb.transaction.TransactionContext;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -39,6 +43,7 @@ public class LogManagerTest {
     @Test
     public void testIterScan() {
         List<LogRecord> expected = new ArrayList<>();
+
         for (int i = 0; i < 4; i++) {
             expected.add(genatateLogRecord(LogType.UPDATE));
         }
@@ -49,13 +54,62 @@ public class LogManagerTest {
         var iter = logManager.scanFrom(expected.get(0).getLsn());
 
         for (int i = 0; i < 4; i++) {
-            assertEquals(expected.get(i),iter.next());
+            assertEquals(expected.get(i), iter.next());
+        }
+    }
+    @Test
+    public void testIterInsert(){
+        var image = new byte[]{1,2,3,4,5,6,7,8,9,10};
+        List<LogRecord> expected = new ArrayList<>();
+
+        for (int i = 0; i < 4; i++) {
+            InsertLog insertLog = new InsertLog(114514L, 0,23L, new RecordID(0, 0),image);
+            expected.add(insertLog);
+        }
+
+        for (LogRecord l : expected) {
+            logManager.append(l);
+        }
+
+        var iter = logManager.scan();
+        for(LogRecord l:expected){
+            assertEquals(l, iter.next());
         }
     }
 
     @Test
     public void testScanFrom() {
 
+    }
+
+    @Test
+    public void testInsertLogRedo() throws InterruptedException {
+        Page page = bufferPool.newPage("test");
+        DataPage dataPage = new DataPage(page);
+        dataPage.init();
+
+        List<Record> expected = new ArrayList<>();
+            RecoveryManager.getInstance().setLogManager(logManager);
+            TransactionContext.setTransactionContext(new TransactionContext(2L));
+            RecoveryManager.getInstance().startTransaction(2L);
+
+            for (int i = 0; i < 10; i++) {
+                Record record = generateRecord(i);
+                expected.add(record);
+                dataPage.insertRecord(record);
+            }
+            dataPage.init();
+
+        var logIter = logManager.scan();
+        while (logIter.hasNext()) {
+            logIter.next().redo();
+        }
+
+
+        var iter = dataPage.scanFrom(0);
+        for (Record r : expected) {
+            assertEquals(r, iter.next());
+        }
     }
 
     private int getLSNPage(long lsn) {

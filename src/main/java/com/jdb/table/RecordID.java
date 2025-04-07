@@ -17,4 +17,12 @@ public class RecordID {
                 ", slotId=" + slotId +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if(o instanceof RecordID that)
+            return this.pageId == that.pageId && this.slotId == that.slotId;
+        return false;
+    }
 }

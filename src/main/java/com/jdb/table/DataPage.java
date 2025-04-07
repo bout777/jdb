@@ -1,10 +1,16 @@
 package com.jdb.table;
 
 import com.jdb.catalog.ColumnList;
+import com.jdb.exception.DuplicateInsertException;
+import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
+import com.jdb.transaction.TransactionContext;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import static com.jdb.common.Constants.*;
 
@@ -27,12 +33,15 @@ public class DataPage {
     private static final int NEXT_PAGE_ID_OFFSET = PAGE_ID_OFFSET + Integer.BYTES;
     private static final int LOWER_OFFSET = NEXT_PAGE_ID_OFFSET + Integer.BYTES;
     private static final int UPPER_OFFSET = LOWER_OFFSET + Integer.BYTES;
-
+    // todo 这个页所属的表名，后续需要在构造函数中注入
     private String tableName = "test";
+    // todo 这个页所属的表id，同上
+    private int fid = 1234;
 
     private final ByteBuffer buffer;
     private Page page;
 
+    private ColumnList columnList = ColumnList.instance;
 
     public DataPage(Page page) {
         buffer = ByteBuffer.wrap(page.getData());
@@ -41,7 +50,6 @@ public class DataPage {
     }
 
     public void init() {
-
         setNextPageId(NULL_PAGE_ID);
         setLower(HEADER_SIZE);
         setUpper(PAGE_SIZE);
@@ -130,30 +138,36 @@ public class DataPage {
 
         //移动upper指针
         int upper = getUpper() - record.getSize();
-        setUpper(upper);
 
         //写入slot
         Slot slot = new Slot(upper, record.getSize(), record.getPrimaryKey());
-        insertSlot(slot);
+        int slotId= insertSlot(slot);
 
-        int l = getLower();
-        //更新lower
+        //更新lower,upper
+        setUpper(upper);
         setLower(getLower() + SLOT_SIZE);
 
         //写入record
         record.serializeTo(buffer, upper);
         this.setDirty(true);
+
+        //写日志
+        byte[] image = new byte[slot.size];
+        buffer.get(upper, image);
+        long xid = TransactionContext.getTransaction().getXid();
+        RecoveryManager.getInstance().logInsert(xid,this.fid ,new RecordID(getPageId(), slotId),image);
     }
 
     /**
-     * 原地更新记录
+     * 用于日志重做
      *
-     * @param record
+     * @param image;
+     * @throws DuplicateInsertException;
      */
-    public void insertRecord(int slotId, Record record) {
-        Slot slot = getSlot(slotId);
-        int offset = slot.offset;
-        record.serializeTo(buffer, offset);
+    public void insertRecord(int slotId, byte[] image) throws DuplicateInsertException{
+        Record record = new Record();
+        record.deserializeFrom(ByteBuffer.wrap(image), 0,columnList);
+        insertRecord(record);
     }
 
     public void deleteRecord(int slotId) {
@@ -246,7 +260,7 @@ public class DataPage {
 //        deserializeSlots();
 //    }
 
-    private void insertSlot(Slot slot) {
+    private int insertSlot(Slot slot) {
         int low = 0, high = getRecordCount() - 1;
         while (low <= high) {
             int mid = (low + high) >>> 1;
@@ -256,13 +270,16 @@ public class DataPage {
             else if (slot.primaryKey < midSlot.primaryKey)
                 high = mid - 1;
             else
-                throw new RuntimeException("try to insert a existed slot");
+                throw new DuplicateInsertException("try to insert a existed slot");
         }
         byte[] data = page.getData();
         //本地方法移动byte数组，腾出插入位置
         int offset = HEADER_SIZE + low * SLOT_SIZE;
         System.arraycopy(data, offset, data, offset + SLOT_SIZE, (getRecordCount() - low) * SLOT_SIZE);
         slot.serialize(offset, buffer);
+
+        //返回插入的位置，用于日志
+        return low;
     }
 
     private void deleteSlot(int slotId) {
@@ -279,16 +296,54 @@ public class DataPage {
     public DataPage split() {
         BufferPool bp = BufferPool.getInstance();
         Page newPage = bp.newPage(tableName);
+        //创建一个当前页的镜像页
+        Page image = new Page(Arrays.copyOf(this.page.getData(), this.page.getData().length));
+        DataPage imageDataPage = new DataPage(image);
 
-        DataPage newDataPage = new DataPage( newPage);
+        //初始化当前页和新页
+        this.init();
+        DataPage newDataPage = new DataPage(newPage);
         newDataPage.init();
 
         newDataPage.setNextPageId(this.getNextPageId());
         this.setNextPageId(newDataPage.getPageId());
 
+        //读取镜像页的数据，分别插入当前页和新页
+        int recordCount = imageDataPage.getRecordCount();
+        var iter = imageDataPage.scanFrom(0);
+        for (int i = 0; i < recordCount/2; i++) {
+            this.insertRecord(iter.next());
+        }
+        for(int i = recordCount/2; i < recordCount; i++){
+            newDataPage.insertRecord(iter.next());
+        }
         return newDataPage;
     }
 
+    public Iterator<Record> scanFrom(int slotId) {
+        return new InternalRecordIterator(slotId);
+    }
+
+
+    class InternalRecordIterator implements Iterator<Record> {
+        int slotId;
+
+        InternalRecordIterator(int slotId) {
+            this.slotId = slotId;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return slotId < getRecordCount();
+        }
+
+        @Override
+        public Record next() {
+            if (!hasNext())
+                throw new NoSuchElementException();
+            return getRecord(slotId++, columnList);
+        }
+    }
 
     public void optimize() {
     }

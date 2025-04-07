@@ -60,6 +60,10 @@ public class LogManager {
         return new LogIterator(lsn);
     }
 
+    public Iterator<LogRecord> scan() {
+        return new LogIterator();
+    }
+
     private int getLSNPage(long lsn) {
         long pageId = lsn >> Integer.SIZE;
         return (int) pageId;
@@ -80,6 +84,13 @@ public class LogManager {
 
             LogPage logPage = new LogPage(page);
             internalIter = logPage.scanFrom(getLSNOffset(lsn));
+        }
+
+        LogIterator(){
+            this.pid = 0;
+            Page page = bufferPool.getPage(LOG_FILE_PATH, 0);
+            LogPage logPage = new LogPage(page);
+            internalIter = logPage.scan();
         }
 
         @Override
@@ -191,4 +202,6 @@ public class LogManager {
             }
         }
     }
+
+    //
 }

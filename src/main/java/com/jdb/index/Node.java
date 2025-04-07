@@ -9,20 +9,10 @@ import com.jdb.table.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static com.jdb.common.Constants.NULL_PAGE_ID;
 import static com.jdb.common.Constants.SLOT_SIZE;
-/*
- * TODO 内部节点children保存子节点的页号
- * TODO 用代理模式，写两种page的代理类，内部页和数据页，再写read和write方法
- *
- *
- *
- *
- *
- *
- *
- * */
 
 public abstract class Node {
     static final int ORDER = 4;
@@ -47,7 +37,7 @@ public abstract class Node {
             case 0x02:
                 return new LeafNode(pageId, page);
             default:
-                throw new RuntimeException("unknown page type");
+                throw new UnsupportedOperationException("unknown page type");
         }
     }
 
@@ -109,24 +99,19 @@ class InnerNode extends Node {
 
         Node child = Node.load(pid);
 
-        int newChild = child.insert(entry);
-        if (newChild == NULL_PAGE_ID) {
+        int newChildPid = child.insert(entry);
+        if (newChildPid == NULL_PAGE_ID) {
             return NULL_PAGE_ID;
         }
-        //子节点分裂后，将新节点最小键和指针加入当前节点
-//        keys.add(childIndex, newChile.getMinKey());
-//        children.add(childIndex + 1, newChild);
-//        if (keys.size() >= ORDER) {
-//            //分裂内部节点
-//            return split();
-//        }
-        if (indexPage.getEntryCount() >= 100) {
-            IndexPage niPage = indexPage.split();
-            niPage.insert(new SecondaryIndexEntry(entry.getKey(), p));
-            return niPage.getPageId();
-        }
+        Node newChild = Node.load(newChildPid);
+        indexPage.insert(new SecondaryIndexEntry(newChild.getFloorKey(),new RecordID(newChildPid,0)));
 
-        indexPage.insert(new SecondaryIndexEntry(entry.getKey(), p));
+//        if (indexPage.getEntryCount() >= 100) {
+//            IndexPage niPage = indexPage.split();
+//            niPage.insert(new SecondaryIndexEntry(entry.getKey(), p));
+//            return niPage.getPageId();
+//        }
+
 
         //无需分裂
         return NULL_PAGE_ID;
@@ -174,22 +159,12 @@ class InnerNode extends Node {
 class LeafNode extends Node {
     private List<IndexEntry> entries;
     private LeafNode nextLeaf;
-    private int pageId;
     private DataPage dataPage;
 
     LeafNode(int pageId, Page page) {
         super();
         this.page = page;
         this.pageId = pageId;
-//        entries = new ArrayList<>();
-
-        //for test 从页中撸出来，叶子节点暂时只能放数据页
-//        DataPage dataPage = new DataPage(page);
-//        int cnt = dataPage.getRecordCount();
-//        for (int i = 0; i < cnt; i++) {
-//            Record record = dataPage.getRecord(i, ColumnList.instance);
-//            entries.add(new ClusterIndexEntry(Value.ofInt(record.getPrimaryKey()), record));
-//        }
 
         dataPage = new DataPage(page);
     }
@@ -211,7 +186,7 @@ class LeafNode extends Node {
                 return new ClusterIndexEntry(Value.ofInt(mk), r);
             }
         }
-        throw new RuntimeException("key not found");
+        throw new NoSuchElementException("key not found");
     }
 
     @Override

@@ -11,7 +11,6 @@ public class BeginLog extends LogRecord {
 
     public BeginLog(long xid) {
         super(LogType.BEGIN);
-        this.setXid(xid);
     }
 
     public static LogRecord deserialize(ByteBuffer buffer, int offset) {
@@ -29,19 +28,10 @@ public class BeginLog extends LogRecord {
     }
 
     @Override
-    public void setLsn(long lsn) {
-
-    }
-
-    @Override
     public long getXid() {
         return 0;
     }
 
-    @Override
-    public void setXid(long xid) {
-
-    }
 
     @Override
     public int getSize() {
