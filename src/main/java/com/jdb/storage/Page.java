@@ -6,7 +6,7 @@ import static com.jdb.common.Constants.PAGE_SIZE;
 
 public class Page {
     // 这个字段是用来给page的包装类提供一个缓冲池分配的页id
-    public int pid;
+    public long pid;
     private byte[] data;
     private boolean isDirty;
     private ByteBuffer buffer;

@@ -35,7 +35,6 @@ public class DuraBPTest {
         Schema schema = table.getSchema();
         IndexMetaData metaData = new IndexMetaData(table.getTableName(),schema.columns().get(0),"test",schema);
         bpTree = new BPTree(metaData);
-        tt = new TableTest();
         RecoveryManager.getInstance().setLogManager(new LogManager());
         TransactionContext.setTransactionContext(new TransactionContext(2L));
         RecoveryManager.getInstance().startTransaction(2L);
@@ -45,15 +44,15 @@ public class DuraBPTest {
     @Test
     public void testSimpleInsertAndSearch() {
         List<IndexEntry> expect = new ArrayList<>();
-        for (int i = 0; i < 20; i++) {
-            Record record = tt.generateRecord(i);
+        for (int i = 0; i < 1000; i++) {
+            Record record = MockTable.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), record);
             bpTree.insert(e);
             expect.add(e);
         }
-        BufferPool.getInstance().flush();
-        BufferPool.getInstance().shutdown();
-        for (int i = 0; i < 20; i++) {
+//        BufferPool.getInstance().flush();
+//        BufferPool.getInstance().shutdown();
+        for (int i = 0; i < 1000; i++) {
             IndexEntry e = bpTree.searchEqual(Value.ofInt(i));
             assertEquals(expect.get(i), e);
         }

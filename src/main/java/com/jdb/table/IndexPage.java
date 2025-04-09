@@ -12,19 +12,21 @@ import java.nio.ByteBuffer;
 import static com.jdb.common.Constants.NULL_PAGE_ID;
 
 public class IndexPage {
-    private static final int HEADER_SIZE = Integer.BYTES * 3 + Byte.BYTES;
+    //[type] [lsn] [pid] [nextPid] [entryCount] [entry]...
     private static final int PAGE_TYPE_OFFSET = 0;
-    private static final int PAGE_ID_OFFSET = PAGE_TYPE_OFFSET + Byte.BYTES;
-    private static final int NEXT_PAGE_ID_OFFSET = PAGE_ID_OFFSET + Integer.BYTES;
-    private static final int ENTRY_COUNT_OFFSET = NEXT_PAGE_ID_OFFSET + Integer.BYTES;
+    private static final int LSN_OFFSET = Byte.BYTES;
+    private static final int PAGE_ID_OFFSET = LSN_OFFSET + Long.BYTES;
+    private static final int NEXT_PAGE_ID_OFFSET = PAGE_ID_OFFSET + Long.BYTES;
+    private static final int ENTRY_COUNT_OFFSET = NEXT_PAGE_ID_OFFSET + Long.BYTES;
+    private static final int HEADER_SIZE = ENTRY_COUNT_OFFSET + Integer.BYTES;
     private final ByteBuffer bf;
     private Page page;
     private String tableName = "test";
 
-    public IndexPage(int id, Page page) {
+    public IndexPage(long pid, Page page) {
         this.page = page;
         this.bf = ByteBuffer.wrap(page.getData());
-        setPageId(id);
+        setPageId(pid);
     }
 
     public void init() {
@@ -32,20 +34,20 @@ public class IndexPage {
         bf.put(PAGE_TYPE_OFFSET, (byte) 1);
     }
 
-    public int getPageId() {
-        return bf.getInt(PAGE_ID_OFFSET);
+    public long getPageId() {
+        return bf.getLong(PAGE_ID_OFFSET);
     }
 
-    public void setPageId(int pageId) {
-        bf.putInt(PAGE_ID_OFFSET, pageId);
+    public void setPageId(long pid) {
+        bf.putLong(PAGE_ID_OFFSET, pid);
     }
 
-    public int getNextPageId() {
-        return bf.getInt(NEXT_PAGE_ID_OFFSET);
+    public long getNextPageId() {
+        return bf.getLong(NEXT_PAGE_ID_OFFSET);
     }
 
-    public void setNextPageId(int pageId) {
-        bf.putInt(NEXT_PAGE_ID_OFFSET, pageId);
+    public void setNextPageId(long pid) {
+        bf.putLong(NEXT_PAGE_ID_OFFSET, pid);
     }
 
     public int getEntryCount() {
@@ -69,34 +71,22 @@ public class IndexPage {
                 high = mid - 1;
             }
         }
-        return low-1;
+        return low - 1;
     }
 
     public void insert(IndexEntry entry) {
-        if (entry instanceof SecondaryIndexEntry ) {
-            // TODO 先顺序插入，后面再改
-//            int count = getEntryCount();
-//            int offset = HEADER_SIZE + entry.getBytes() * count;
-//
-//            offset = entry.getKey().serialize(bf, offset);
-//
-//            RecordID p = (RecordID) entry.getValue();
-//            bf.putInt(offset, p.pageId);
-//            bf.putInt(offset + Integer.BYTES, p.slotId);
-//
-//            setEntryCount(count + 1);
-//            page.setDirty(true);
-//            return;
-            int eid = binarySearch(entry.getKey())+1;
-            int offset = HEADER_SIZE + entry.getBytes()*eid;
+        if (entry instanceof SecondaryIndexEntry) {
+            int eid = binarySearch(entry.getKey()) + 1;
+            int offset = HEADER_SIZE + entry.getBytes() * eid;
 
             offset = entry.getKey().serialize(bf, offset);
 
             RecordID p = (RecordID) entry.getValue();
-            bf.putInt(offset, p.pageId);
-            bf.putInt(offset + Integer.BYTES, p.slotId);
+            bf.putLong(offset, p.pid);
+            offset += Long.BYTES;
+            bf.putInt(offset, p.slotId);
 
-            setEntryCount(getEntryCount()+1);
+            setEntryCount(getEntryCount() + 1);
             page.setDirty(true);
             return;
         }
@@ -104,14 +94,10 @@ public class IndexPage {
     }
 
     public IndexEntry getEntry(int eid) {
-//        Value<?> key = Value.ofInt(bf.getInt(offset));
-//        offset+=key.getBytes();
-//        PagePointer p = new PagePointer(bf.getInt(offset), bf.getInt(offset+Integer.BYTES));
-//        return new SecondaryIndexEntry(key, p);
         int offset = HEADER_SIZE + eid * (Integer.BYTES + RecordID.SIZE);
         Value<?> key = Value.deserialize(bf, offset, DataType.INTEGER);
         offset += key.getBytes();
-        RecordID p = new RecordID(bf.getInt(offset), bf.getInt(offset + Integer.BYTES));
+        RecordID p = RecordID.deserialize(bf, offset);
         return new SecondaryIndexEntry(key, p);
     }
 

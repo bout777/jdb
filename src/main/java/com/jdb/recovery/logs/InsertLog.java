@@ -7,8 +7,6 @@ import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
 import com.jdb.table.RecordID;
-import com.jdb.table.Slot;
-import com.jdb.table.TableManager;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -16,16 +14,14 @@ import java.util.Arrays;
 public class InsertLog extends LogRecord {
     long xid;
     long prevLsn;
-    int fid;
     RecordID rid;
     int len;
     byte[] image;
-    private static final int HEADER_SIZE = LogRecord.HEADER_SIZE + Long.BYTES * 2 + RecordID.SIZE + Integer.BYTES * 2;
+    private static final int HEADER_SIZE = LogRecord.HEADER_SIZE + Long.BYTES * 2 + RecordID.SIZE + Integer.BYTES;
 
-    public InsertLog(long xid, int fid, long prevLsn, RecordID rid, byte[] image) {
+    public InsertLog(long xid, long prevLsn, RecordID rid, byte[] image) {
         super(LogType.INSERT);
         this.xid = xid;
-        this.fid = fid;
         this.prevLsn = prevLsn;
         this.rid = rid;
         this.len = image.length;
@@ -38,8 +34,7 @@ public class InsertLog extends LogRecord {
                 .put((byte) getType().getValue())
                 .putLong(xid)
                 .putLong(prevLsn)
-                .putInt(fid)
-                .putInt(rid.pageId)
+                .putLong(rid.pid)
                 .putInt(rid.slotId)
                 .putInt(len)
                 .put(image);
@@ -51,19 +46,18 @@ public class InsertLog extends LogRecord {
         buffer.position(offset);
         long xid = buffer.getLong();
         long prevLsn = buffer.getLong();
-        int fid = buffer.getInt();
-        int pageId = buffer.getInt();
+        long pid = buffer.getLong();
         int slotId = buffer.getInt();
         int len = buffer.getInt();
         byte[] image = new byte[len];
         buffer.get(image);
-        return new InsertLog(xid, fid,prevLsn, new RecordID(pageId, slotId), image);
+        return new InsertLog(xid,prevLsn, new RecordID(pid, slotId), image);
     }
 
 
     @Override
-    public int getPageId() {
-        return rid.pageId;
+    public long getPageId() {
+        return rid.pid;
     }
 
     @Override
@@ -84,8 +78,7 @@ public class InsertLog extends LogRecord {
 
     @Override
     public void redo() {
-        String name = TableManager.getInstance().getTableName(fid);
-        Page page = BufferPool.getInstance().getPage(rid.pageId);
+        Page page = BufferPool.getInstance().getPage(rid.pid);
         DataPage dataPage = new DataPage(page);
         try {
             dataPage.insertRecord(rid.slotId,image);
@@ -104,7 +97,6 @@ public class InsertLog extends LogRecord {
         return "InsertLog{" +
                 "xid=" + xid +
                 ", prevLsn=" + prevLsn +
-                ", fid=" + fid +
                 ", rid=" + rid +
                 ", len=" + len +
                 ", image=" + Arrays.toString(image) +
@@ -118,7 +110,6 @@ public class InsertLog extends LogRecord {
         InsertLog insertLog = (InsertLog) o;
         return xid == insertLog.xid &&
                 prevLsn == insertLog.prevLsn &&
-                fid == insertLog.fid &&
                 rid.equals(insertLog.rid) &&
                 Arrays.equals(image, insertLog.image);
     }

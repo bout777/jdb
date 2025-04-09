@@ -1,19 +1,21 @@
 package com.jdb.table;
 
+import java.nio.ByteBuffer;
+
 public class RecordID {
-    public static final int SIZE = Integer.BYTES * 2;
-    public int pageId;
+    public static final int SIZE = Long.BYTES+Integer.BYTES;
+    public long pid;
     public int slotId;
 
-    public RecordID(int pageId, int slotId) {
-        this.pageId = pageId;
+    public RecordID(long pid, int slotId) {
+        this.pid = pid;
         this.slotId = slotId;
     }
 
     @Override
     public String toString() {
-        return "PagePointer{" +
-                "pageId=" + pageId +
+        return "RecordID{" +
+                "pageId=" + pid +
                 ", slotId=" + slotId +
                 '}';
     }
@@ -21,8 +23,23 @@ public class RecordID {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if(o instanceof RecordID that)
-            return this.pageId == that.pageId && this.slotId == that.slotId;
+        if (o instanceof RecordID that)
+            return this.pid == that.pid && this.slotId == that.slotId;
         return false;
     }
+
+    @Override
+    public int hashCode() {
+        int result = Long.hashCode(pid);
+        result = 31 * result + Integer.hashCode(slotId);
+        return result;
+    }
+
+    public static RecordID deserialize(ByteBuffer buffer, int offset) {
+        buffer.position(offset);
+        long pid = buffer.getLong();
+        int slotId = buffer.getInt();
+        return new RecordID(pid, slotId);
+    }
+
 }

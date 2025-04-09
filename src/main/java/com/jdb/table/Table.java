@@ -9,7 +9,7 @@ import static com.jdb.common.Constants.SLOT_SIZE;
 
 public class Table {
     BufferPool bufferPool;
-    int firstPageId = NULL_PAGE_ID;
+    long firstPageId = NULL_PAGE_ID;
 
     public Schema getSchema() {
         return schema;
@@ -30,7 +30,7 @@ public class Table {
 
     // TODO 把get相关的逻辑弄好，测试，下一步才可以对接索引
     public Record getRecord(RecordID rid) {
-        Page page = bufferPool.getPage(rid.pageId);
+        Page page = bufferPool.getPage(rid.pid);
         DataPage dataPage = new DataPage(page);
         Record record = dataPage.getRecord(rid.slotId, schema);
         return record;
@@ -46,19 +46,19 @@ public class Table {
             dataPage.init();
         }
 
-        int pageId = firstPageId;
+        long pid = firstPageId;
 
-        DataPage dataPage = new DataPage(bufferPool.getPage(pageId));
+        DataPage dataPage = new DataPage(bufferPool.getPage(pid));
 
         //遍历页面，找到一个能插入的
         while (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE && dataPage.getNextPageId() != NULL_PAGE_ID) {
-            pageId++;
-            dataPage = new DataPage(bufferPool.getPage(pageId));
+            pid++;
+            dataPage = new DataPage(bufferPool.getPage(pid));
         }
         //如果找不到，创建一个新页面
         if (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE && dataPage.getNextPageId() == NULL_PAGE_ID) {
-            pageId++;
-            dataPage.setNextPageId(pageId);
+            pid++;
+            dataPage.setNextPageId(pid);
             Page page = bufferPool.newPage(tableName);
             dataPage = new DataPage(page);
             dataPage.init();

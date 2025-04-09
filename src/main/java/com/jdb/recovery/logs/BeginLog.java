@@ -18,7 +18,7 @@ public class BeginLog extends LogRecord {
     }
 
     @Override
-    public int getPageId() {
+    public long getPageId() {
         return NULL_PAGE_ID;
     }
 

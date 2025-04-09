@@ -3,7 +3,6 @@ package com.jdb.recovery;
 import com.jdb.recovery.logs.*;
 import com.jdb.storage.BufferPool;
 import com.jdb.table.DataPage;
-import com.jdb.table.Record;
 import com.jdb.table.RecordID;
 import com.jdb.transaction.Transaction;
 
@@ -22,9 +21,9 @@ public class RecoveryManager {
     private BufferPool bufferPool;
     private List<LogRecord> logBuffer;
     private LogManager logManager;
-    //脏页表 <tablePagePtr,recLsn>
-    private Map<Integer, Long> dirtyPagesTable =new ConcurrentHashMap<>();
-    //活跃事务表 <xid,lsn>
+    //脏页表 <pid->recLsn>
+    private Map<Long, Long> dirtyPagesTable =new ConcurrentHashMap<>();
+    //活跃事务表 <xid->lsn>
     private Map<Long, Long> transactionsTable = new ConcurrentHashMap<>();
 
     private RecoveryManager() {
@@ -57,12 +56,12 @@ public class RecoveryManager {
 //        append(log);
     }
 
-    public long logInsert(long xid,int fid,RecordID rid, byte[] image) {
+    public long logInsert(long xid,RecordID rid, byte[] image) {
         assert transactionsTable.containsKey(xid);
 
         //获得事务表中对应事务的lastLsn，作为下一个日志记录的prevLsn
         long prevLsn = transactionsTable.get(xid);
-        LogRecord log = new InsertLog(xid, fid, prevLsn,rid, image);
+        LogRecord log = new InsertLog(xid, prevLsn,rid, image);
 
         //追加日志
         long lsn = logManager.append(log);
@@ -71,7 +70,7 @@ public class RecoveryManager {
         transactionsTable.put(xid, lsn);
 
         //更新脏页表
-        dirtyPage(rid.pageId,lsn);
+        dirtyPage(rid.pid,lsn);
         return lsn;
     }
 
@@ -98,7 +97,7 @@ public class RecoveryManager {
         }
     }
 
-    private void dirtyPage(int pid,long lsn){
+    private void dirtyPage(long pid,long lsn){
         dirtyPagesTable.putIfAbsent(pid,lsn);
         dirtyPagesTable.computeIfPresent(pid,(k,v)->Math.min(v,lsn));
     }
@@ -139,15 +138,15 @@ public class RecoveryManager {
              *  */
 
             LogType type = log.getType();
-            int pageId = log.getPageId();
-            if (pageId == NULL_PAGE_ID)
+            long pid = log.getPageId();
+            if (pid == NULL_PAGE_ID)
                 continue;
-            if (!dirtyPages.contains(pageId))
+            if (!dirtyPages.contains(pid))
                 continue;
 
             //TODO 查询页表中对应页的reclsn
 
-            DataPage dataPage = new DataPage( BufferPool.getInstance().getPage(LOG_FILE_PATH, pageId));
+            DataPage dataPage = new DataPage(BufferPool.getInstance().getPage(pid));
             if (dataPage.getLsn() > i) {
                 continue;
             }

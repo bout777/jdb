@@ -8,7 +8,11 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
+/*
+* 参考了一下postgres
+* 在记录中增加两个字段
+* xmin，xmax
+* xmin是插入或修改的*/
 public class Record {
     public int primaryKey;
     public Byte isDeleted;
@@ -18,7 +22,6 @@ public class Record {
 
     public Record() {
         values = new ArrayList<>();
-//        this.size = Byte.BYTES + Integer.BYTES + value.length * Integer.BYTES;
     }
 
     public int getPrimaryKey() {
@@ -61,7 +64,7 @@ public class Record {
         return offset;
     }
 
-    public int deserializeFrom(ByteBuffer buffer, int offset, Schema schema) {
+    private int deserializeFrom(ByteBuffer buffer, int offset, Schema schema) {
         offset = deserializeHeader(buffer, offset);
         //TODO 这里暂时写死，后期要改
         for (ColumnDef def : schema.columns()) {
@@ -71,6 +74,12 @@ public class Record {
         }
 
         return offset;
+    }
+
+    public static Record deserialize(ByteBuffer buffer, int offset, Schema schema) {
+        Record record = new Record();
+        record.deserializeFrom(buffer, offset, schema);
+        return record;
     }
 
     public int getSize() {

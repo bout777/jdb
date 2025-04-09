@@ -1,6 +1,5 @@
 package com.jdb.index;
 
-import com.jdb.catalog.Schema;
 import com.jdb.common.Value;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
@@ -17,7 +16,7 @@ import static com.jdb.common.Constants.SLOT_SIZE;
 public abstract class Node {
     protected IndexMetaData metaData;
     static final int ORDER = 4;
-    public int pageId;
+    public long pid;
     Page page;
     //不应该保存对页对象的引用，而是从BufferPool随用随取，否则会造成大量内存无法回收，
 //    Page page;
@@ -28,20 +27,20 @@ public abstract class Node {
 //        keys = new ArrayList<>();
     }
 
-    public static Node load(IndexMetaData metaData,int pageId) {
+    public static Node load(IndexMetaData metaData,long pid) {
         BufferPool bp = BufferPool.getInstance();
-        Page page = bp.getPage(metaData.getTableName(), pageId);
+        Page page = bp.getPage(pid);
         byte[] data = page.getData();
         return switch (data[0]) {
-            case 0x01 -> new InnerNode(metaData,pageId, page);
-            case 0x02 -> new LeafNode(metaData,pageId, page);
+            case 0x01 -> new InnerNode(metaData,pid, page);
+            case 0x02 -> new LeafNode(metaData,pid, page);
             default -> throw new UnsupportedOperationException("unknown page type");
         };
     }
 
     public abstract IndexEntry search(Value<?> key);
 
-    public abstract int insert(IndexEntry entry);
+    public abstract long insert(IndexEntry entry);
 
     public abstract Value<?> getFloorKey();
 
@@ -53,11 +52,11 @@ public abstract class Node {
 class InnerNode extends Node {
 
     IndexPage indexPage;
-    public InnerNode(IndexMetaData metaData,int pageId, Page page) {
+    public InnerNode(IndexMetaData metaData,long pid, Page page) {
         this.page = page;
-        this.pageId = pageId;
+        this.pid = pid;
         this.metaData = metaData;
-        indexPage = new IndexPage(pageId, page);
+        indexPage = new IndexPage(pid, page);
     }
 
     @Override
@@ -72,14 +71,14 @@ class InnerNode extends Node {
 //            eid = -eid;
         IndexEntry floorEntry = indexPage.getEntry(eid);
         RecordID rid = (RecordID) floorEntry.getValue();
-        int pid = rid.pageId;
+        long pid = rid.pid;
 
         Node child = Node.load(metaData,pid);
         return child.search(key);
     }
 
     @Override
-    public int insert(IndexEntry entry) {
+    public long insert(IndexEntry entry) {
 //        int childIndex = findChild(entry.getKey());
 //        int childId = children.get(childIndex);
         int eid = indexPage.binarySearch(entry.getKey());
@@ -93,11 +92,11 @@ class InnerNode extends Node {
 //        eid = -eid-1;
         IndexEntry floorEntry = indexPage.getEntry(eid);
         RecordID p = (RecordID) floorEntry.getValue();
-        int pid = p.pageId;
+        long pid = p.pid;
 
         Node child = Node.load(metaData,pid);
 
-        int newChildPid = child.insert(entry);
+        long newChildPid = child.insert(entry);
         if (newChildPid == NULL_PAGE_ID) {
             return NULL_PAGE_ID;
         }
@@ -159,11 +158,11 @@ class LeafNode extends Node {
     private LeafNode nextLeaf;
     private DataPage dataPage;
 
-    LeafNode(IndexMetaData metaData,int pageId, Page page) {
+    LeafNode(IndexMetaData metaData,long pid, Page page) {
         super();
         this.metaData = metaData;
         this.page = page;
-        this.pageId = pageId;
+        this.pid = pid;
 
         dataPage = new DataPage(page);
     }
@@ -189,7 +188,7 @@ class LeafNode extends Node {
     }
 
     @Override
-    public int insert(IndexEntry entry) {
+    public long insert(IndexEntry entry) {
 //        int insertIndex = Collections.binarySearch(entries, entry);
 //        //暂时只能插入唯一键
 //        if (insertIndex >= 0) {
@@ -241,20 +240,4 @@ class LeafNode extends Node {
 
     }
 
-    private LeafNode split() {
-        BufferPool bp = BufferPool.getInstance();
-        Page newPage = bp.newPage(tableName);
-
-        LeafNode newLeaf = new LeafNode(metaData,newPage.pid, newPage);
-
-        int splitIndex = entries.size() / 2;
-
-        newLeaf.entries = new ArrayList<>(entries.subList(splitIndex, entries.size()));
-        entries = new ArrayList<>(entries.subList(0, splitIndex));
-
-        newLeaf.nextLeaf = this.nextLeaf;
-        this.nextLeaf = newLeaf;
-
-        return newLeaf;
-    }
 }

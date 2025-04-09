@@ -1,5 +1,6 @@
 package com.jdb.recovery;
 
+import com.jdb.common.Utils;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 
@@ -9,50 +10,55 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static com.jdb.common.Constants.LOG_FILE_PATH;
+import static com.jdb.common.Constants.LOG_FILE_ID;
 import static com.jdb.common.Constants.PAGE_SIZE;
-
+/*
+* 由于日志页有固定的fid，所以每页只用保存pno
+* */
 public class LogManager {
+    private static final long MASTER_LOG_PAGE_ID = Utils.concatPid(LOG_FILE_ID,0);
     private BufferPool bufferPool;
     private Deque<Integer> unflushedLogTail;
     private LogPage logTail;
 
-    private int nextPID = 0;
+    private long nextPID = MASTER_LOG_PAGE_ID+1;
 
     public LogManager() {
         bufferPool = BufferPool.getInstance();
         unflushedLogTail = new ArrayDeque<>();
     }
 
-    static long makeLSN(int pid, int offset) {
-        return (long) (pid) << Integer.SIZE | offset;
+    static long makeLSN(long pid, int offset) {
+        return pid << Integer.SIZE | offset;
     }
 
     public synchronized long append(LogRecord log) {
         if (logTail == null || logTail.getFreeSpace() < log.getSize()) {
-            logTail = new LogPage(bufferPool.newPage(LOG_FILE_PATH, nextPID++));
+            logTail = new LogPage(bufferPool.newPage(LOG_FILE_ID));
+            // todo 更新nextpid？
             logTail.init();
         }
         int offset = logTail.append(log);
-        long lsn = makeLSN(nextPID - 1, offset);
+        long lsn = makeLSN(nextPID, offset);
         log.setLsn(lsn);
         return lsn;
     }
 
     public synchronized void flush2lsn(long lsn) {
         Iterator<Integer> iter = unflushedLogTail.iterator();
-        int pid = getLSNPage(lsn);
+        long pid = getLSNPage(lsn);
         while (iter.hasNext()) {
-            Integer unflushedPageId = iter.next();
-            if (unflushedPageId > pid)
+            int unflushPno = iter.next();
+            long unflushPid = Utils.concatPid(LOG_FILE_ID, unflushPno);
+            if (unflushPid > pid)
                 break;
-            bufferPool.flushPage(LOG_FILE_PATH, unflushedPageId);
+            bufferPool.flushPage(unflushPid);
             iter.remove();
         }
     }
 
     public LogRecord getLogRecord(long lsn) {
-        LogPage logPage = new LogPage(bufferPool.getPage(LOG_FILE_PATH, getLSNPage(lsn)));
+        LogPage logPage = new LogPage(bufferPool.getPage(getLSNPage(lsn)));
         return logPage.getLogRecord(getLSNOffset(lsn));
     }
 
@@ -64,9 +70,8 @@ public class LogManager {
         return new LogIterator();
     }
 
-    private int getLSNPage(long lsn) {
-        long pageId = lsn >> Integer.SIZE;
-        return (int) pageId;
+    private long getLSNPage(long lsn) {
+        return lsn >> Integer.SIZE | (long) LOG_FILE_ID << Integer.SIZE;
     }
 
     private int getLSNOffset(long lsn) {
@@ -74,12 +79,13 @@ public class LogManager {
     }
 
     class LogIterator implements Iterator<LogRecord> {
-        int pid;
+        long pid;
         Iterator<LogRecord> internalIter;
-        int nextPID;
+//        int nextPNO;
+
         LogIterator(long lsn) {
             this.pid = getLSNPage(lsn);
-            Page page = bufferPool.getPage(LOG_FILE_PATH, nextPID);
+            Page page = bufferPool.getPage(pid);
             this.pid++;
 
             LogPage logPage = new LogPage(page);
@@ -87,8 +93,8 @@ public class LogManager {
         }
 
         LogIterator(){
-            this.pid = 0;
-            Page page = bufferPool.getPage(LOG_FILE_PATH, 0);
+            this.pid = MASTER_LOG_PAGE_ID+1;
+            Page page = bufferPool.getPage(pid);
             LogPage logPage = new LogPage(page);
             internalIter = logPage.scan();
         }
@@ -106,7 +112,7 @@ public class LogManager {
             LogRecord log = internalIter.next();
             while (!internalIter.hasNext()) {
                 try {
-                    Page page = bufferPool.getPage(LOG_FILE_PATH, nextPID);
+                    Page page = bufferPool.getPage(nextPID);
                     LogPage logPage = new LogPage(page);
                     internalIter = logPage.scan();
                     nextPID++;
@@ -123,8 +129,8 @@ public class LogManager {
      * [pageId] | [recordCount] | [tail] | [logRecord]...
      */
     class LogPage {
-        int PAGE_ID_OFFSET = 0;
-        int RECORD_COUNT_OFFSET = PAGE_ID_OFFSET + Integer.BYTES;
+        int PAGE_NO_OFFSET = 0;
+        int RECORD_COUNT_OFFSET = PAGE_NO_OFFSET + Integer.BYTES;
         int TAIL_OFFSET = RECORD_COUNT_OFFSET + Integer.BYTES;
         int HEADER_SIZE = TAIL_OFFSET + Integer.BYTES;
         ByteBuffer buffer;
@@ -136,7 +142,7 @@ public class LogManager {
         }
 
         public void init() {
-            buffer.putInt(PAGE_ID_OFFSET, getPageId());
+            buffer.putInt(PAGE_NO_OFFSET, getPageNo());
             buffer.putInt(RECORD_COUNT_OFFSET, 0);
             setTail(HEADER_SIZE);
         }
@@ -145,8 +151,12 @@ public class LogManager {
             return PAGE_SIZE - getTail();
         }
 
-        public int getPageId() {
-            return buffer.getInt(PAGE_ID_OFFSET);
+        public long getPageId() {
+            return Utils.concatPid(LOG_FILE_ID,getPageNo());
+        }
+
+        public int getPageNo(){
+            return buffer.getInt(PAGE_NO_OFFSET);
         }
 
         public int append(LogRecord log) {

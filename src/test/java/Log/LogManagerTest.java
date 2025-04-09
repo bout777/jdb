@@ -63,7 +63,7 @@ public class LogManagerTest {
         List<LogRecord> expected = new ArrayList<>();
 
         for (int i = 0; i < 4; i++) {
-            InsertLog insertLog = new InsertLog(114514L, 0,23L, new RecordID(0, 0),image);
+            InsertLog insertLog = new InsertLog(114514L, 0, new RecordID(0, 0),image);
             expected.add(insertLog);
         }
 

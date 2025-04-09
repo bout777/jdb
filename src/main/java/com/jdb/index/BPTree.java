@@ -6,10 +6,12 @@ import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
 import com.jdb.table.IndexPage;
 import com.jdb.table.RecordID;
+import com.jdb.table.Table;
 
 import static com.jdb.common.Constants.NULL_PAGE_ID;
 
 public class BPTree implements Index {
+    private Table table;
     private BufferPool bufferPool;
     private Node root;
     private IndexMetaData metaData;
@@ -18,6 +20,7 @@ public class BPTree implements Index {
         Page page = bufferPool.newPage(metaData.getTableName());
         DataPage dataPage = new DataPage(page);
         dataPage.init();
+        this.metaData = metaData;
         root = new LeafNode(metaData,dataPage.getPageId(), page);
     }
 
@@ -33,7 +36,7 @@ public class BPTree implements Index {
 
     @Override
     public void insert(IndexEntry entry) {
-        int newNode = root.insert(entry);
+        long newNode = root.insert(entry);
         if (newNode != NULL_PAGE_ID) {
             //分裂根节点
 
@@ -48,7 +51,7 @@ public class BPTree implements Index {
             InnerNode newRoot = new InnerNode(metaData,newpage.pid, newpage);
 
             //撸出新节点的两个儿子
-            RecordID p1 = new RecordID(root.pageId, 0);
+            RecordID p1 = new RecordID(root.pid, 0);
             RecordID p2 = new RecordID(newNode, 0);
             Node c2 = Node.load(metaData, newNode);
             IndexEntry e1 = new SecondaryIndexEntry(root.getFloorKey(), p1);

@@ -16,7 +16,7 @@ public class CommitLog extends LogRecord {
     }
 
     @Override
-    public int getPageId() {
+    public long getPageId() {
         return 0;
     }
 

@@ -4,14 +4,10 @@ import com.jdb.recovery.LogRecord;
 import com.jdb.recovery.LogType;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
-import com.jdb.table.DataPage;
-import com.jdb.table.Record;
 import com.jdb.table.RecordID;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-
-import static com.jdb.common.Constants.LOG_FILE_PATH;
 
 /**
  * 用于记录非主键值的更新
@@ -71,7 +67,7 @@ public class UpdateLog extends LogRecord {
     }
 
     @Override
-    public int getPageId() {
+    public long getPageId() {
         return pid;
     }
 

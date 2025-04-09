@@ -10,6 +10,7 @@ import com.jdb.table.Record;
 import com.jdb.table.RecordID;
 import com.jdb.table.Table;
 import com.jdb.table.TableScanner;
+import index.MockTable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,12 +48,7 @@ public class TableTest {
     @Before
     public void init() {
 //        disk = new Disk();
-        bufferPool = BufferPool.getInstance();
-        schema = new Schema();
-        schema.add(new ColumnDef(DataType.STRING, "name"));
-        schema.add(new ColumnDef(DataType.INTEGER, "age"));
-
-        table = new Table("test", schema);
+        table = MockTable.getTable();
     }
 
     @Test

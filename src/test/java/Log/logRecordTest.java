@@ -33,7 +33,7 @@ public class logRecordTest {
         assertEquals(expected, log);
 
         var image = new byte[]{1,2,3,4,5,6,7,8,9,10};
-        InsertLog insertLog = new InsertLog(114514L, 0,23L, new RecordID(0, 0),image);
+        InsertLog insertLog = new InsertLog(114514L, 0, new RecordID(0, 0),image);
         insertLog.serialize(buf,0);
 
         log = LogRecord.deserialize(buf, 0);

@@ -6,9 +6,9 @@ public class Constants {
     //offset,size,primary key
     public final static int SLOT_SIZE = 3 * Integer.BYTES;
 
-    public final static int NULL_PAGE_ID = -1;
+    public final static long NULL_PAGE_ID = -1L;
 
     public final static int NULL_LSN = 0;
 
-    public static final String LOG_FILE_PATH = "log";
+    public static final int LOG_FILE_ID = 369;
 }

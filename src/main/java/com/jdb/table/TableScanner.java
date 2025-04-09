@@ -14,17 +14,17 @@ public class TableScanner {
     }
 
     public Record getNextRecord(RecordID pointer) {
-        if (pointer.pageId == NULL_PAGE_ID)
+        if (pointer.pid == NULL_PAGE_ID)
             return null;
 
-        DataPage dataPage = new DataPage(bufferPool.getPage(pointer.pageId));
+        DataPage dataPage = new DataPage(bufferPool.getPage(pointer.pid));
         Record record = dataPage.getRecord(pointer.slotId, table.schema);
 
 
         if (pointer.slotId < dataPage.getRecordCount() - 1) {
             pointer.slotId++;
         } else {
-            pointer.pageId = dataPage.getNextPageId();
+            pointer.pid = dataPage.getNextPageId();
             pointer.slotId = 0;
         }
 

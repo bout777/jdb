@@ -17,7 +17,7 @@ public class DeleteLog extends LogRecord {
     }
 
     @Override
-    public int getPageId() {
+    public long getPageId() {
         return NULL_PAGE_ID;
     }
 

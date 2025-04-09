@@ -34,7 +34,7 @@ public abstract class LogRecord {
 
     public long getPrevLsn(){return -1L;} ;
 
-    public abstract int getPageId();
+    public abstract long getPageId();
 
     public long getLsn(){return lsn;};
 
