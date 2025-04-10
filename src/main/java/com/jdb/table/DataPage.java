@@ -30,11 +30,11 @@ public class DataPage {
 
     private static final int PAGE_TYPE_OFFSET = 0;
     private static final int LSN_OFFSET = Byte.BYTES;
-    private static final int PAGE_ID_OFFSET = LSN_OFFSET+Long.BYTES;
+    private static final int PAGE_ID_OFFSET = LSN_OFFSET + Long.BYTES;
     private static final int NEXT_PAGE_ID_OFFSET = PAGE_ID_OFFSET + Long.BYTES;
     private static final int LOWER_OFFSET = NEXT_PAGE_ID_OFFSET + Long.BYTES;
     private static final int UPPER_OFFSET = LOWER_OFFSET + Integer.BYTES;
-    private static final int HEADER_SIZE = UPPER_OFFSET+Integer.BYTES;
+    private static final int HEADER_SIZE = UPPER_OFFSET + Integer.BYTES;
     // todo 这个页所属的表名，后续需要在构造函数中注入
     private String tableName = "test";
     // todo 这个页所属的表id，同上
@@ -60,6 +60,10 @@ public class DataPage {
 
     public long getLsn() {
         return buffer.getLong(LSN_OFFSET);
+    }
+
+    public void setLsn(long lsn) {
+        buffer.putLong(LSN_OFFSET, lsn);
     }
 
     public int getNextPageId() {
@@ -122,13 +126,12 @@ public class DataPage {
     }
 
     public RecordID insertRecord(Record record) {
-
         //移动upper指针
         int upper = getUpper() - record.getSize();
 
         //写入slot
         Slot slot = new Slot(upper, record.getSize(), record.getPrimaryKey());
-        int slotId= insertSlot(slot);
+        int slotId = insertSlot(slot);
 
         //更新lower,upper
         setUpper(upper);
@@ -136,7 +139,7 @@ public class DataPage {
 
         //写入record
         record.serializeTo(buffer, upper);
-        this.setDirty(true);
+        setDirty(true);
 
         RecordID rid = new RecordID(getPageId(), slotId);
 
@@ -144,9 +147,25 @@ public class DataPage {
         byte[] image = new byte[slot.size];
         buffer.get(upper, image);
         long xid = TransactionContext.getTransaction().getXid();
-        RecoveryManager.getInstance().logInsert(xid,rid,image);
+        long lsn = RecoveryManager.getInstance().logInsert(xid, rid, image);
+        setLsn(lsn);
 
         //追加版本
+        VersionManager.getInstance().pushUpdate(rid, record);
+
+        return rid;
+    }
+
+    public RecordID updateRecord(int slotId, Record record) {
+        //todo 检查record是否符合schema
+        Slot slot = getSlot(slotId);
+
+        record.serializeTo(buffer, slot.offset);
+        this.setDirty(true);
+
+        //追加版本
+        RecordID rid = new RecordID(getPageId(), slotId);
+        VersionManager.getInstance().pushUpdate(rid, record);
         return rid;
     }
 
@@ -156,8 +175,8 @@ public class DataPage {
      * @param image;
      * @throws DuplicateInsertException;
      */
-    public void insertRecord(int slotId, byte[] image) throws DuplicateInsertException{
-        Record record = Record.deserialize(ByteBuffer.wrap(image),0,schema);
+    public void insertRecord(int slotId, byte[] image) throws DuplicateInsertException {
+        Record record = Record.deserialize(ByteBuffer.wrap(image), 0, schema);
         insertRecord(record);
     }
 
@@ -177,13 +196,13 @@ public class DataPage {
         var vm = VersionManager.getInstance();
         var rid = new RecordID(getPageId(), slotId);
         Record record = vm.read(rid);
-        if(record!=null){
+        if (record != null) {
             return record;
         }
 
         //读取最新记录
         Slot slot = getSlot(slotId);
-        record = Record.deserialize(buffer,slot.offset,schema);
+        record = Record.deserialize(buffer, slot.offset, schema);
         return record;
     }
 
@@ -222,7 +241,7 @@ public class DataPage {
      * 在测试代码中保证按照主键的升序插入*/
     public DataPage split() {
         BufferPool bp = BufferPool.getInstance();
-        int fid = (int)(getPageId()>>Integer.SIZE);
+        int fid = (int) (getPageId() >> Integer.SIZE);
         Page newPage = bp.newPage(fid);
         //创建一个当前页的镜像页
         Page image = new Page(Arrays.copyOf(this.page.getData(), this.page.getData().length));
@@ -236,13 +255,14 @@ public class DataPage {
         newDataPage.setNextPageId(this.getNextPageId());
         this.setNextPageId(newDataPage.getPageId());
 
+        //fixme 这样的页分裂逻辑会导致重复插入日志和版本
         //读取镜像页的数据，分别插入当前页和新页
         int recordCount = imageDataPage.getRecordCount();
         var iter = imageDataPage.scanFrom(0);
-        for (int i = 0; i < recordCount/2; i++) {
+        for (int i = 0; i < recordCount / 2; i++) {
             this.insertRecord(iter.next());
         }
-        for(int i = recordCount/2; i < recordCount; i++){
+        for (int i = recordCount / 2; i < recordCount; i++) {
             newDataPage.insertRecord(iter.next());
         }
         return newDataPage;

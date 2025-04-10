@@ -10,6 +10,7 @@ import com.jdb.storage.BufferPool;
 import com.jdb.table.Record;
 import com.jdb.table.Table;
 import com.jdb.transaction.TransactionContext;
+import com.jdb.transaction.TransactionManager;
 
 import java.util.Random;
 
@@ -27,8 +28,7 @@ public class MockTable {
         table = new Table("test.db", schema);
 
         RecoveryManager.getInstance().setLogManager(new LogManager());
-        TransactionContext.setTransactionContext(new TransactionContext(2L));
-        RecoveryManager.getInstance().startTransaction(2L);
+        TransactionManager.getInstance().begin();
     }
     public static Table getTable() {
         return table;

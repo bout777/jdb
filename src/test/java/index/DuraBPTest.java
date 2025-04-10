@@ -36,8 +36,8 @@ public class DuraBPTest {
         IndexMetaData metaData = new IndexMetaData(table.getTableName(),schema.columns().get(0),"test",schema);
         bpTree = new BPTree(metaData);
         RecoveryManager.getInstance().setLogManager(new LogManager());
-        TransactionContext.setTransactionContext(new TransactionContext(2L));
-        RecoveryManager.getInstance().startTransaction(2L);
+//        TransactionContext.setTransactionContext(new TransactionContext(2L));
+//        RecoveryManager.getInstance().startTransaction(2L);
 
     }
 
@@ -52,7 +52,7 @@ public class DuraBPTest {
         }
 //        BufferPool.getInstance().flush();
 //        BufferPool.getInstance().shutdown();
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 2000; i++) {
             IndexEntry e = bpTree.searchEqual(Value.ofInt(i));
             assertEquals(expect.get(i), e);
         }

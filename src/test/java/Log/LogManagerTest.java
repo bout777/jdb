@@ -13,23 +13,27 @@ import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
 import com.jdb.table.Record;
 import com.jdb.table.RecordID;
+import com.jdb.table.Table;
 import com.jdb.transaction.TransactionContext;
+import index.MockTable;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.jdb.common.Constants.LOG_FILE_ID;
 import static org.junit.Assert.assertEquals;
 
 public class LogManagerTest {
 
     private BufferPool bufferPool = BufferPool.getInstance();
     private LogManager logManager = new LogManager();
-
+    Table table;
     @Before
     public void setUp() {
-
+         table = MockTable.getTable();
+       var dataPage = new DataPage(BufferPool.getInstance().newPage(LOG_FILE_ID));
     }
 
     @Test
@@ -84,7 +88,7 @@ public class LogManagerTest {
 
     @Test
     public void testInsertLogRedo() throws InterruptedException {
-        Page page = bufferPool.newPage("test");
+        Page page = bufferPool.newPage(table.getTableName());
         DataPage dataPage = new DataPage(page);
         dataPage.init();
 

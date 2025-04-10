@@ -1,26 +1,44 @@
 package com.jdb.transaction;
 
 import com.jdb.recovery.RecoveryManager;
+import com.jdb.table.RecordID;
+import com.jdb.version.VersionManager;
 
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TransactionManager {
-    static AtomicInteger xid = new AtomicInteger(1);
-    private RecoveryManager recoveryManager;
-    private Map<Integer, Transaction> activeTransactions;
-
-    public int getNextXid() {
-        return 0;
+    private static TransactionManager instance = new TransactionManager();
+    public static TransactionManager getInstance() {
+        return instance;
     }
-
+    //预分配的xid，递增
+    private static AtomicLong trxStartStamp = new AtomicLong(1);
+    private RecoveryManager recoveryManager = RecoveryManager.getInstance();
+    private Map<Integer, Transaction> activeTransactions;
+    //xid->writeSet
+    private Map<Long, Set<RecordID>> writeSetMap;
     //返回xid
-    public int begin() {
-        return 0;
+    public long begin() {
+        long xid = trxStartStamp.getAndIncrement();
+        TransactionContext.setTransactionContext(new TransactionContext(xid));
+        recoveryManager.startTransaction(xid);
+        return xid;
     }
 
     public void commit(long xid) {
+        var writeSet = writeSetMap.get(xid);
+        if (writeSet != null) {
+            var vm = VersionManager.getInstance();
+            vm.commit(writeSet);
+        }
     }
+
+    public static long getCurrentTrxStamp() {
+        return trxStartStamp.get();
+    }
+
 
     /**
      * 逻辑故障下的事务回滚

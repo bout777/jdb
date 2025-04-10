@@ -96,7 +96,7 @@ public class Record {
 
     @Override
     public String toString() {
-        return String.format("Record{primaryKey=%d, isDeleted=%b, size=%d, values=%s}", primaryKey, isDeleted, size, values);
+        return String.format("Record{primaryKey=%d, isDeleted=%s, size=%d, values=%s}", primaryKey, isDeleted, size, values);
     }
 
     @Override
