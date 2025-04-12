@@ -30,15 +30,15 @@ public class VersionManager {
     private Map<RecordID, VersionEntrySet> versionMap = new HashMap<>();
 
     public RecordID pushUpdate(RecordID rid, Record record) {
-        var deque = versionMap.get(rid);
-        if (deque == null) {
-            deque = new VersionEntrySet(rid);
-            versionMap.put(rid, deque);
-        }
-        if (!deque.tryPush(record)) {
-            //todo 冲突回滚
-            throw new RuntimeException("测试代码不该跑到这,tell me why?");
-        }
+//        var deque = versionMap.get(rid);
+//        if (deque == null) {
+//            deque = new VersionEntrySet(rid);
+//            versionMap.put(rid, deque);
+//        }
+//        if (!deque.tryPush(record)) {
+//            //todo 冲突回滚
+//            throw new RuntimeException("测试代码不该跑到这,tell me why?");
+//        }
 
         return rid;
     }

@@ -41,9 +41,7 @@ public class BPTree implements Index {
             //分裂根节点
 
             //新建一个索引页
-
             Page newpage = bufferPool.newPage(metaData.getTableName());
-
             IndexPage nipage = new IndexPage(newpage.pid, newpage);
             nipage.init();
 
@@ -51,15 +49,16 @@ public class BPTree implements Index {
             InnerNode newRoot = new InnerNode(metaData,newpage.pid, newpage);
 
             //撸出新节点的两个儿子
-            RecordID p1 = new RecordID(root.pid, 0);
-            RecordID p2 = new RecordID(newNode, 0);
             Node c2 = Node.load(metaData, newNode);
-            IndexEntry e1 = new SecondaryIndexEntry(root.getFloorKey(), p1);
-            IndexEntry e2 = new SecondaryIndexEntry(c2.getFloorKey(), p2);
 
-            //插入到新节点中 (*´∀`)~♥
-            nipage.insert(e1);
-            nipage.insert(e2);
+            //写入到新节点中 (*´∀`)~♥
+//            if (c2.getFloorKey().compareTo(root.getFloorKey()) < 0) {
+//                nipage.addChild(0, newNode);
+//                nipage.insert(root.getFloorKey(), root.pid);
+//            } else {
+                nipage.addChild(0, root.pid);
+                nipage.insert(c2.getFloorKey(), newNode);
+
 
             //更新root
             root = newRoot;

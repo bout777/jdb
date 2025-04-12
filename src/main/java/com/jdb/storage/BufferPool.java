@@ -1,7 +1,7 @@
 package com.jdb.storage;
 
 
-import com.jdb.common.Utils;
+import com.jdb.common.PageHelper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -104,7 +104,7 @@ public class BufferPool {
     public Page newPage(String fileName) {
         int fid = fileMap.getFid(fileName);
         Page page = new Page();
-        page.pid = nextPage.getOrDefault(fileName,Utils.concatPid(fid,0));
+        page.pid = nextPage.getOrDefault(fileName, PageHelper.concatPid(fid,0));
         nextPage.put(fileName, page.pid + 1);
         buffers.put(page.pid, page);
         return page;
@@ -114,7 +114,7 @@ public class BufferPool {
     public Page newPage(int fid){
         String fileName = fileMap.getName(fid);
         Page page = new Page();
-        page.pid = nextPage.getOrDefault(fileName, Utils.concatPid(fid,0));
+        page.pid = nextPage.getOrDefault(fileName, PageHelper.concatPid(fid,0));
         nextPage.put(fileName, page.pid + 1);
         buffers.put(page.pid, page);
         return page;

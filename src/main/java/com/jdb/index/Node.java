@@ -1,12 +1,14 @@
 package com.jdb.index;
 
+import com.jdb.common.PageHelper;
 import com.jdb.common.Value;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
+import com.jdb.table.DataPage;
+import com.jdb.table.IndexPage;
 import com.jdb.table.Record;
-import com.jdb.table.*;
+import com.jdb.table.Slot;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -17,6 +19,7 @@ public abstract class Node {
     protected IndexMetaData metaData;
     static final int ORDER = 4;
     public long pid;
+    public int fid;
     Page page;
     //不应该保存对页对象的引用，而是从BufferPool随用随取，否则会造成大量内存无法回收，
 //    Page page;
@@ -27,13 +30,13 @@ public abstract class Node {
 //        keys = new ArrayList<>();
     }
 
-    public static Node load(IndexMetaData metaData,long pid) {
+    public static Node load(IndexMetaData metaData, long pid) {
         BufferPool bp = BufferPool.getInstance();
         Page page = bp.getPage(pid);
         byte[] data = page.getData();
         return switch (data[0]) {
-            case 0x01 -> new InnerNode(metaData,pid, page);
-            case 0x02 -> new LeafNode(metaData,pid, page);
+            case 0x01 -> new InnerNode(metaData, pid, page);
+            case 0x02 -> new LeafNode(metaData, pid, page);
             default -> throw new UnsupportedOperationException("unknown page type");
         };
     }
@@ -52,64 +55,36 @@ public abstract class Node {
 class InnerNode extends Node {
 
     IndexPage indexPage;
-    public InnerNode(IndexMetaData metaData,long pid, Page page) {
+
+    public InnerNode(IndexMetaData metaData, long pid, Page page) {
         this.page = page;
         this.pid = pid;
+        this.fid = PageHelper.getFid(pid);
         this.metaData = metaData;
         indexPage = new IndexPage(pid, page);
     }
 
     @Override
     public IndexEntry search(Value<?> key) {
-//        int i = Collections.binarySearch(keys, key);
-//        if (i >= 0)
-//            return children.get(i + 1).search(key);
-//        else return children.get(-i - 1).search(key);
-        int eid = indexPage.binarySearch(key);
-//        if(eid<0)
-////            throw new RuntimeException("key not found");
-//            eid = -eid;
-        IndexEntry floorEntry = indexPage.getEntry(eid);
-        RecordID rid = (RecordID) floorEntry.getValue();
-        long pid = rid.pid;
-
-        Node child = Node.load(metaData,pid);
+        int cno = indexPage.binarySearch(key) + 1;
+        int pno = indexPage.getChild(cno);
+        long pid = PageHelper.concatPid(this.fid, pno);
+        Node child = Node.load(metaData, pid);
         return child.search(key);
     }
 
     @Override
     public long insert(IndexEntry entry) {
-//        int childIndex = findChild(entry.getKey());
-//        int childId = children.get(childIndex);
-        int eid = indexPage.binarySearch(entry.getKey());
-//        Node newChile = child.insert(entry);
-//        if (newChile == null) {
-//            return null;
-//        }
-//        if(eid>=0)
-//            throw new RuntimeException("key already exist");
-//
-//        eid = -eid-1;
-        IndexEntry floorEntry = indexPage.getEntry(eid);
-        RecordID p = (RecordID) floorEntry.getValue();
-        long pid = p.pid;
-
-        Node child = Node.load(metaData,pid);
-
+        int cno = indexPage.binarySearch(entry.getKey()) + 1;
+        int pno = indexPage.getChild(cno);
+        long pid = PageHelper.concatPid(this.fid, pno);
+        Node child = Node.load(metaData, pid);
         long newChildPid = child.insert(entry);
         if (newChildPid == NULL_PAGE_ID) {
             return NULL_PAGE_ID;
         }
-        Node newChild = Node.load(metaData,newChildPid);
-        indexPage.insert(new SecondaryIndexEntry(newChild.getFloorKey(),new RecordID(newChildPid,0)));
-
-//        if (indexPage.getEntryCount() >= 100) {
-//            IndexPage niPage = indexPage.split();
-//            niPage.insert(new SecondaryIndexEntry(entry.getKey(), p));
-//            return niPage.getPageId();
-//        }
-
-
+        Node newChild = Node.load(metaData, newChildPid);
+        indexPage.insert(newChild.getFloorKey(), newChildPid);
         //无需分裂
         return NULL_PAGE_ID;
     }
@@ -158,7 +133,7 @@ class LeafNode extends Node {
     private LeafNode nextLeaf;
     private DataPage dataPage;
 
-    LeafNode(IndexMetaData metaData,long pid, Page page) {
+    LeafNode(IndexMetaData metaData, long pid, Page page) {
         super();
         this.metaData = metaData;
         this.page = page;
@@ -180,7 +155,7 @@ class LeafNode extends Node {
             else if (key.getValue(Integer.class) > mk)
                 low = mid + 1;
             else {
-                r = dataPage.getRecord(mid,metaData.getTableSchema());
+                r = dataPage.getRecord(mid, metaData.getTableSchema());
                 return new ClusterIndexEntry(Value.ofInt(mk), r);
             }
         }
@@ -202,12 +177,17 @@ class LeafNode extends Node {
             Record record = ((ClusterIndexEntry) entry).getRecord();
             if (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE) {
                 //空间不足，页分裂
+
                 DataPage newDataPage = dataPage.split();
-                newDataPage.insertRecord(record);
+                if (record.getPrimaryKey() < newDataPage.getSlot(0).getPrimaryKey()) {
+                    dataPage.insertRecord(record, true, true);
+                } else {
+                    newDataPage.insertRecord(record, true, true);
+                }
                 return newDataPage.getPageId();
             } else {
                 //插入页中
-                dataPage.insertRecord(record);
+                dataPage.insertRecord(record, true, true);
                 return NULL_PAGE_ID;
             }
         } else {

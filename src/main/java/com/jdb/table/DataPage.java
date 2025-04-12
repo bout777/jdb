@@ -125,47 +125,58 @@ public class DataPage {
         return getUpper() - getLower();
     }
 
-    public RecordID insertRecord(Record record) {
+    public int getHeaderSize() {
+        return HEADER_SIZE;
+    }
+
+    public RecordID insertRecord(Record record, boolean shouldLog, boolean shouldPushVersion) {
         //移动upper指针
         int upper = getUpper() - record.getSize();
-
+        int lower = getLower();
         //写入slot
         Slot slot = new Slot(upper, record.getSize(), record.getPrimaryKey());
-        int slotId = insertSlot(slot);
+        insertSlot(slot);
 
         //更新lower,upper
         setUpper(upper);
-        setLower(getLower() + SLOT_SIZE);
+        setLower(lower + SLOT_SIZE);
 
         //写入record
         record.serializeTo(buffer, upper);
         setDirty(true);
 
-        RecordID rid = new RecordID(getPageId(), slotId);
+        RecordID rid = new RecordID(getPageId(), upper);
 
         //写日志
-        byte[] image = new byte[slot.size];
-        buffer.get(upper, image);
-        long xid = TransactionContext.getTransaction().getXid();
-        long lsn = RecoveryManager.getInstance().logInsert(xid, rid, image);
-        setLsn(lsn);
+        if(shouldLog) {
+            byte[] image = new byte[slot.size];
+            buffer.get(upper, image);
+            long xid = TransactionContext.getTransaction().getXid();
+            long lsn = RecoveryManager.getInstance().logInsert(xid, rid, image);
+            setLsn(lsn);
+        }
 
         //追加版本
-        VersionManager.getInstance().pushUpdate(rid, record);
-
+        if(shouldPushVersion) {
+            VersionManager.getInstance().pushUpdate(rid, record);
+        }
         return rid;
     }
 
-    public RecordID updateRecord(int slotId, Record record) {
+
+
+    public RecordID updateRecord(int slotId, Record record,boolean shouldLog,boolean shouldPushVersion) {
         //todo 检查record是否符合schema
         Slot slot = getSlot(slotId);
 
         record.serializeTo(buffer, slot.offset);
         this.setDirty(true);
 
+        RecordID rid = new RecordID(getPageId(), slot.offset);
         //追加版本
-        RecordID rid = new RecordID(getPageId(), slotId);
-        VersionManager.getInstance().pushUpdate(rid, record);
+        if (shouldPushVersion) {
+            VersionManager.getInstance().pushUpdate(rid, record);
+        }
         return rid;
     }
 
@@ -175,9 +186,11 @@ public class DataPage {
      * @param image;
      * @throws DuplicateInsertException;
      */
-    public void insertRecord(int slotId, byte[] image) throws DuplicateInsertException {
+    public void insertRecord(int offset, byte[] image) throws DuplicateInsertException {
         Record record = Record.deserialize(ByteBuffer.wrap(image), 0, schema);
-        insertRecord(record);
+        record.serializeTo(buffer, offset);
+        Slot slot = new Slot(offset, image.length, record.getPrimaryKey());
+        insertSlot(slot);
     }
 
     public void deleteRecord(int slotId) {
@@ -192,16 +205,18 @@ public class DataPage {
 
 
     public Record getRecord(int slotId, Schema schema) {
+        if (slotId >= getRecordCount()) throw new  NoSuchElementException();
+        Slot slot = getSlot(slotId);
+
         //先尝试获取旧版本
         var vm = VersionManager.getInstance();
-        var rid = new RecordID(getPageId(), slotId);
+        var rid = new RecordID(getPageId(), slot.offset);
         Record record = vm.read(rid);
         if (record != null) {
             return record;
         }
 
         //读取最新记录
-        Slot slot = getSlot(slotId);
         record = Record.deserialize(buffer, slot.offset, schema);
         return record;
     }
@@ -255,15 +270,14 @@ public class DataPage {
         newDataPage.setNextPageId(this.getNextPageId());
         this.setNextPageId(newDataPage.getPageId());
 
-        //fixme 这样的页分裂逻辑会导致重复插入日志和版本
         //读取镜像页的数据，分别插入当前页和新页
         int recordCount = imageDataPage.getRecordCount();
         var iter = imageDataPage.scanFrom(0);
         for (int i = 0; i < recordCount / 2; i++) {
-            this.insertRecord(iter.next());
+            this.insertRecord(iter.next(), true, false);
         }
         for (int i = recordCount / 2; i < recordCount; i++) {
-            newDataPage.insertRecord(iter.next());
+            newDataPage.insertRecord(iter.next(), true, false);
         }
         return newDataPage;
     }

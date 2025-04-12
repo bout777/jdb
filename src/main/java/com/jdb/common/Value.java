@@ -94,8 +94,6 @@ class IntValue extends Value<Integer> {
 
     @Override
     public int serialize(ByteBuffer buffer, int offset) {
-//        buffer.put(offset, (byte) type.ordinal());
-//        offset += Byte.BYTES;
 
         buffer.putInt(offset, value);
         offset += Integer.BYTES;

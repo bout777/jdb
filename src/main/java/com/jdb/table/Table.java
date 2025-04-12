@@ -1,6 +1,9 @@
 package com.jdb.table;
 
 import com.jdb.catalog.Schema;
+import com.jdb.index.BPTree;
+import com.jdb.index.Index;
+import com.jdb.index.IndexMetaData;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 
@@ -10,6 +13,7 @@ import static com.jdb.common.Constants.SLOT_SIZE;
 public class Table {
     BufferPool bufferPool;
     long firstPageId = NULL_PAGE_ID;
+    Index clusterIndex;
 
     public Schema getSchema() {
         return schema;
@@ -21,7 +25,16 @@ public class Table {
         this.bufferPool = BufferPool.getInstance();
         this.schema = schema;
         this.tableName = name;
+
+        IndexMetaData metaData = new IndexMetaData(getTableName(),schema.columns().get(0),"test",schema);
+        clusterIndex = new BPTree(metaData);
     }
+
+
+    public Index getClusterIndex() {
+        return clusterIndex;
+    }
+
 
     public String getTableName() {
 
@@ -32,7 +45,7 @@ public class Table {
     public Record getRecord(RecordID rid) {
         Page page = bufferPool.getPage(rid.pid);
         DataPage dataPage = new DataPage(page);
-        Record record = dataPage.getRecord(rid.slotId, schema);
+        Record record = dataPage.getRecord(rid.offset, schema);
         return record;
     }
 
@@ -65,7 +78,7 @@ public class Table {
         }
 
         //插入record
-        dataPage.insertRecord(record);
+        dataPage.insertRecord(record, true, true);
     }
 
 //    public void deleteRecord(PagePointer p) {

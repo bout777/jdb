@@ -5,18 +5,18 @@ import java.nio.ByteBuffer;
 public class RecordID {
     public static final int SIZE = Long.BYTES+Integer.BYTES;
     public long pid;
-    public int slotId;
+    public int offset;
 
-    public RecordID(long pid, int slotId) {
+    public RecordID(long pid, int offset) {
         this.pid = pid;
-        this.slotId = slotId;
+        this.offset = offset;
     }
 
     @Override
     public String toString() {
         return "RecordID{" +
                 "pageId=" + pid +
-                ", slotId=" + slotId +
+                ", offset=" + offset +
                 '}';
     }
 
@@ -24,14 +24,14 @@ public class RecordID {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o instanceof RecordID that)
-            return this.pid == that.pid && this.slotId == that.slotId;
+            return this.pid == that.pid && this.offset == that.offset;
         return false;
     }
 
     @Override
     public int hashCode() {
         int result = Long.hashCode(pid);
-        result = 31 * result + Integer.hashCode(slotId);
+        result = 31 * result + Integer.hashCode(offset);
         return result;
     }
 

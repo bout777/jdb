@@ -19,6 +19,7 @@ public class MockTable {
     private static Random r = new Random();
     static {
         BufferPool bufferPool = BufferPool.getInstance();
+        RecoveryManager.getInstance().setLogManager(new LogManager());
 
         bufferPool.newFile(777,"test.db");
         bufferPool.newFile(369,"log");
@@ -28,7 +29,7 @@ public class MockTable {
         table = new Table("test.db", schema);
 
         RecoveryManager.getInstance().setLogManager(new LogManager());
-        TransactionManager.getInstance().begin();
+//        TransactionManager.getInstance().begin();
     }
     public static Table getTable() {
         return table;

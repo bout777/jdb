@@ -35,7 +35,7 @@ public class InsertLog extends LogRecord {
                 .putLong(xid)
                 .putLong(prevLsn)
                 .putLong(rid.pid)
-                .putInt(rid.slotId)
+                .putInt(rid.offset)
                 .putInt(len)
                 .put(image);
 
@@ -47,11 +47,11 @@ public class InsertLog extends LogRecord {
         long xid = buffer.getLong();
         long prevLsn = buffer.getLong();
         long pid = buffer.getLong();
-        int slotId = buffer.getInt();
+        int pof = buffer.getInt();
         int len = buffer.getInt();
         byte[] image = new byte[len];
         buffer.get(image);
-        return new InsertLog(xid,prevLsn, new RecordID(pid, slotId), image);
+        return new InsertLog(xid,prevLsn, new RecordID(pid,pof), image);
     }
 
 
@@ -81,7 +81,7 @@ public class InsertLog extends LogRecord {
         Page page = BufferPool.getInstance().getPage(rid.pid);
         DataPage dataPage = new DataPage(page);
         try {
-            dataPage.insertRecord(rid.slotId,image);
+            dataPage.insertRecord(rid.offset,image);
         }catch (DuplicateInsertException e){
             //record has existed, do nothing
         }

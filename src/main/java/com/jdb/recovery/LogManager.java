@@ -1,6 +1,6 @@
 package com.jdb.recovery;
 
-import com.jdb.common.Utils;
+import com.jdb.common.PageHelper;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 
@@ -16,7 +16,7 @@ import static com.jdb.common.Constants.PAGE_SIZE;
 * 由于日志页有固定的fid，所以每页只用保存pno
 * */
 public class LogManager {
-    private static final long MASTER_LOG_PAGE_ID = Utils.concatPid(LOG_FILE_ID,0);
+    private static final long MASTER_LOG_PAGE_ID = PageHelper.concatPid(LOG_FILE_ID,0);
     private BufferPool bufferPool;
     private Deque<Integer> unflushedLogTail;
     private LogPage logTail;
@@ -49,7 +49,7 @@ public class LogManager {
         long pid = getLSNPage(lsn);
         while (iter.hasNext()) {
             int unflushPno = iter.next();
-            long unflushPid = Utils.concatPid(LOG_FILE_ID, unflushPno);
+            long unflushPid = PageHelper.concatPid(LOG_FILE_ID, unflushPno);
             if (unflushPid > pid)
                 break;
             bufferPool.flushPage(unflushPid);
@@ -152,7 +152,7 @@ public class LogManager {
         }
 
         public long getPageId() {
-            return Utils.concatPid(LOG_FILE_ID,getPageNo());
+            return PageHelper.concatPid(LOG_FILE_ID,getPageNo());
         }
 
         public int getPageNo(){

@@ -1,6 +1,7 @@
 package com.jdb.table;
 
 import com.jdb.common.DataType;
+import com.jdb.common.PageHelper;
 import com.jdb.common.Value;
 import com.jdb.index.IndexEntry;
 import com.jdb.index.SecondaryIndexEntry;
@@ -8,6 +9,7 @@ import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import static com.jdb.common.Constants.NULL_PAGE_ID;
 
@@ -17,11 +19,16 @@ public class IndexPage {
     private static final int LSN_OFFSET = Byte.BYTES;
     private static final int PAGE_ID_OFFSET = LSN_OFFSET + Long.BYTES;
     private static final int NEXT_PAGE_ID_OFFSET = PAGE_ID_OFFSET + Long.BYTES;
-    private static final int ENTRY_COUNT_OFFSET = NEXT_PAGE_ID_OFFSET + Long.BYTES;
-    private static final int HEADER_SIZE = ENTRY_COUNT_OFFSET + Integer.BYTES;
+    private static final int KEY_COUNT_OFFSET = NEXT_PAGE_ID_OFFSET + Long.BYTES;
+    private static final int HEADER_SIZE = KEY_COUNT_OFFSET + Integer.BYTES;
+
+    private static final int KEY_SIZE = Integer.BYTES;
+    private static final int CHILD_SIZE = Integer.BYTES;
+
     private final ByteBuffer bf;
     private Page page;
     private String tableName = "test";
+
 
     public IndexPage(long pid, Page page) {
         this.page = page;
@@ -50,47 +57,88 @@ public class IndexPage {
         bf.putLong(NEXT_PAGE_ID_OFFSET, pid);
     }
 
-    public int getEntryCount() {
-        return bf.getInt(ENTRY_COUNT_OFFSET);
+    public int getKeyCount() {
+        return bf.getInt(KEY_COUNT_OFFSET);
     }
 
-    public void setEntryCount(int entryCount) {
-        bf.putInt(ENTRY_COUNT_OFFSET, entryCount);
+    public void setKeyCount(int count) {
+        bf.putInt(KEY_COUNT_OFFSET, count);
     }
 
 
     // return the index of max floor entry of key
     public int binarySearch(Value<?> key) {
-        int low = 0, high = getEntryCount() - 1;
+        int low = 0, high = getKeyCount() - 1;
         while (low <= high) {
             int mid = (low + high) >>> 1;
-            IndexEntry e = getEntry(mid);
-            if (e.getKey().compareTo(key) <= 0) {
+            Value<?> m = getKey(mid);
+            if (m.compareTo(key) <= 0) {
                 low = mid + 1;
-            } else if (e.getKey().compareTo(key) > 0) {
+            } else if (m.compareTo(key) > 0) {
                 high = mid - 1;
             }
         }
         return low - 1;
     }
 
-    public void insert(IndexEntry entry) {
-        if (entry instanceof SecondaryIndexEntry) {
-            int eid = binarySearch(entry.getKey()) + 1;
-            int offset = HEADER_SIZE + entry.getBytes() * eid;
+//    public void insert(IndexEntry entry) {
+//        if (entry instanceof SecondaryIndexEntry) {
+//            int eid = binarySearch(entry.getKey()) + 1;
+//            int offset = HEADER_SIZE + entry.getBytes() * eid;
+//
+//            offset = entry.getKey().serialize(bf, offset);
+//
+//            RecordID p = (RecordID) entry.getValue();
+//            bf.putLong(offset, p.pid);
+//            offset += Long.BYTES;
+//            bf.putInt(offset, p.offset);
+//
+//            setKeyCount(getKeyCount() + 1);
+//            page.setDirty(true);
+//            return;
+//        }
+//        throw new UnsupportedOperationException("wrong entry type");
+//    }
 
-            offset = entry.getKey().serialize(bf, offset);
+    public long insert(Value<?> key, long pid) {
+        //找到插入位置
+        int idx = binarySearch(key) + 1;
+        int offset = HEADER_SIZE + KEY_SIZE * idx + CHILD_SIZE * (idx + 1);
 
-            RecordID p = (RecordID) entry.getValue();
-            bf.putLong(offset, p.pid);
-            offset += Long.BYTES;
-            bf.putInt(offset, p.slotId);
+        //腾出空间
+        int len = getKeyCount() * (KEY_SIZE + CHILD_SIZE);
+        System.arraycopy(bf.array(), offset, bf.array(), offset + KEY_SIZE + CHILD_SIZE, len);
 
-            setEntryCount(getEntryCount() + 1);
-            page.setDirty(true);
-            return;
-        }
-        throw new UnsupportedOperationException("wrong entry type");
+        //写入
+        int pno = PageHelper.getPno(pid);
+        offset = key.serialize(bf, offset);
+        bf.putInt(offset, pno);
+
+        setKeyCount(getKeyCount() + 1);
+        //todo 添加分裂逻辑
+        return -1L;
+    }
+
+    public void addChild(int cno, long pid) {
+        int offset = HEADER_SIZE + KEY_SIZE * cno + CHILD_SIZE * cno;
+//        System.arraycopy(bf.array(), offset, bf.array(), offset + CHILD_SIZE, CHILD_SIZE * (cno + 1));
+        int pno = PageHelper.getPno(pid);
+        bf.putInt(offset, pno);
+    }
+
+    public int getChild(int cno) {
+        int offset = HEADER_SIZE + KEY_SIZE * cno + CHILD_SIZE * cno;
+        return bf.getInt(offset);
+    }
+
+    public void addKey(int kno, Value<?> key) {
+        int offset = HEADER_SIZE + KEY_SIZE * kno + CHILD_SIZE * (kno + 1);
+        key.serialize(bf, offset);
+    }
+
+    public Value<?> getKey(int kno) {
+        int offset = HEADER_SIZE + KEY_SIZE * kno + CHILD_SIZE * (kno + 1);
+        return Value.deserialize(bf, offset, DataType.INTEGER);
     }
 
     public IndexEntry getEntry(int eid) {
@@ -115,19 +163,9 @@ public class IndexPage {
     }
 
 
-    public Value<?> getKey(int kno) {
-        int offset = HEADER_SIZE + Integer.SIZE * kno + RecordID.SIZE * (kno + 1);
-        return Value.deserialize(bf, offset, DataType.INTEGER);
-    }
-
-    public int getChild(int cno) {
-        int offset = HEADER_SIZE + Integer.SIZE * cno + RecordID.SIZE * cno;
-        return bf.getInt(offset);
-    }
-
 
     public Value<?> getFloorKey() {
-        return Value.deserialize(bf, HEADER_SIZE, DataType.INTEGER);
+        return Value.deserialize(bf, HEADER_SIZE+CHILD_SIZE, DataType.INTEGER);
     }
 
     //    private IndexEntry deserializeEntry(int offset){

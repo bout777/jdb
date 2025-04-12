@@ -100,7 +100,7 @@ public class LogManagerTest {
             for (int i = 0; i < 10; i++) {
                 Record record = generateRecord(i);
                 expected.add(record);
-                dataPage.insertRecord(record);
+                dataPage.insertRecord(record, true, true);
             }
             dataPage.init();
 

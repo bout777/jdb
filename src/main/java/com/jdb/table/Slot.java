@@ -1,6 +1,7 @@
 package com.jdb.table;
 
 import java.nio.ByteBuffer;
+import java.util.function.Function;
 
 public class Slot {
     //两个int，占用
@@ -8,7 +9,6 @@ public class Slot {
 
     int size;
     int primaryKey;
-    Slot next;
 
     public Slot(int offset, int size, int primaryKey) {
         this.offset = offset;
