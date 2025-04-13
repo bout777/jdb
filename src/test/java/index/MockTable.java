@@ -29,7 +29,6 @@ public class MockTable {
         table = new Table("test.db", schema);
 
         RecoveryManager.getInstance().setLogManager(new LogManager());
-//        TransactionManager.getInstance().begin();
     }
     public static Table getTable() {
         return table;

@@ -1,6 +1,7 @@
 package com.jdb.index;
 
 import com.jdb.common.Value;
+import com.jdb.table.PagePointer;
 
 /**
  * The type Index entry.
@@ -24,6 +25,10 @@ public abstract class IndexEntry implements Comparable<IndexEntry> {
     @Override
     public int compareTo(IndexEntry o) {
         return getKey().compareTo(o.getKey());
+    }
+
+    public PagePointer getPointer() {
+        return null;
     }
 
     /**

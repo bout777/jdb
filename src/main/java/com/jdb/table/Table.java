@@ -1,11 +1,11 @@
 package com.jdb.table;
 
 import com.jdb.catalog.Schema;
-import com.jdb.index.BPTree;
-import com.jdb.index.Index;
-import com.jdb.index.IndexMetaData;
+import com.jdb.common.Value;
+import com.jdb.index.*;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
+import com.jdb.version.VersionManager;
 
 import static com.jdb.common.Constants.NULL_PAGE_ID;
 import static com.jdb.common.Constants.SLOT_SIZE;
@@ -37,16 +37,18 @@ public class Table {
 
 
     public String getTableName() {
-
         return tableName;
     }
 
     // TODO 把get相关的逻辑弄好，测试，下一步才可以对接索引
-    public Record getRecord(RecordID rid) {
-        Page page = bufferPool.getPage(rid.pid);
-        DataPage dataPage = new DataPage(page);
-        Record record = dataPage.getRecord(rid.offset, schema);
-        return record;
+    public Record getRecord(PagePointer ptr) {
+        Page page = bufferPool.getPage(ptr.pid);
+        return Record.deserialize(page.getBuffer(), ptr.offset, schema);
+    }
+
+    public Record getRecord(Value<?> key) {
+        IndexEntry entry = clusterIndex.searchEqual(key);
+        return ((ClusterIndexEntry) entry).getRecord();
     }
 
     //需要改成走索引插入
@@ -81,8 +83,24 @@ public class Table {
         dataPage.insertRecord(record, true, true);
     }
 
-//    public void deleteRecord(PagePointer p) {
-//        DataPage dataPage = new DataPage(p.pageId, bufferPool.getPage(p.pageId));
-//        dataPage.deleteRecord(p.slotId);
-//    }
+    public void insertRecord(Record record, boolean shouldLog, boolean shouldPushVersion){
+        var vm = VersionManager.getInstance();
+        vm.pushUpdate(tableName, record);
+
+        var entry = new ClusterIndexEntry(Value.ofInt(record.getPrimaryKey()), record);
+        clusterIndex.insert(entry);
+    }
+
+    public void updateRecord(Value<?> key,Record record){
+        var vm = VersionManager.getInstance();
+        vm.pushUpdate(tableName, record);
+
+        var ptr= clusterIndex.searchEqual(key).getPointer();
+        var page = new DataPage(bufferPool.getPage(ptr.pid));
+        page.updateRecord(ptr.offset,record,true);
+    }
+    public void deleteRecord(PagePointer ptr) {
+        DataPage dataPage = new DataPage(bufferPool.getPage(ptr.pid));
+        dataPage.deleteRecord(ptr.offset);
+    }
 }

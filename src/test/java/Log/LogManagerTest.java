@@ -12,7 +12,7 @@ import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
 import com.jdb.table.Record;
-import com.jdb.table.RecordID;
+import com.jdb.table.PagePointer;
 import com.jdb.table.Table;
 import com.jdb.transaction.TransactionContext;
 import index.MockTable;
@@ -67,7 +67,7 @@ public class LogManagerTest {
         List<LogRecord> expected = new ArrayList<>();
 
         for (int i = 0; i < 4; i++) {
-            InsertLog insertLog = new InsertLog(114514L, 0, new RecordID(0, 0),image);
+            InsertLog insertLog = new InsertLog(114514L, 0, new PagePointer(0, 0),image);
             expected.add(insertLog);
         }
 

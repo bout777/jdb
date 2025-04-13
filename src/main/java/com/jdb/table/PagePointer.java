@@ -2,19 +2,22 @@ package com.jdb.table;
 
 import java.nio.ByteBuffer;
 
-public class RecordID {
+/**
+ * 页的物理指针，指向确定页的确定位置
+ */
+public class PagePointer {
     public static final int SIZE = Long.BYTES+Integer.BYTES;
     public long pid;
     public int offset;
 
-    public RecordID(long pid, int offset) {
+    public PagePointer(long pid, int offset) {
         this.pid = pid;
         this.offset = offset;
     }
 
     @Override
     public String toString() {
-        return "RecordID{" +
+        return "PagePointer{" +
                 "pageId=" + pid +
                 ", offset=" + offset +
                 '}';
@@ -23,7 +26,7 @@ public class RecordID {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o instanceof RecordID that)
+        if (o instanceof PagePointer that)
             return this.pid == that.pid && this.offset == that.offset;
         return false;
     }
@@ -35,11 +38,11 @@ public class RecordID {
         return result;
     }
 
-    public static RecordID deserialize(ByteBuffer buffer, int offset) {
+    public static PagePointer deserialize(ByteBuffer buffer, int offset) {
         buffer.position(offset);
         long pid = buffer.getLong();
         int slotId = buffer.getInt();
-        return new RecordID(pid, slotId);
+        return new PagePointer(pid, slotId);
     }
 
 }

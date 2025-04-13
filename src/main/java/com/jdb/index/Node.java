@@ -177,7 +177,6 @@ class LeafNode extends Node {
             Record record = ((ClusterIndexEntry) entry).getRecord();
             if (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE) {
                 //空间不足，页分裂
-
                 DataPage newDataPage = dataPage.split();
                 if (record.getPrimaryKey() < newDataPage.getSlot(0).getPrimaryKey()) {
                     dataPage.insertRecord(record, true, true);

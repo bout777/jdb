@@ -1,13 +1,6 @@
 package index;
 
-import com.jdb.common.Value;
 import com.jdb.index.BPTree;
-import com.jdb.index.ClusterIndexEntry;
-import com.jdb.index.IndexEntry;
-import com.jdb.storage.BufferPool;
-import com.jdb.table.RecordID;
-import org.junit.Before;
-import org.junit.Test;
 
 public class BPTreeTest {
     BPTree bpTree;

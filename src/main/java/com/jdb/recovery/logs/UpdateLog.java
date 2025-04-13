@@ -4,7 +4,7 @@ import com.jdb.recovery.LogRecord;
 import com.jdb.recovery.LogType;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
-import com.jdb.table.RecordID;
+import com.jdb.table.PagePointer;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -14,7 +14,7 @@ import java.util.Arrays;
  */
 public class UpdateLog extends LogRecord {
     private static final int RID_OFFSET = 1;
-    private static final int XID_OFFSET = RID_OFFSET + RecordID.SIZE;
+    private static final int XID_OFFSET = RID_OFFSET + PagePointer.SIZE;
     private static final int PREV_LSN_OFFSET = XID_OFFSET + Integer.BYTES;
     private static final int HEADER_SIZE = Byte.BYTES + Long.BYTES + Integer.BYTES + Long.BYTES + Short.BYTES + Short.BYTES;
     private long xid;

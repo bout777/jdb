@@ -1,13 +1,13 @@
 package com.jdb.index;
 
 import com.jdb.common.Value;
-import com.jdb.table.RecordID;
+import com.jdb.table.PagePointer;
 
 public class SecondaryIndexEntry extends IndexEntry {
     Value<?> key;
-    RecordID pointer;
+    PagePointer pointer;
 
-    public SecondaryIndexEntry(Value<?> key, RecordID pointer) {
+    public SecondaryIndexEntry(Value<?> key, PagePointer pointer) {
         this.key = key;
         this.pointer = pointer;
     }
@@ -24,6 +24,6 @@ public class SecondaryIndexEntry extends IndexEntry {
 
     @Override
     public int getBytes() {
-        return key.getBytes() + RecordID.SIZE;
+        return key.getBytes() + PagePointer.SIZE;
     }
 }

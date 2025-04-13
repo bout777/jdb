@@ -3,7 +3,7 @@ package com.jdb.recovery;
 import com.jdb.recovery.logs.*;
 import com.jdb.storage.BufferPool;
 import com.jdb.table.DataPage;
-import com.jdb.table.RecordID;
+import com.jdb.table.PagePointer;
 import com.jdb.transaction.Transaction;
 
 import java.util.*;
@@ -56,12 +56,12 @@ public class RecoveryManager {
 //        append(log);
     }
 
-    public long logInsert(long xid,RecordID rid, byte[] image) {
+    public long logInsert(long xid, PagePointer ptr, byte[] image) {
         assert transactionsTable.containsKey(xid);
 
         //获得事务表中对应事务的lastLsn，作为下一个日志记录的prevLsn
         long prevLsn = transactionsTable.get(xid);
-        LogRecord log = new InsertLog(xid, prevLsn,rid, image);
+        LogRecord log = new InsertLog(xid, prevLsn,ptr, image);
 
         //追加日志
         long lsn = logManager.append(log);
@@ -70,7 +70,7 @@ public class RecoveryManager {
         transactionsTable.put(xid, lsn);
 
         //更新脏页表
-        dirtyPage(rid.pid,lsn);
+        dirtyPage(ptr.pid,lsn);
         return lsn;
     }
 

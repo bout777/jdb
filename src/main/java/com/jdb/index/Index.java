@@ -2,10 +2,12 @@ package com.jdb.index;
 
 import com.jdb.common.Value;
 
+import java.util.List;
+
 public interface Index {
     IndexEntry searchEqual(Value<?> key);
 
-    IndexEntry searchRange(Value<?> low, Value<?> high);
+    List<IndexEntry> searchRange(Value<?> low, Value<?> high);
 
     void insert(IndexEntry entry);
 

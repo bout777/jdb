@@ -6,7 +6,7 @@ import com.jdb.recovery.LogType;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
-import com.jdb.table.RecordID;
+import com.jdb.table.PagePointer;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -14,16 +14,16 @@ import java.util.Arrays;
 public class InsertLog extends LogRecord {
     long xid;
     long prevLsn;
-    RecordID rid;
+    PagePointer ptr;
     int len;
     byte[] image;
-    private static final int HEADER_SIZE = LogRecord.HEADER_SIZE + Long.BYTES * 2 + RecordID.SIZE + Integer.BYTES;
+    private static final int HEADER_SIZE = LogRecord.HEADER_SIZE + Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
 
-    public InsertLog(long xid, long prevLsn, RecordID rid, byte[] image) {
+    public InsertLog(long xid, long prevLsn, PagePointer ptr, byte[] image) {
         super(LogType.INSERT);
         this.xid = xid;
         this.prevLsn = prevLsn;
-        this.rid = rid;
+        this.ptr = ptr;
         this.len = image.length;
         this.image = image;
     }
@@ -34,8 +34,8 @@ public class InsertLog extends LogRecord {
                 .put((byte) getType().getValue())
                 .putLong(xid)
                 .putLong(prevLsn)
-                .putLong(rid.pid)
-                .putInt(rid.offset)
+                .putLong(ptr.pid)
+                .putInt(ptr.offset)
                 .putInt(len)
                 .put(image);
 
@@ -51,13 +51,13 @@ public class InsertLog extends LogRecord {
         int len = buffer.getInt();
         byte[] image = new byte[len];
         buffer.get(image);
-        return new InsertLog(xid,prevLsn, new RecordID(pid,pof), image);
+        return new InsertLog(xid,prevLsn, new PagePointer(pid,pof), image);
     }
 
 
     @Override
     public long getPageId() {
-        return rid.pid;
+        return ptr.pid;
     }
 
     @Override
@@ -78,10 +78,10 @@ public class InsertLog extends LogRecord {
 
     @Override
     public void redo() {
-        Page page = BufferPool.getInstance().getPage(rid.pid);
+        Page page = BufferPool.getInstance().getPage(ptr.pid);
         DataPage dataPage = new DataPage(page);
         try {
-            dataPage.insertRecord(rid.offset,image);
+            dataPage.insertRecord(ptr.offset,image);
         }catch (DuplicateInsertException e){
             //record has existed, do nothing
         }
@@ -97,7 +97,7 @@ public class InsertLog extends LogRecord {
         return "InsertLog{" +
                 "xid=" + xid +
                 ", prevLsn=" + prevLsn +
-                ", rid=" + rid +
+                ", ptr=" + ptr +
                 ", len=" + len +
                 ", image=" + Arrays.toString(image) +
                 '}';
@@ -110,7 +110,7 @@ public class InsertLog extends LogRecord {
         InsertLog insertLog = (InsertLog) o;
         return xid == insertLog.xid &&
                 prevLsn == insertLog.prevLsn &&
-                rid.equals(insertLog.rid) &&
+                ptr.equals(insertLog.ptr) &&
                 Arrays.equals(image, insertLog.image);
     }
 }

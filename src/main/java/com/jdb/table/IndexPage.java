@@ -9,7 +9,6 @@ import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 import static com.jdb.common.Constants.NULL_PAGE_ID;
 
@@ -142,10 +141,10 @@ public class IndexPage {
     }
 
     public IndexEntry getEntry(int eid) {
-        int offset = HEADER_SIZE + eid * (Integer.BYTES + RecordID.SIZE);
+        int offset = HEADER_SIZE + eid * (Integer.BYTES + PagePointer.SIZE);
         Value<?> key = Value.deserialize(bf, offset, DataType.INTEGER);
         offset += key.getBytes();
-        RecordID p = RecordID.deserialize(bf, offset);
+        PagePointer p = PagePointer.deserialize(bf, offset);
         return new SecondaryIndexEntry(key, p);
     }
 

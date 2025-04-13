@@ -129,55 +129,56 @@ public class DataPage {
         return HEADER_SIZE;
     }
 
-    public RecordID insertRecord(Record record, boolean shouldLog, boolean shouldPushVersion) {
-        //移动upper指针
-        int upper = getUpper() - record.getSize();
-        int lower = getLower();
-        //写入slot
-        Slot slot = new Slot(upper, record.getSize(), record.getPrimaryKey());
-        insertSlot(slot);
+    public PagePointer insertRecord(Record record, boolean shouldLog, boolean shouldPushVersion) {
+        try  {
+            this.page.acquireWriteLock();
 
-        //更新lower,upper
-        setUpper(upper);
-        setLower(lower + SLOT_SIZE);
+            //移动upper指针
+            int upper= getUpper() - record.getSize();
+            int lower = getLower();
+            //写入slot
+            Slot slot = new Slot(upper, record.getSize(), record.getPrimaryKey());
+            insertSlot(slot);
 
-        //写入record
-        record.serializeTo(buffer, upper);
-        setDirty(true);
+            //更新lower,upper
+            setUpper(upper);
+            setLower(lower + SLOT_SIZE);
 
-        RecordID rid = new RecordID(getPageId(), upper);
+            //写入record
+            record.serializeTo(buffer, upper);
+            setDirty(true);
+            PagePointer ptr = new PagePointer(getPageId(), upper);
 
-        //写日志
-        if(shouldLog) {
-            byte[] image = new byte[slot.size];
-            buffer.get(upper, image);
-            long xid = TransactionContext.getTransaction().getXid();
-            long lsn = RecoveryManager.getInstance().logInsert(xid, rid, image);
-            setLsn(lsn);
+            //写日志
+            if(shouldLog) {
+                byte[] image = new byte[slot.size];
+                buffer.get(upper, image);
+                long xid = TransactionContext.getTransaction().getXid();
+                long lsn = RecoveryManager.getInstance().logInsert(xid, ptr, image);
+                setLsn(lsn);
+            }
+            return ptr;
+        }finally {
+            this.page.releaseWriteLock();
         }
-
-        //追加版本
-        if(shouldPushVersion) {
-            VersionManager.getInstance().pushUpdate(rid, record);
-        }
-        return rid;
     }
 
 
 
-    public RecordID updateRecord(int slotId, Record record,boolean shouldLog,boolean shouldPushVersion) {
-        //todo 检查record是否符合schema
-        Slot slot = getSlot(slotId);
+    public PagePointer updateRecord(int offset, Record record, boolean shouldLog) {
+        try {
+            this.page.acquireWriteLock();
+            //todo 检查record是否符合schema
 
-        record.serializeTo(buffer, slot.offset);
-        this.setDirty(true);
+            record.serializeTo(buffer, offset);
+            this.setDirty(true);
 
-        RecordID rid = new RecordID(getPageId(), slot.offset);
-        //追加版本
-        if (shouldPushVersion) {
-            VersionManager.getInstance().pushUpdate(rid, record);
+            PagePointer ptr = new PagePointer(getPageId(), offset);
+            //todo 追加版本
+            return ptr;
+        }  finally {
+            this.page.releaseWriteLock();
         }
-        return rid;
     }
 
     /**
@@ -205,20 +206,16 @@ public class DataPage {
 
 
     public Record getRecord(int slotId, Schema schema) {
-        if (slotId >= getRecordCount()) throw new  NoSuchElementException();
-        Slot slot = getSlot(slotId);
-
-        //先尝试获取旧版本
-        var vm = VersionManager.getInstance();
-        var rid = new RecordID(getPageId(), slot.offset);
-        Record record = vm.read(rid);
-        if (record != null) {
-            return record;
+        try {
+            this.page.acquireReadLock();
+            if (slotId >= getRecordCount())
+                throw new  NoSuchElementException();
+            Slot slot = getSlot(slotId);
+            //读取最新记录
+            return Record.deserialize(buffer, slot.offset, schema);
+        } finally {
+            this.page.releaseReadLock();
         }
-
-        //读取最新记录
-        record = Record.deserialize(buffer, slot.offset, schema);
-        return record;
     }
 
     private int insertSlot(Slot slot) {

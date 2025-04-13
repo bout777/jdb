@@ -12,10 +12,12 @@ import com.jdb.table.Table;
 import com.jdb.table.TableManager;
 import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -31,14 +33,16 @@ public class DuraBPTest {
     @Before
     public void init() {
         Table table = new MockTable().getTable();
-//        Schema schema = table.getSchema();
-//        IndexMetaData metaData = new IndexMetaData(table.getTableName(),schema.columns().get(0),"test",schema);
-//        bpTree = new BPTree(metaData);
         bpTree = table.getClusterIndex();
     }
 
+    @After
+    public void clean() {
+
+    }
+
     @Test
-    public void testSimpleInsertAndSearch() {
+    public void testDescInsertAndSearch() {
         List<IndexEntry> expect = new ArrayList<>();
         TransactionManager.getInstance().begin();
         for (int i = 2000; i >=0 ; i--) {
@@ -57,9 +61,22 @@ public class DuraBPTest {
     }
 
     @Test
-    public void testSearch() {
-        for (int i = 0; i < 1000; i++) {
-            IndexEntry e = bpTree.searchEqual(Value.ofInt(r.nextInt(1000)));
+    public void testRandomInsert() {
+        TransactionManager.getInstance().begin();
+        List<Integer> ids = new ArrayList<>();
+        for(int i = 0; i < 2000; i++){
+            ids.add(i);
+        }
+        Collections.shuffle(ids);
+        for(Integer id: ids){
+            Record record = MockTable.generateRecord(id);
+            bpTree.insert(new ClusterIndexEntry(Value.ofInt(id), record));
+        }
+
+        for(Integer id: ids){
+            IndexEntry e = bpTree.searchEqual(Value.ofInt(id));
+            assertEquals(Value.ofInt(id), e.getKey());
         }
     }
+
 }

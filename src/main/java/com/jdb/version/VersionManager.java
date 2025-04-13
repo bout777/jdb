@@ -1,7 +1,7 @@
 package com.jdb.version;
 
 import com.jdb.table.Record;
-import com.jdb.table.RecordID;
+import com.jdb.table.PagePointer;
 import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 
@@ -27,26 +27,47 @@ public class VersionManager {
     }
 
     private ReadWriteLock rw = new ReentrantReadWriteLock();
-    private Map<RecordID, VersionEntrySet> versionMap = new HashMap<>();
+    private Map<LogicRid, VersionEntrySet> versionMap = new HashMap<>();
 
-    public RecordID pushUpdate(RecordID rid, Record record) {
-//        var deque = versionMap.get(rid);
-//        if (deque == null) {
-//            deque = new VersionEntrySet(rid);
-//            versionMap.put(rid, deque);
-//        }
-//        if (!deque.tryPush(record)) {
-//            //todo 冲突回滚
-//            throw new RuntimeException("测试代码不该跑到这,tell me why?");
-//        }
+    private class LogicRid {
+        private String tableName;
+        private int primaryKey;
+        private LogicRid(String tableName, int primaryKey) {
+            this.tableName = tableName;
+            this.primaryKey = primaryKey;
+        }
 
-        return rid;
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o instanceof LogicRid that)
+                return this.tableName.equals(that.tableName) && this.primaryKey == that.primaryKey;
+            return false;
+        }
+        @Override
+        public int hashCode() {
+            return Objects.hash(tableName, primaryKey);
+        }
+    }
+    //fixme 当页分裂后，原来的rid可能不再对应原来的记录，需要修复
+    public void pushUpdate(String tableName, Record record) {
+        var key = new LogicRid(tableName, record.getPrimaryKey());
+
+        var deque = versionMap.get(key);
+        if (deque == null) {
+            deque = new VersionEntrySet(key);
+            versionMap.put(key, deque);
+        }
+        if (!deque.tryPush(record)) {
+            //todo 冲突回滚
+            throw new RuntimeException("测试代码不该跑到这,tell me why?");
+        }
     }
 
-    public Record read(RecordID rid) {
+    public Record read(PagePointer ptr) {
         rw.readLock().lock();
 
-        var entrySet = versionMap.get(rid);
+        var entrySet = versionMap.get(ptr);
         if (entrySet == null)
             return null;
 
@@ -70,14 +91,14 @@ public class VersionManager {
         return record;
     }
 
-    public void commit(Set<RecordID> writeSet) {
+    public void commit(Set<PagePointer> writeSet) {
         long curTs = TransactionManager.getCurrentTrxStamp();
         //事务提交期间，阻塞读线程
         rw.writeLock().lock();
 
         //这里用了O(klogn),后续可以优化成O(k)？
-        for (RecordID rid : writeSet) {
-            var deque = versionMap.get(rid);
+        for (PagePointer ptr : writeSet) {
+            var deque = versionMap.get(ptr);
             for (VersionEntry entry : deque) {
                 if (entry.getStartTs() == curTs) {
                     entry.setEndTs(TransactionManager.getCurrentTrxStamp());
@@ -89,14 +110,13 @@ public class VersionManager {
     }
 
 
-    //都用上java了，不要省内存了，多快好省，干就完了。
 
     //maintain a version list for each record
     private class VersionEntrySet extends TreeSet<VersionEntry> {
-        RecordID rid;
-        VersionEntrySet(RecordID rid) {
+        LogicRid ptr;
+        VersionEntrySet(LogicRid ptr) {
             super(Comparator.comparingLong(VersionEntry::getEndTs));
-            this.rid = rid;
+            this.ptr = ptr;
         }
 
         public synchronized boolean tryPush(Record record) {

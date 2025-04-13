@@ -5,8 +5,9 @@ import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
 import com.jdb.table.IndexPage;
-import com.jdb.table.RecordID;
 import com.jdb.table.Table;
+
+import java.util.List;
 
 import static com.jdb.common.Constants.NULL_PAGE_ID;
 
@@ -30,7 +31,7 @@ public class BPTree implements Index {
     }
 
     @Override
-    public IndexEntry searchRange(Value<?> low, Value<?> high) {
+    public List<IndexEntry> searchRange(Value<?> low, Value<?> high) {
         return null;
     }
 
@@ -69,4 +70,5 @@ public class BPTree implements Index {
     public void delete(IndexEntry entry) {
 
     }
+
 }

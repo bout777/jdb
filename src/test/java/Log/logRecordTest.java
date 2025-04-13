@@ -6,7 +6,7 @@ import com.jdb.recovery.logs.MasterLog;
 import com.jdb.recovery.logs.UpdateLog;
 import com.jdb.storage.BufferPool;
 import com.jdb.table.DataPage;
-import com.jdb.table.RecordID;
+import com.jdb.table.PagePointer;
 import com.jdb.table.Table;
 import index.MockTable;
 import org.junit.Before;
@@ -36,7 +36,7 @@ public class logRecordTest {
         assertEquals(expected, log);
 
         var image = new byte[]{1,2,3,4,5,6,7,8,9,10};
-        InsertLog insertLog = new InsertLog(114514L, 0, new RecordID(0, 0),image);
+        InsertLog insertLog = new InsertLog(114514L, 0, new PagePointer(0, 0),image);
         insertLog.serialize(buf,0);
 
         log = LogRecord.deserialize(buf, 0);
