@@ -7,6 +7,7 @@ import com.jdb.index.IndexEntry;
 import com.jdb.table.Record;
 import com.jdb.table.Table;
 import com.jdb.transaction.TransactionManager;
+import com.jdb.version.VersionManager;
 import index.MockTable;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class VersionManagerTest {
 
@@ -93,7 +95,18 @@ public class VersionManagerTest {
 
     @Test
     public void testVisibility() {
-
+        DeterministicRunner runner = new DeterministicRunner(2);
+        var vm = VersionManager.getInstance();
+        Record record = MockTable.generateRecord(20);
+        runner.run(0, () -> {
+            TransactionManager.getInstance().begin();
+            vm.pushUpdate(table.getTableName(), record);
+        });
+        runner.run(1, () -> {
+            TransactionManager.getInstance().begin();
+            var record1 = vm.read(table.getTableName(), record.getPrimaryKey());
+            assertNull(record1);
+        });
     }
 
 }

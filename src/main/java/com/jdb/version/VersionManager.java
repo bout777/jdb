@@ -1,7 +1,6 @@
 package com.jdb.version;
 
 import com.jdb.table.Record;
-import com.jdb.table.PagePointer;
 import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 
@@ -26,37 +25,18 @@ public class VersionManager {
         return instance;
     }
 
-    private ReadWriteLock rw = new ReentrantReadWriteLock();
+    private final ReadWriteLock rw = new ReentrantReadWriteLock();
     private Map<LogicRid, VersionEntrySet> versionMap = new HashMap<>();
 
-    private class LogicRid {
-        private String tableName;
-        private int primaryKey;
-        private LogicRid(String tableName, int primaryKey) {
-            this.tableName = tableName;
-            this.primaryKey = primaryKey;
-        }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o instanceof LogicRid that)
-                return this.tableName.equals(that.tableName) && this.primaryKey == that.primaryKey;
-            return false;
-        }
-        @Override
-        public int hashCode() {
-            return Objects.hash(tableName, primaryKey);
-        }
-    }
     //fixme 当页分裂后，原来的rid可能不再对应原来的记录，需要修复
     public void pushUpdate(String tableName, Record record) {
-        var key = new LogicRid(tableName, record.getPrimaryKey());
+        var rid = new LogicRid(tableName, record.getPrimaryKey());
 
-        var deque = versionMap.get(key);
+        var deque = versionMap.get(rid);
         if (deque == null) {
-            deque = new VersionEntrySet(key);
-            versionMap.put(key, deque);
+            deque = new VersionEntrySet(rid);
+            versionMap.put(rid, deque);
         }
         if (!deque.tryPush(record)) {
             //todo 冲突回滚
@@ -64,10 +44,10 @@ public class VersionManager {
         }
     }
 
-    public Record read(PagePointer ptr) {
+    public Record read(String tableName, int primaryKey) {
         rw.readLock().lock();
-
-        var entrySet = versionMap.get(ptr);
+        var rid = new LogicRid(tableName, primaryKey);
+        var entrySet = versionMap.get(rid);
         if (entrySet == null)
             return null;
 
@@ -76,46 +56,52 @@ public class VersionManager {
         switch (isolevel) {
             case READ_COMMITTED -> {
                 long curTs = TransactionManager.getCurrentTrxStamp();
-                var searchKey = new VersionEntry(curTs, null);
-                record = entrySet.ceiling(searchKey).getRecord();
+                var entry = entrySet.floor(curTs);
+                if(entry!=null)
+                    record = entry.getRecord();
             }
             case SNAPSHOT_ISOLATION -> {
                 long xid = TransactionContext.getTransaction().getXid();
-                var searchKey = new VersionEntry(xid, null);
-                record = entrySet.floor(searchKey).getRecord();
+                var entry = entrySet.floor(xid);
+                if(entry!=null)
+                    record = entry.getRecord();
             }
         }
-
         rw.readLock().unlock();
-
         return record;
     }
 
-    public void commit(Set<PagePointer> writeSet) {
+    public void commit(Set<LogicRid> writeSet) {
         long curTs = TransactionManager.getCurrentTrxStamp();
         //事务提交期间，阻塞读线程
         rw.writeLock().lock();
 
         //这里用了O(klogn),后续可以优化成O(k)？
-        for (PagePointer ptr : writeSet) {
-            var deque = versionMap.get(ptr);
-            for (VersionEntry entry : deque) {
-                if (entry.getStartTs() == curTs) {
-                    entry.setEndTs(TransactionManager.getCurrentTrxStamp());
-                }
-            }
+//        for (PagePointer ptr : writeSet) {
+//            var deque = versionMap.get(ptr);
+//            for (VersionEntry entry : deque) {
+//                if (entry.getStartTs() == curTs) {
+//                    entry.setEndTs(TransactionManager.getCurrentTrxStamp());
+//                }
+//            }
+//        }
+        for (LogicRid ptr : writeSet) {
+            var entries = versionMap.get(ptr);
+            var entry = entries.pollLastEntry().getValue();
+            entry.setEndTs(curTs);
+            entries.put(curTs, entry);
         }
 
         rw.writeLock().unlock();
     }
 
 
-
     //maintain a version list for each record
-    private class VersionEntrySet extends TreeSet<VersionEntry> {
+    private class VersionEntrySet extends TreeMap<Long, VersionEntry> {
         LogicRid ptr;
+
         VersionEntrySet(LogicRid ptr) {
-            super(Comparator.comparingLong(VersionEntry::getEndTs));
+//            super(Comparator.comparingLong(VersionEntry::getEndTs));
             this.ptr = ptr;
         }
 
@@ -124,17 +110,25 @@ public class VersionManager {
             VersionEntry entry = new VersionEntry(xid, record);
 
             if (this.isEmpty()) {
-                this.add(entry);
+                this.put(entry.getEndTs(), entry);
                 return true;
             }
 
-            var head = this.last();
-            if (head.endTs == Long.MAX_VALUE) {
+            var lastentry = this.lastEntry().getValue();
+            //存在未提交且不属于当前事务的记录,发生冲突
+            if (lastentry.getEndTs() == Long.MAX_VALUE && lastentry.getStartTs() != xid) {
                 return false;
             }
 
-            this.add(entry);
+            this.put(entry.getEndTs(), entry);
             return true;
+        }
+
+        public VersionEntry floor(long endTs) {
+            if(floorEntry(endTs)!=null){
+                return floorEntry(endTs).getValue();
+            }
+            return null;
         }
 
 
@@ -158,3 +152,5 @@ public class VersionManager {
 //        }
     }
 }
+
+

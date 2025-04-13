@@ -2,6 +2,7 @@ package com.jdb.transaction;
 
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.table.PagePointer;
+import com.jdb.version.LogicRid;
 import com.jdb.version.VersionManager;
 
 import java.util.Map;
@@ -18,7 +19,7 @@ public class TransactionManager {
     private RecoveryManager recoveryManager = RecoveryManager.getInstance();
     private Map<Integer, Transaction> activeTransactions;
     //xid->writeSet
-    private Map<Long, Set<PagePointer>> writeSetMap;
+    private Map<Long, Set<LogicRid>> writeSetMap;
     //返回xid
     public long begin() {
         long xid = trxStartStamp.getAndIncrement();
