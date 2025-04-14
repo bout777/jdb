@@ -1,5 +1,10 @@
 package com.jdb.transaction;
 
+import com.jdb.version.LogicRid;
+
+import java.util.HashSet;
+import java.util.Set;
+
 public class TransactionContext {
     private static ThreadLocal<TransactionContext> threadTrx = new ThreadLocal<>();
 
@@ -21,6 +26,7 @@ public class TransactionContext {
 
     private long xid;
     private IsolationLevel isolationLevel = IsolationLevel.READ_COMMITTED;
+    private final Set<LogicRid> writeSet = new HashSet<>();
 
     public TransactionContext(long xid) {
         this.xid = xid;
@@ -37,6 +43,10 @@ public class TransactionContext {
 
     public IsolationLevel getIsolationLevel() {
         return isolationLevel;
+    }
+
+    public Set<LogicRid> getWriteSet() {
+        return writeSet;
     }
 
     @Override

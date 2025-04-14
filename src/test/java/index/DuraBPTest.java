@@ -1,16 +1,10 @@
 package index;
 
 import Table.TableTest;
-import com.jdb.catalog.Schema;
 import com.jdb.common.Value;
 import com.jdb.index.*;
-import com.jdb.recovery.LogManager;
-import com.jdb.recovery.RecoveryManager;
-import com.jdb.storage.BufferPool;
-import com.jdb.table.Record;
+import com.jdb.table.RowData;
 import com.jdb.table.Table;
-import com.jdb.table.TableManager;
-import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 import org.junit.After;
 import org.junit.Before;
@@ -46,8 +40,8 @@ public class DuraBPTest {
         List<IndexEntry> expect = new ArrayList<>();
         TransactionManager.getInstance().begin();
         for (int i = 2000; i >=0 ; i--) {
-            Record record = MockTable.generateRecord(i);
-            IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), record);
+            RowData rowData = MockTable.generateRecord(i);
+            IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), rowData);
             bpTree.insert(e);
             expect.add(e);
         }
@@ -69,8 +63,8 @@ public class DuraBPTest {
         }
         Collections.shuffle(ids);
         for(Integer id: ids){
-            Record record = MockTable.generateRecord(id);
-            bpTree.insert(new ClusterIndexEntry(Value.ofInt(id), record));
+            RowData rowData = MockTable.generateRecord(id);
+            bpTree.insert(new ClusterIndexEntry(Value.ofInt(id), rowData));
         }
 
         for(Integer id: ids){

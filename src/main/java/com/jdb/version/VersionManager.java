@@ -1,6 +1,7 @@
 package com.jdb.version;
 
-import com.jdb.table.Record;
+import com.jdb.common.Value;
+import com.jdb.table.RowData;
 import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 
@@ -30,45 +31,52 @@ public class VersionManager {
 
 
     //fixme 当页分裂后，原来的rid可能不再对应原来的记录，需要修复
-    public void pushUpdate(String tableName, Record record) {
-        var rid = new LogicRid(tableName, record.getPrimaryKey());
+    public void pushUpdate(String tableName, RowData rowData) {
+        var rid = new LogicRid(tableName, rowData.getPrimaryKey());
 
         var deque = versionMap.get(rid);
         if (deque == null) {
             deque = new VersionEntrySet(rid);
             versionMap.put(rid, deque);
         }
-        if (!deque.tryPush(record)) {
+        if (!deque.tryPush(rowData)) {
             //todo 冲突回滚
             throw new RuntimeException("测试代码不该跑到这,tell me why?");
         }
+
+        var curTrx = TransactionContext.getTransaction();
+        curTrx.getWriteSet().add(rid);
     }
 
-    public Record read(String tableName, int primaryKey) {
+    public ReadResult read(String tableName, Value<?> key) {
+        int primaryKey = key.getValue(Integer.class);
         rw.readLock().lock();
         var rid = new LogicRid(tableName, primaryKey);
         var entrySet = versionMap.get(rid);
         if (entrySet == null)
-            return null;
+            return ReadResult.notPresent();
 
         var isolevel = TransactionContext.getTransaction().getIsolationLevel();
-        Record record = null;
+        RowData rowData = null;
         switch (isolevel) {
             case READ_COMMITTED -> {
                 long curTs = TransactionManager.getCurrentTrxStamp();
                 var entry = entrySet.floor(curTs);
                 if(entry!=null)
-                    record = entry.getRecord();
+                    rowData = entry.getRecord();
             }
             case SNAPSHOT_ISOLATION -> {
                 long xid = TransactionContext.getTransaction().getXid();
                 var entry = entrySet.floor(xid);
                 if(entry!=null)
-                    record = entry.getRecord();
+                    rowData = entry.getRecord();
             }
         }
         rw.readLock().unlock();
-        return record;
+        if(rowData ==null)
+            return ReadResult.invisible();
+        else
+            return ReadResult.visible(rowData);
     }
 
     public void commit(Set<LogicRid> writeSet) {
@@ -105,9 +113,9 @@ public class VersionManager {
             this.ptr = ptr;
         }
 
-        public synchronized boolean tryPush(Record record) {
+        public synchronized boolean tryPush(RowData rowData) {
             long xid = TransactionContext.getTransaction().getXid();
-            VersionEntry entry = new VersionEntry(xid, record);
+            VersionEntry entry = new VersionEntry(xid, rowData);
 
             if (this.isEmpty()) {
                 this.put(entry.getEndTs(), entry);

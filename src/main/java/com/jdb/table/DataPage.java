@@ -129,15 +129,15 @@ public class DataPage {
         return HEADER_SIZE;
     }
 
-    public PagePointer insertRecord(Record record, boolean shouldLog, boolean shouldPushVersion) {
+    public PagePointer insertRecord(RowData rowData, boolean shouldLog, boolean shouldPushVersion) {
         try  {
             this.page.acquireWriteLock();
 
             //移动upper指针
-            int upper= getUpper() - record.getSize();
+            int upper= getUpper() - rowData.getSize();
             int lower = getLower();
             //写入slot
-            Slot slot = new Slot(upper, record.getSize(), record.getPrimaryKey());
+            Slot slot = new Slot(upper, rowData.getSize(), rowData.getPrimaryKey());
             insertSlot(slot);
 
             //更新lower,upper
@@ -145,7 +145,7 @@ public class DataPage {
             setLower(lower + SLOT_SIZE);
 
             //写入record
-            record.serializeTo(buffer, upper);
+            rowData.serializeTo(buffer, upper);
             setDirty(true);
             PagePointer ptr = new PagePointer(getPageId(), upper);
 
@@ -165,12 +165,12 @@ public class DataPage {
 
 
 
-    public PagePointer updateRecord(int offset, Record record, boolean shouldLog) {
+    public PagePointer updateRecord(int offset, RowData rowData, boolean shouldLog) {
         try {
             this.page.acquireWriteLock();
             //todo 检查record是否符合schema
 
-            record.serializeTo(buffer, offset);
+            rowData.serializeTo(buffer, offset);
             this.setDirty(true);
 
             PagePointer ptr = new PagePointer(getPageId(), offset);
@@ -188,9 +188,9 @@ public class DataPage {
      * @throws DuplicateInsertException;
      */
     public void insertRecord(int offset, byte[] image) throws DuplicateInsertException {
-        Record record = Record.deserialize(ByteBuffer.wrap(image), 0, schema);
-        record.serializeTo(buffer, offset);
-        Slot slot = new Slot(offset, image.length, record.getPrimaryKey());
+        RowData rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
+        rowData.serializeTo(buffer, offset);
+        Slot slot = new Slot(offset, image.length, rowData.getPrimaryKey());
         insertSlot(slot);
     }
 
@@ -198,21 +198,22 @@ public class DataPage {
         Slot slot = getSlot(slotId);
         deleteSlot(slotId);
 
-        Record record = new Record();
-        record.deserializeHeader(buffer, slot.offset);
-        record.setDeleted(true);
-        record.serializeHeader(buffer, slot.offset);
+        RowData rowData = new RowData();
+        rowData.deserializeHeader(buffer, slot.offset);
+        rowData.setDeleted(true);
+        rowData.serializeHeader(buffer, slot.offset);
     }
 
 
-    public Record getRecord(int slotId, Schema schema) {
+    public RowData getRecord(int slotId, Schema schema) {
         try {
             this.page.acquireReadLock();
-            if (slotId >= getRecordCount())
-                throw new  NoSuchElementException();
+            if (slotId >= getRecordCount()) {
+                throw new NoSuchElementException();
+            }
             Slot slot = getSlot(slotId);
             //读取最新记录
-            return Record.deserialize(buffer, slot.offset, schema);
+            return RowData.deserialize(buffer, slot.offset, schema);
         } finally {
             this.page.releaseReadLock();
         }
@@ -279,12 +280,12 @@ public class DataPage {
         return newDataPage;
     }
 
-    public Iterator<Record> scanFrom(int slotId) {
+    public Iterator<RowData> scanFrom(int slotId) {
         return new InternalRecordIterator(slotId);
     }
 
 
-    class InternalRecordIterator implements Iterator<Record> {
+    class InternalRecordIterator implements Iterator<RowData> {
         int slotId;
 
         InternalRecordIterator(int slotId) {
@@ -297,7 +298,7 @@ public class DataPage {
         }
 
         @Override
-        public Record next() {
+        public RowData next() {
             if (!hasNext())
                 throw new NoSuchElementException();
             return getRecord(slotId++, schema);

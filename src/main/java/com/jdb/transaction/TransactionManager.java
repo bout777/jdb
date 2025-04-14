@@ -19,7 +19,7 @@ public class TransactionManager {
     private RecoveryManager recoveryManager = RecoveryManager.getInstance();
     private Map<Integer, Transaction> activeTransactions;
     //xid->writeSet
-    private Map<Long, Set<LogicRid>> writeSetMap;
+//    private Map<Long, Set<LogicRid>> writeSetMap;
     //返回xid
     public long begin() {
         long xid = trxStartStamp.getAndIncrement();
@@ -28,8 +28,8 @@ public class TransactionManager {
         return xid;
     }
 
-    public void commit(long xid) {
-        var writeSet = writeSetMap.get(xid);
+    public void commit() {
+        var writeSet = TransactionContext.getTransaction().getWriteSet();
         if (writeSet != null) {
             var vm = VersionManager.getInstance();
             vm.commit(writeSet);

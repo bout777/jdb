@@ -7,10 +7,8 @@ import com.jdb.common.Value;
 import com.jdb.recovery.LogManager;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
-import com.jdb.table.Record;
+import com.jdb.table.RowData;
 import com.jdb.table.Table;
-import com.jdb.transaction.TransactionContext;
-import com.jdb.transaction.TransactionManager;
 
 import java.util.Random;
 
@@ -33,22 +31,22 @@ public class MockTable {
     public static Table getTable() {
         return table;
     }
-    public static Record generateRecord(int i) {
-        Record record = new Record();
+    public static RowData generateRecord(int i) {
+        RowData rowData = new RowData();
 
-        record.primaryKey = i;
-        record.isDeleted = 0;
+        rowData.primaryKey = i;
+        rowData.isDeleted = 0;
 
-        record.size += Integer.BYTES * 2 + Byte.BYTES;
+        rowData.size += Integer.BYTES * 2 + Byte.BYTES;
 
-        record.values.add(Value.ofString("hehe"));
-        record.values.add(Value.ofInt(r.nextInt()));
+        rowData.values.add(Value.ofString("hehe"));
+        rowData.values.add(Value.ofInt(r.nextInt()));
 
-        for (Value val : record.values) {
-            record.size += val.getBytes();
+        for (Value val : rowData.values) {
+            rowData.size += val.getBytes();
         }
 
-        return record;
+        return rowData;
     }
 
 }

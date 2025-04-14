@@ -11,7 +11,7 @@ import com.jdb.recovery.logs.UpdateLog;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
-import com.jdb.table.Record;
+import com.jdb.table.RowData;
 import com.jdb.table.PagePointer;
 import com.jdb.table.Table;
 import com.jdb.transaction.TransactionContext;
@@ -92,15 +92,15 @@ public class LogManagerTest {
         DataPage dataPage = new DataPage(page);
         dataPage.init();
 
-        List<Record> expected = new ArrayList<>();
+        List<RowData> expected = new ArrayList<>();
             RecoveryManager.getInstance().setLogManager(logManager);
             TransactionContext.setTransactionContext(new TransactionContext(2L));
             RecoveryManager.getInstance().startTransaction(2L);
 
             for (int i = 0; i < 10; i++) {
-                Record record = generateRecord(i);
-                expected.add(record);
-                dataPage.insertRecord(record, true, true);
+                RowData rowData = generateRecord(i);
+                expected.add(rowData);
+                dataPage.insertRecord(rowData, true, true);
             }
             dataPage.init();
 
@@ -111,7 +111,7 @@ public class LogManagerTest {
 
 
         var iter = dataPage.scanFrom(0);
-        for (Record r : expected) {
+        for (RowData r : expected) {
             assertEquals(r, iter.next());
         }
     }
@@ -131,21 +131,21 @@ public class LogManagerTest {
         return log;
     }
 
-    public Record generateRecord(int i) {
-        Record record = new Record();
+    public RowData generateRecord(int i) {
+        RowData rowData = new RowData();
 
-        record.primaryKey = i;
-        record.isDeleted = 0;
+        rowData.primaryKey = i;
+        rowData.isDeleted = 0;
 
-        record.size += Integer.BYTES * 2 + Byte.BYTES;
+        rowData.size += Integer.BYTES * 2 + Byte.BYTES;
 
-        record.values.add(Value.ofString("hehe"));
-        record.values.add(Value.ofInt(1414810));
+        rowData.values.add(Value.ofString("hehe"));
+        rowData.values.add(Value.ofInt(1414810));
 
-        for (Value val : record.values) {
-            record.size += val.getBytes();
+        for (Value val : rowData.values) {
+            rowData.size += val.getBytes();
         }
 
-        return record;
+        return rowData;
     }
 }

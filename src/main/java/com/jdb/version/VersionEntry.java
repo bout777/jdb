@@ -1,6 +1,6 @@
 package com.jdb.version;
 
-import com.jdb.table.Record;
+import com.jdb.table.RowData;
 /*
 * 快照隔离级别
 * 每次修改会创建一个entry，
@@ -31,15 +31,15 @@ public class VersionEntry {
 
     public long endTs = Long.MAX_VALUE;
     //content
-    public Record record;
+    public RowData rowData;
 
-    public VersionEntry(long startTs, Record record) {
+    public VersionEntry(long startTs, RowData rowData) {
         this.startTs= startTs;
-        this.record = record;
+        this.rowData = rowData;
     }
 
-    public Record getRecord() {
-        return record;
+    public RowData getRecord() {
+        return rowData;
     }
 
     public long getStartTs() {
@@ -59,7 +59,7 @@ public class VersionEntry {
         return "VersionEntry{" +
                 "startTs=" + startTs +
                 ", endTs=" + endTs +
-                ", record=" + record +
+                ", record=" + rowData +
                 '}';
     }
 
@@ -70,7 +70,7 @@ public class VersionEntry {
         VersionEntry that = (VersionEntry)o;
         return startTs == that.startTs &&
                 endTs == that.endTs &&
-                record.equals(that.record);
+                rowData.equals(that.rowData);
     }
 
 

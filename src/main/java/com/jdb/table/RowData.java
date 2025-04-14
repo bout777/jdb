@@ -13,14 +13,14 @@ import java.util.Objects;
 * 在记录中增加两个字段
 * xmin，xmax
 * xmin是插入或修改的*/
-public class Record {
+public class RowData {
     public int primaryKey;
     public Byte isDeleted;
     public int size;
     //暂时只能存int类型
     public List<Value> values;
 
-    public Record() {
+    public RowData() {
         values = new ArrayList<>();
     }
 
@@ -76,10 +76,10 @@ public class Record {
         return offset;
     }
 
-    public static Record deserialize(ByteBuffer buffer, int offset, Schema schema) {
-        Record record = new Record();
-        record.deserializeFrom(buffer, offset, schema);
-        return record;
+    public static RowData deserialize(ByteBuffer buffer, int offset, Schema schema) {
+        RowData rowData = new RowData();
+        rowData.deserializeFrom(buffer, offset, schema);
+        return rowData;
     }
 
     public int getSize() {
@@ -103,11 +103,11 @@ public class Record {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Record record = (Record) o;
-        return primaryKey == record.primaryKey &&
-                Objects.equals(isDeleted, record.isDeleted) &&
-                size == record.size &&
-                values.equals(record.values);
+        RowData rowData = (RowData) o;
+        return primaryKey == rowData.primaryKey &&
+                Objects.equals(isDeleted, rowData.isDeleted) &&
+                size == rowData.size &&
+                values.equals(rowData.values);
     }
 
 

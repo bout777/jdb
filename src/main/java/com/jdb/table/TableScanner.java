@@ -13,12 +13,12 @@ public class TableScanner {
         this.table = table;
     }
 
-    public Record getNextRecord(PagePointer pointer) {
+    public RowData getNextRecord(PagePointer pointer) {
         if (pointer.pid == NULL_PAGE_ID)
             return null;
 
         DataPage dataPage = new DataPage(bufferPool.getPage(pointer.pid));
-        Record record = dataPage.getRecord(pointer.offset, table.schema);
+        RowData rowData = dataPage.getRecord(pointer.offset, table.schema);
 
 
         if (pointer.offset < dataPage.getRecordCount() - 1) {
@@ -29,12 +29,12 @@ public class TableScanner {
         }
 
         // 如果记录被删除，则返回下一条记录
-        if (record.isDeleted()) {
+        if (rowData.isDeleted()) {
             return getNextRecord(pointer);
         }
 
 
-        return record;
+        return rowData;
 
     }
 }

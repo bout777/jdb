@@ -6,7 +6,7 @@ import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
 import com.jdb.table.IndexPage;
-import com.jdb.table.Record;
+import com.jdb.table.RowData;
 import com.jdb.table.Slot;
 
 import java.util.List;
@@ -145,7 +145,7 @@ class LeafNode extends Node {
     @Override
     public IndexEntry search(Value<?> key) {
         int low = 0, high = dataPage.getRecordCount() - 1;
-        Record r;
+        RowData r;
         while (low <= high) {
             int mid = (low + high) >>> 1;
             Slot slot = dataPage.getSlot(mid);
@@ -174,19 +174,19 @@ class LeafNode extends Node {
 
         if (entry instanceof ClusterIndexEntry) {
             DataPage dataPage = new DataPage(page);
-            Record record = ((ClusterIndexEntry) entry).getRecord();
-            if (dataPage.getFreeSpace() < record.getSize() + SLOT_SIZE) {
+            RowData rowData = ((ClusterIndexEntry) entry).getRecord();
+            if (dataPage.getFreeSpace() < rowData.getSize() + SLOT_SIZE) {
                 //空间不足，页分裂
                 DataPage newDataPage = dataPage.split();
-                if (record.getPrimaryKey() < newDataPage.getSlot(0).getPrimaryKey()) {
-                    dataPage.insertRecord(record, true, true);
+                if (rowData.getPrimaryKey() < newDataPage.getSlot(0).getPrimaryKey()) {
+                    dataPage.insertRecord(rowData, true, true);
                 } else {
-                    newDataPage.insertRecord(record, true, true);
+                    newDataPage.insertRecord(rowData, true, true);
                 }
                 return newDataPage.getPageId();
             } else {
                 //插入页中
-                dataPage.insertRecord(record, true, true);
+                dataPage.insertRecord(rowData, true, true);
                 return NULL_PAGE_ID;
             }
         } else {

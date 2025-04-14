@@ -1,23 +1,23 @@
 package com.jdb.index;
 
 import com.jdb.common.Value;
-import com.jdb.table.Record;
+import com.jdb.table.RowData;
 
 public class ClusterIndexEntry extends IndexEntry {
     Value<?> key;
-    Record record;
+    RowData rowData;
 
-    public ClusterIndexEntry(Value<?> key, Record record) {
+    public ClusterIndexEntry(Value<?> key, RowData rowData) {
         this.key = key;
-        this.record = record;
+        this.rowData = rowData;
     }
 
-    public Record getRecord() {
-        return record;
+    public RowData getRecord() {
+        return rowData;
     }
 
-    public void setRecord(Record record) {
-        this.record = record;
+    public void setRecord(RowData rowData) {
+        this.rowData = rowData;
     }
 
 
@@ -28,19 +28,19 @@ public class ClusterIndexEntry extends IndexEntry {
 
     @Override
     public Object getValue() {
-        return record;
+        return rowData;
     }
 
     @Override
     public int getBytes() {
-        return key.getBytes() + record.getSize();
+        return key.getBytes() + rowData.getSize();
     }
 
     @Override
     public String toString() {
         return "ClusterIndexEntry{" +
                 "key=" + key +
-                ", record=" + record +
+                ", record=" + rowData +
                 '}';
     }
 
@@ -50,6 +50,6 @@ public class ClusterIndexEntry extends IndexEntry {
         if (o == null || getClass() != o.getClass()) return false;
         ClusterIndexEntry that = (ClusterIndexEntry) o;
         return key.equals(that.key) &&
-                record.equals(that.record);
+                rowData.equals(that.rowData);
     }
 }

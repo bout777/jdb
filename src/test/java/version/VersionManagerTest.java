@@ -4,9 +4,10 @@ import com.jdb.common.Value;
 import com.jdb.index.ClusterIndexEntry;
 import com.jdb.index.Index;
 import com.jdb.index.IndexEntry;
-import com.jdb.table.Record;
+import com.jdb.table.RowData;
 import com.jdb.table.Table;
 import com.jdb.transaction.TransactionManager;
+import com.jdb.version.ReadResult;
 import com.jdb.version.VersionManager;
 import index.MockTable;
 import org.junit.Before;
@@ -69,8 +70,8 @@ public class VersionManagerTest {
             threads.add(new Thread(() -> {
                 TransactionManager.getInstance().begin();
                 for (int j = finalI * 10; j < (finalI + 1) * 10; j++) {
-                    Record record = MockTable.generateRecord(j);
-                    IndexEntry e = new ClusterIndexEntry(Value.ofInt(j), record);
+                    RowData rowData = MockTable.generateRecord(j);
+                    IndexEntry e = new ClusterIndexEntry(Value.ofInt(j), rowData);
                     expected.put(j, e);
                     bptree.insert(e);
                 }
@@ -95,17 +96,33 @@ public class VersionManagerTest {
 
     @Test
     public void testVisibility() {
+        /*
+        * 事务1修改记录a
+        * 事务2查询记录a，不可见
+        * 事务1提交
+        * 事务2查询记录a，可见*/
         DeterministicRunner runner = new DeterministicRunner(2);
         var vm = VersionManager.getInstance();
-        Record record = MockTable.generateRecord(20);
+        RowData rowData = MockTable.generateRecord(20);
+        var tm = TransactionManager.getInstance();
         runner.run(0, () -> {
-            TransactionManager.getInstance().begin();
-            vm.pushUpdate(table.getTableName(), record);
+            tm.begin();
+            vm.pushUpdate(table.getTableName(), rowData);
         });
         runner.run(1, () -> {
-            TransactionManager.getInstance().begin();
-            var record1 = vm.read(table.getTableName(), record.getPrimaryKey());
-            assertNull(record1);
+            tm.begin();
+            var key = Value.ofInt(rowData.getPrimaryKey());
+            var result = vm.read(table.getTableName(),key );
+            assertEquals(ReadResult.Visibility.INVISIBLE, result.getVisibility());
+        });
+        runner.run(0,()-> {
+            TransactionManager.getInstance().commit();
+        });
+        runner.run(1,()->{
+            var key = Value.ofInt(rowData.getPrimaryKey());
+            var result = vm.read(table.getTableName(), key);
+            assertEquals(ReadResult.Visibility.VISIBLE, result.getVisibility());
+            assertEquals(rowData, result.getRowData());
         });
     }
 
