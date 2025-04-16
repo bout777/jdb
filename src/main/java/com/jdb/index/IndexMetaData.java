@@ -1,11 +1,11 @@
 package com.jdb.index;
 
-import com.jdb.catalog.ColumnDef;
+import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
 
 public class IndexMetaData {
     private String tableName;
-    private ColumnDef keySchema;
+    private Column keySchema;
     private String indexName;
     private Schema tableSchema;
     public String getTableName() {
@@ -20,11 +20,11 @@ public class IndexMetaData {
         this.tableName = tableName;
     }
 
-    public ColumnDef getKeySchema() {
+    public Column getKeySchema() {
         return keySchema;
     }
 
-    public void setKeySchema(ColumnDef keySchema) {
+    public void setKeySchema(Column keySchema) {
         this.keySchema = keySchema;
     }
 
@@ -36,7 +36,7 @@ public class IndexMetaData {
         this.indexName = indexName;
     }
 
-    public IndexMetaData(String tableName, ColumnDef keySchema, String indexName, Schema tableSchema) {
+    public IndexMetaData(String tableName, Column keySchema, String indexName, Schema tableSchema) {
         this.tableName = tableName;
         this.keySchema = keySchema;
         this.indexName = indexName;

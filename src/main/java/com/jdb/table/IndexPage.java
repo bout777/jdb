@@ -100,6 +100,7 @@ public class IndexPage {
 //    }
 
     public long insert(Value<?> key, long pid) {
+        this.page.releaseWriteLock();
         //找到插入位置
         int idx = binarySearch(key) + 1;
         int offset = HEADER_SIZE + KEY_SIZE * idx + CHILD_SIZE * (idx + 1);
@@ -114,15 +115,18 @@ public class IndexPage {
         bf.putInt(offset, pno);
 
         setKeyCount(getKeyCount() + 1);
+        this.page.releaseWriteLock();
         //todo 添加分裂逻辑
         return -1L;
     }
 
     public void addChild(int cno, long pid) {
+        this.page.acquireWriteLock();
         int offset = HEADER_SIZE + KEY_SIZE * cno + CHILD_SIZE * cno;
 //        System.arraycopy(bf.array(), offset, bf.array(), offset + CHILD_SIZE, CHILD_SIZE * (cno + 1));
         int pno = PageHelper.getPno(pid);
         bf.putInt(offset, pno);
+        this.page.releaseWriteLock();
     }
 
     public int getChild(int cno) {

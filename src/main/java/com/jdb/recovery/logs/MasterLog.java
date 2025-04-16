@@ -13,7 +13,11 @@ public class MasterLog extends LogRecord {
         this.lastCheckpointLsn = lastCheckpointLsn;
     }
 
-    public static LogRecord deserialize(ByteBuffer buffer, int offset) {
+    public long getLastCheckpointLsn() {
+        return lastCheckpointLsn;
+    }
+
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
         long lastCheckpointLsn = buffer.getLong(offset);
         return new MasterLog(lastCheckpointLsn);
     }
@@ -36,14 +40,12 @@ public class MasterLog extends LogRecord {
 
 
     @Override
-    public int getSize() {
+    protected int getPayloadSize() {
         return 0;
     }
 
     @Override
-    public int serialize(ByteBuffer buffer, int offset) {
-        buffer.put(offset, (byte) getType().getValue());
-        offset += Byte.BYTES;
+    protected int serializePayload(ByteBuffer buffer, int offset) {
         buffer.putLong(offset, lastCheckpointLsn);
         return offset + Long.BYTES;
     }
@@ -69,5 +71,12 @@ public class MasterLog extends LogRecord {
         if (o == null || getClass() != o.getClass()) return false;
         MasterLog masterLog = (MasterLog) o;
         return lastCheckpointLsn == masterLog.lastCheckpointLsn;
+    }
+
+    @Override
+    public String toString() {
+        return "MasterLog{" +
+                "lastCheckpointLsn=" + lastCheckpointLsn +
+                '}';
     }
 }

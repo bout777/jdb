@@ -105,6 +105,7 @@ public class Table {
         var vm = VersionManager.getInstance();
         vm.pushUpdate(tableName, rowData);
 
+        //todo 暂时先删除再插入以实现更新，这样做代码复杂度比较小，后续在页内添加空闲槽位管理，能最大化利用空间减少复杂度
         var ptr= clusterIndex.searchEqual(key).getPointer();
         var page = new DataPage(bufferPool.getPage(ptr.pid));
         page.updateRecord(ptr.offset, rowData,true);

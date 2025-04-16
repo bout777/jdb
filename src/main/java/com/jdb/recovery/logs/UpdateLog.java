@@ -35,7 +35,7 @@ public class UpdateLog extends LogRecord {
     }
 
 
-    public static LogRecord deserialize(ByteBuffer buffer, int offset) {
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
         buffer.position(offset);
         long xid = buffer.getLong();
         int pid = buffer.getInt();
@@ -54,9 +54,8 @@ public class UpdateLog extends LogRecord {
     }
 
     @Override
-    public int serialize(ByteBuffer buffer, int offset) {
-        buffer.position(offset);
-        buffer.put((byte) getType().getValue())
+    protected int serializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset)
                 .putLong(xid)
                 .putInt(pid)
                 .putLong(prevLsn)
@@ -77,7 +76,7 @@ public class UpdateLog extends LogRecord {
     }
 
     @Override
-    public int getSize() {
+    protected int getPayloadSize() {
         return HEADER_SIZE + oldData.length + newData.length;
     }
 

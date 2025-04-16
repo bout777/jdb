@@ -15,27 +15,22 @@ import java.nio.ByteBuffer;
  * 在undo阶段，只需要将clr的undoNextLsn取出来即可
  */
 public class CompensationLog extends LogRecord {
-    int undoNextLsn;
+    long undoNextLsn;
 
-    protected CompensationLog(LogType type) {
-        super(type);
+    public CompensationLog(long undoNextLsn) {
+        super(LogType.COMPENSATION);
     }
 
-    public static LogRecord deserialize(ByteBuffer buffer, int offset) {
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
         return null;
     }
 
-    public int getUndoNextLsn() {
+    public long getUndoNextLsn() {
         return undoNextLsn;
     }
 
     @Override
     public long getPageId() {
-        return 0;
-    }
-
-    @Override
-    public long getLsn() {
         return 0;
     }
 
@@ -47,12 +42,12 @@ public class CompensationLog extends LogRecord {
 
 
     @Override
-    public int getSize() {
+    protected int getPayloadSize() {
         return 0;
     }
 
     @Override
-    public int serialize(ByteBuffer buffer, int offset) {
+    protected int serializePayload(ByteBuffer buffer, int offset) {
         return 0;
     }
 
@@ -69,5 +64,22 @@ public class CompensationLog extends LogRecord {
     @Override
     public void undo() {
 
+    }
+
+    @Override
+    public String toString(){
+        return "CompensationLog{" +
+                "undoNextLsn=" + undoNextLsn +
+                ", lsn=" + lsn +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if (this == o) return true;
+        if (o instanceof CompensationLog that)
+            return this.undoNextLsn == that.undoNextLsn&&this.getType() == that.getType()
+                    && this.getLsn() == that.getLsn();
+        return false;
     }
 }

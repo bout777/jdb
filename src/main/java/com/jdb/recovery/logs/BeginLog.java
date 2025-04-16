@@ -5,42 +5,34 @@ import com.jdb.recovery.LogType;
 
 import java.nio.ByteBuffer;
 
-import static com.jdb.common.Constants.NULL_PAGE_ID;
-
 public class BeginLog extends LogRecord {
-
+long xid;
     public BeginLog(long xid) {
         super(LogType.BEGIN);
+        this.xid = xid;
     }
 
-    public static LogRecord deserialize(ByteBuffer buffer, int offset) {
-        return null;
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        return new BeginLog(buffer.getLong(offset));
     }
-
-    @Override
-    public long getPageId() {
-        return NULL_PAGE_ID;
-    }
-
-    @Override
-    public long getLsn() {
-        return 0;
-    }
+    
 
     @Override
     public long getXid() {
-        return 0;
+        return xid;
     }
 
 
     @Override
-    public int getSize() {
-        return 0;
+    protected int getPayloadSize() {
+        return Long.BYTES;
     }
 
     @Override
-    public int serialize(ByteBuffer buffer, int offset) {
-        return 0;
+    protected int serializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset)
+                .putLong(xid);
+        return buffer.position();
     }
 
     @Override
@@ -49,12 +41,18 @@ public class BeginLog extends LogRecord {
     }
 
     @Override
-    public void redo() {
-
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        BeginLog beginLog = (BeginLog) o;
+        return xid == beginLog.xid;
     }
 
     @Override
-    public void undo() {
-
+    public String toString() {
+        return "BeginLog{" +
+                "xid=" + xid +
+                '}';
     }
+
 }

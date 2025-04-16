@@ -1,6 +1,6 @@
 package index;
 
-import com.jdb.catalog.ColumnDef;
+import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
 import com.jdb.common.DataType;
 import com.jdb.common.Value;
@@ -17,13 +17,12 @@ public class MockTable {
     private static Random r = new Random();
     static {
         BufferPool bufferPool = BufferPool.getInstance();
-        RecoveryManager.getInstance().setLogManager(new LogManager());
 
         bufferPool.newFile(777,"test.db");
         bufferPool.newFile(369,"log");
         Schema schema = new Schema();
-        schema.add(new ColumnDef(DataType.STRING, "name"));
-        schema.add(new ColumnDef(DataType.INTEGER, "age"));
+        schema.add(new Column(DataType.STRING, "name"));
+        schema.add(new Column(DataType.INTEGER, "age"));
         table = new Table("test.db", schema);
 
         RecoveryManager.getInstance().setLogManager(new LogManager());

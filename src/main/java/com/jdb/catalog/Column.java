@@ -2,13 +2,13 @@ package com.jdb.catalog;
 
 import com.jdb.common.DataType;
 
-public class ColumnDef {
+public class Column {
     DataType type;
     String name;
     int Bytes;
     int length;
 
-    public ColumnDef(DataType type, String name) {
+    public Column(DataType type, String name) {
         this.type = type;
         this.name = name;
         this.Bytes = Bytes;

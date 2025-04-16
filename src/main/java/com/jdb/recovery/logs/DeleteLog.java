@@ -12,7 +12,7 @@ public class DeleteLog extends LogRecord {
         super(LogType.DELETE);
     }
 
-    public static LogRecord deserialize(ByteBuffer buffer, int offset) {
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
         return null;
     }
 
@@ -35,12 +35,12 @@ public class DeleteLog extends LogRecord {
 
 
     @Override
-    public int getSize() {
+    protected int getPayloadSize() {
         return 0;
     }
 
     @Override
-    public int serialize(ByteBuffer buffer, int offset) {
+    protected int serializePayload(ByteBuffer buffer, int offset) {
         return 0;
     }
 

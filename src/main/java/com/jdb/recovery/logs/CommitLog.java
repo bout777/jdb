@@ -2,58 +2,60 @@ package com.jdb.recovery.logs;
 
 import com.jdb.recovery.LogRecord;
 import com.jdb.recovery.LogType;
+import com.jdb.transaction.TransactionManager;
 
 import java.nio.ByteBuffer;
 
 public class CommitLog extends LogRecord {
+    long xid;
 
     public CommitLog(long xid) {
         super(LogType.COMMIT);
+        this.xid = xid;
     }
 
-    public static LogRecord deserialize(ByteBuffer buffer, int offset) {
-        return null;
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        long xid = buffer.getLong(offset);
+        return new CommitLog(xid);
     }
 
-    @Override
-    public long getPageId() {
-        return 0;
-    }
-
-    @Override
-    public long getLsn() {
-        return 0;
-    }
 
 
     @Override
     public long getXid() {
-        return 0;
+        return xid;
     }
 
 
     @Override
-    public int getSize() {
-        return 0;
+    protected int getPayloadSize() {
+        return Long.BYTES ;
     }
 
     @Override
-    public int serialize(ByteBuffer buffer, int offset) {
-        return 0;
+    protected int serializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset)
+                .putLong(xid);
+        return buffer.position();
     }
 
     @Override
     public LogType getType() {
-        return null;
+        return LogType.COMMIT;
     }
 
     @Override
-    public void redo() {
-
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CommitLog that = (CommitLog) o;
+        return xid == that.xid;
     }
 
     @Override
-    public void undo() {
-
+    public String toString() {
+        return "CommitLog{" +
+                "xid=" + xid +
+                '}';
     }
 }

@@ -17,7 +17,7 @@ public class InsertLog extends LogRecord {
     PagePointer ptr;
     int len;
     byte[] image;
-    private static final int HEADER_SIZE = LogRecord.HEADER_SIZE + Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
+    private static final int HEADER_SIZE =Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
 
     public InsertLog(long xid, long prevLsn, PagePointer ptr, byte[] image) {
         super(LogType.INSERT);
@@ -29,9 +29,8 @@ public class InsertLog extends LogRecord {
     }
 
     @Override
-    public int serialize(ByteBuffer buffer, int offset) {
+    protected int serializePayload(ByteBuffer buffer, int offset) {
         buffer.position(offset)
-                .put((byte) getType().getValue())
                 .putLong(xid)
                 .putLong(prevLsn)
                 .putLong(ptr.pid)
@@ -42,7 +41,7 @@ public class InsertLog extends LogRecord {
         return buffer.position();
     }
 
-    public static LogRecord deserialize(ByteBuffer buffer, int offset) {
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
         buffer.position(offset);
         long xid = buffer.getLong();
         long prevLsn = buffer.getLong();
@@ -66,7 +65,7 @@ public class InsertLog extends LogRecord {
     }
 
     @Override
-    public int getSize() {
+    protected int getPayloadSize() {
         return HEADER_SIZE + image.length;
     }
 

@@ -9,9 +9,13 @@ public enum LogType {
     ABORT,
     BEGIN,
 
+    NEW_PAGE,
+    FREE_PAGE,
+
     COMPENSATION,
     END,
     MASTER,
+    CHECKPOINT,
     NULL;
 
     private static LogType[] values = LogType.values();

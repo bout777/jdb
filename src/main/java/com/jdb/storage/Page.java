@@ -24,6 +24,10 @@ public class Page {
         this.buffer = ByteBuffer.wrap(this.data);
     }
 
+    public long getLsn(){
+        return buffer.getLong(Byte.BYTES);
+    }
+
     public boolean isDirty() {
         return this.isDirty;
     }

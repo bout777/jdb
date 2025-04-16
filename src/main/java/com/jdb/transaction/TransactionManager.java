@@ -1,12 +1,9 @@
 package com.jdb.transaction;
 
 import com.jdb.recovery.RecoveryManager;
-import com.jdb.table.PagePointer;
-import com.jdb.version.LogicRid;
 import com.jdb.version.VersionManager;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TransactionManager {
@@ -24,7 +21,7 @@ public class TransactionManager {
     public long begin() {
         long xid = trxStartStamp.getAndIncrement();
         TransactionContext.setTransactionContext(new TransactionContext(xid));
-        recoveryManager.startTransaction(xid);
+        recoveryManager.registerTransaction(xid);
         return xid;
     }
 
@@ -34,6 +31,12 @@ public class TransactionManager {
             var vm = VersionManager.getInstance();
             vm.commit(writeSet);
         }
+
+        //todo 调用recover写日志
+        recoveryManager.logCommit(TransactionContext.getTransaction().getXid());
+
+        //事后清理
+        TransactionContext.unsetTransaction();
     }
 
     public static long getCurrentTrxStamp() {

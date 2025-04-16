@@ -12,12 +12,12 @@ public class Schema {
 
     static {
         instance = new Schema();
-        instance.add(new ColumnDef(DataType.STRING, "name"));
-        instance.add(new ColumnDef(DataType.INTEGER, "age"));
+        instance.add(new Column(DataType.STRING, "name"));
+        instance.add(new Column(DataType.INTEGER, "age"));
     }
 
-    private List<ColumnDef> columns;
-    private HashMap<String, ColumnDef> columnsMap;
+    private List<Column> columns;
+    private HashMap<String, Column> columnsMap;
 
     public Schema() {
         columns = new ArrayList<>();
@@ -25,12 +25,12 @@ public class Schema {
 
     }
 
-    public List<ColumnDef> columns() {
+    public List<Column> columns() {
         return this.columns;
     }
 
-    public void add(ColumnDef columnDef) {
-        columns.add(columnDef);
-        columnsMap.put(columnDef.getName(), columnDef);
+    public void add(Column column) {
+        columns.add(column);
+        columnsMap.put(column.getName(), column);
     }
 }

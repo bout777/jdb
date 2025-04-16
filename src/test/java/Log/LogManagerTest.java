@@ -28,12 +28,13 @@ import static org.junit.Assert.assertEquals;
 public class LogManagerTest {
 
     private BufferPool bufferPool = BufferPool.getInstance();
-    private LogManager logManager = new LogManager();
     Table table;
+    private LogManager logManager ;
     @Before
     public void setUp() {
          table = MockTable.getTable();
-       var dataPage = new DataPage(BufferPool.getInstance().newPage(LOG_FILE_ID));
+//       var dataPage = new DataPage(BufferPool.getInstance().newPage(LOG_FILE_ID));
+        logManager = RecoveryManager.getInstance().getLogManager();
     }
 
     @Test
@@ -48,7 +49,7 @@ public class LogManagerTest {
     public void testIterScan() {
         List<LogRecord> expected = new ArrayList<>();
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 100; i++) {
             expected.add(genatateLogRecord(LogType.UPDATE));
         }
         for (LogRecord l : expected) {
@@ -57,7 +58,7 @@ public class LogManagerTest {
 
         var iter = logManager.scanFrom(expected.get(0).getLsn());
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 100; i++) {
             assertEquals(expected.get(i), iter.next());
         }
     }
@@ -66,7 +67,7 @@ public class LogManagerTest {
         var image = new byte[]{1,2,3,4,5,6,7,8,9,10};
         List<LogRecord> expected = new ArrayList<>();
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 1000; i++) {
             InsertLog insertLog = new InsertLog(114514L, 0, new PagePointer(0, 0),image);
             expected.add(insertLog);
         }
@@ -95,7 +96,7 @@ public class LogManagerTest {
         List<RowData> expected = new ArrayList<>();
             RecoveryManager.getInstance().setLogManager(logManager);
             TransactionContext.setTransactionContext(new TransactionContext(2L));
-            RecoveryManager.getInstance().startTransaction(2L);
+            RecoveryManager.getInstance().registerTransaction(2L);
 
             for (int i = 0; i < 10; i++) {
                 RowData rowData = generateRecord(i);

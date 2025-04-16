@@ -1,6 +1,7 @@
 package com.jdb.index;
 
 import com.jdb.common.Value;
+import com.jdb.table.RowData;
 
 import java.util.List;
 
@@ -12,6 +13,7 @@ public interface Index {
     void insert(IndexEntry entry);
 
     void delete(IndexEntry entry);
+
 
 }
 

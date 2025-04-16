@@ -10,5 +10,7 @@ public class Constants {
 
     public final static int NULL_LSN = 0;
 
+    public final static long NULL_XID = 0;
+
     public static final int LOG_FILE_ID = 369;
 }

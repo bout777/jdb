@@ -174,7 +174,6 @@ public class DataPage {
             this.setDirty(true);
 
             PagePointer ptr = new PagePointer(getPageId(), offset);
-            //todo 追加版本
             return ptr;
         }  finally {
             this.page.releaseWriteLock();

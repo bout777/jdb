@@ -1,6 +1,6 @@
 package com.jdb.table;
 
-import com.jdb.catalog.ColumnDef;
+import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
 import com.jdb.common.Value;
 
@@ -67,7 +67,7 @@ public class RowData {
     private int deserializeFrom(ByteBuffer buffer, int offset, Schema schema) {
         offset = deserializeHeader(buffer, offset);
         //TODO 这里暂时写死，后期要改
-        for (ColumnDef def : schema.columns()) {
+        for (Column def : schema.columns()) {
             Value value = Value.deserialize(buffer, offset, def.getType());
             values.add(value);
             offset += value.getBytes();

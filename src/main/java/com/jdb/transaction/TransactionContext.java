@@ -24,7 +24,7 @@ public class TransactionContext {
 
 
 
-    private long xid;
+    private final long xid;
     private IsolationLevel isolationLevel = IsolationLevel.READ_COMMITTED;
     private final Set<LogicRid> writeSet = new HashSet<>();
 

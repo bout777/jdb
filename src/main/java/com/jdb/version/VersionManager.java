@@ -30,11 +30,15 @@ public class VersionManager {
     private Map<LogicRid, VersionEntrySet> versionMap = new HashMap<>();
 
 
-    //fixme 当页分裂后，原来的rid可能不再对应原来的记录，需要修复
+    //
     public void pushUpdate(String tableName, RowData rowData) {
         var rid = new LogicRid(tableName, rowData.getPrimaryKey());
 
         var deque = versionMap.get(rid);
+        /*
+        todo 如果vmMap没有该记录的版本链，先把原版本加一份到这个版本链里，
+            否则会出现一个事务更新了但还没提交，其他事务都查不到原来的版本
+         */
         if (deque == null) {
             deque = new VersionEntrySet(rid);
             versionMap.put(rid, deque);

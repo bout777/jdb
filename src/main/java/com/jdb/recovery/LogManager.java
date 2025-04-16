@@ -1,31 +1,49 @@
 package com.jdb.recovery;
 
 import com.jdb.common.PageHelper;
+import com.jdb.recovery.logs.MasterLog;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static com.jdb.common.Constants.LOG_FILE_ID;
-import static com.jdb.common.Constants.PAGE_SIZE;
+import static com.jdb.common.Constants.*;
+
 /*
-* 由于日志页有固定的fid，所以每页只用保存pno
-* */
+ * 由于日志页有固定的fid，所以每页只用保存pno
+ * */
 public class LogManager {
-    private static final long MASTER_LOG_PAGE_ID = PageHelper.concatPid(LOG_FILE_ID,0);
+    private static final long MASTER_LOG_PAGE_ID = PageHelper.concatPid(LOG_FILE_ID, 0);
     private BufferPool bufferPool;
     private Deque<Integer> unflushedLogTail;
     private LogPage logTail;
 
-    private long nextPID = MASTER_LOG_PAGE_ID+1;
+    private long nextPID = MASTER_LOG_PAGE_ID + 1;
 
     public LogManager() {
         bufferPool = BufferPool.getInstance();
         unflushedLogTail = new ArrayDeque<>();
+        //for master
+        bufferPool.newPage(LOG_FILE_ID);
+        rewriteMasterLog(new MasterLog(NULL_LSN));
+    }
+
+    public void rewriteMasterLog(MasterLog masterLog) {
+        var bp = BufferPool.getInstance();
+        var buffer = bp.getPage(MASTER_LOG_PAGE_ID).getBuffer();
+        masterLog.serialize(buffer, 0);
+    }
+
+    public MasterLog getMasterLog() {
+        var bp = BufferPool.getInstance();
+        var buffer = bp.getPage(MASTER_LOG_PAGE_ID).getBuffer();
+        LogRecord masterLog = LogRecord.deserialize(buffer, 0);
+        return (MasterLog) masterLog;
     }
 
     static long makeLSN(long pid, int offset) {
@@ -33,10 +51,11 @@ public class LogManager {
     }
 
     public synchronized long append(LogRecord log) {
-        if (logTail == null || logTail.getFreeSpace() < log.getSize()) {
+        if (logTail == null || logTail.getFreeSpace() < log.getPayloadSize()) {
             logTail = new LogPage(bufferPool.newPage(LOG_FILE_ID));
             // todo 更新nextpid？
             logTail.init();
+            unflushedLogTail.add(logTail.getPageNo());
         }
         int offset = logTail.append(log);
         long lsn = makeLSN(nextPID, offset);
@@ -92,9 +111,10 @@ public class LogManager {
             internalIter = logPage.scanFrom(getLSNOffset(lsn));
         }
 
-        LogIterator(){
-            this.pid = MASTER_LOG_PAGE_ID+1;
+        LogIterator() {
+            this.pid = MASTER_LOG_PAGE_ID +1;
             Page page = bufferPool.getPage(pid);
+            pid++;
             LogPage logPage = new LogPage(page);
             internalIter = logPage.scan();
         }
@@ -112,10 +132,10 @@ public class LogManager {
             LogRecord log = internalIter.next();
             while (!internalIter.hasNext()) {
                 try {
-                    Page page = bufferPool.getPage(nextPID);
+                    Page page = bufferPool.getPage(this.pid);
                     LogPage logPage = new LogPage(page);
                     internalIter = logPage.scan();
-                    nextPID++;
+                    this.pid++;
                 } catch (RuntimeException e) {
                     internalIter = null;
                     break;
@@ -129,20 +149,20 @@ public class LogManager {
      * [pageId] | [recordCount] | [tail] | [logRecord]...
      */
     class LogPage {
-        int PAGE_NO_OFFSET = 0;
-        int RECORD_COUNT_OFFSET = PAGE_NO_OFFSET + Integer.BYTES;
-        int TAIL_OFFSET = RECORD_COUNT_OFFSET + Integer.BYTES;
-        int HEADER_SIZE = TAIL_OFFSET + Integer.BYTES;
+        static final int PAGE_NO_OFFSET = 0;
+        static final int RECORD_COUNT_OFFSET = PAGE_NO_OFFSET + Integer.BYTES;
+        static final int TAIL_OFFSET = RECORD_COUNT_OFFSET + Integer.BYTES;
+        static final int HEADER_SIZE = TAIL_OFFSET + Integer.BYTES;
         ByteBuffer buffer;
         Page page;
 
         public LogPage(Page page) {
             this.page = page;
-            buffer = ByteBuffer.wrap(page.getData());
+            buffer = page.getBuffer();
         }
 
         public void init() {
-            buffer.putInt(PAGE_NO_OFFSET, getPageNo());
+            buffer.putInt(PAGE_NO_OFFSET, PageHelper.getPno(page.pid));
             buffer.putInt(RECORD_COUNT_OFFSET, 0);
             setTail(HEADER_SIZE);
         }
@@ -152,10 +172,10 @@ public class LogManager {
         }
 
         public long getPageId() {
-            return PageHelper.concatPid(LOG_FILE_ID,getPageNo());
+            return PageHelper.concatPid(LOG_FILE_ID, getPageNo());
         }
 
-        public int getPageNo(){
+        public int getPageNo() {
             return buffer.getInt(PAGE_NO_OFFSET);
         }
 
