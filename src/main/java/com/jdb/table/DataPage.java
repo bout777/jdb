@@ -193,14 +193,19 @@ public class DataPage {
         insertSlot(slot);
     }
 
-    public void deleteRecord(int slotId) {
-        Slot slot = getSlot(slotId);
-        deleteSlot(slotId);
+    public long deleteRecord(int slotId) {
 
-        RowData rowData = new RowData();
-        rowData.deserializeHeader(buffer, slot.offset);
-        rowData.setDeleted(true);
-        rowData.serializeHeader(buffer, slot.offset);
+        try {
+            this.page.acquireWriteLock();
+
+            deleteSlot(slotId);
+            setLower(getLower() - SLOT_SIZE);
+        } finally {
+            this.page.releaseWriteLock();
+        }
+
+        //后续加入页合并的逻辑
+        return NULL_PAGE_ID;
     }
 
 
@@ -244,7 +249,6 @@ public class DataPage {
         int offset = HEADER_SIZE + slotId * SLOT_SIZE;
         byte[] data = page.getData();
         System.arraycopy(data, offset + SLOT_SIZE, data, offset, (getRecordCount() - slotId - 1) * SLOT_SIZE);
-        setLower(getLower() - SLOT_SIZE);
     }
 
 

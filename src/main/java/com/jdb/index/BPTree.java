@@ -5,7 +5,6 @@ import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
 import com.jdb.table.IndexPage;
-import com.jdb.table.RowData;
 import com.jdb.table.Table;
 
 import java.util.List;
@@ -17,13 +16,14 @@ public class BPTree implements Index {
     private BufferPool bufferPool;
     private Node root;
     private IndexMetaData metaData;
+
     public BPTree(IndexMetaData metaData) {
         bufferPool = BufferPool.getInstance();
         Page page = bufferPool.newPage(metaData.getTableName());
         DataPage dataPage = new DataPage(page);
         dataPage.init();
         this.metaData = metaData;
-        root = new LeafNode(metaData,dataPage.getPageId(), page);
+        root = new LeafNode(metaData, dataPage.getPageId(), page);
     }
 
     @Override
@@ -48,18 +48,14 @@ public class BPTree implements Index {
             nipage.init();
 
             //新建内部节点，作为新的root
-            InnerNode newRoot = new InnerNode(metaData,newpage.pid, newpage);
+            InnerNode newRoot = new InnerNode(metaData, newpage.pid, newpage);
 
             //撸出新节点的两个儿子
             Node c2 = Node.load(metaData, newNode);
 
             //写入到新节点中 (*´∀`)~♥
-//            if (c2.getFloorKey().compareTo(root.getFloorKey()) < 0) {
-//                nipage.addChild(0, newNode);
-//                nipage.insert(root.getFloorKey(), root.pid);
-//            } else {
-                nipage.addChild(0, root.pid);
-                nipage.insert(c2.getFloorKey(), newNode);
+            nipage.addChild(0, root.pid);
+            nipage.insert(c2.getFloorKey(), newNode);
 
 
             //更新root
@@ -68,7 +64,7 @@ public class BPTree implements Index {
     }
 
     @Override
-    public void delete(IndexEntry entry) {
+    public void delete(Value<?> key) {
 
     }
 

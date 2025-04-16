@@ -45,6 +45,8 @@ public abstract class Node {
 
     public abstract long insert(IndexEntry entry);
 
+    public abstract long delete(Value<?> key);
+
     public abstract Value<?> getFloorKey();
 
     public abstract void readFromPage(int pageId);
@@ -87,6 +89,11 @@ class InnerNode extends Node {
         indexPage.insert(newChild.getFloorKey(), newChildPid);
         //无需分裂
         return NULL_PAGE_ID;
+    }
+
+    @Override
+    public long delete(Value<?> key) {
+        return 0;
     }
 
     @Override
@@ -144,34 +151,13 @@ class LeafNode extends Node {
 
     @Override
     public IndexEntry search(Value<?> key) {
-        int low = 0, high = dataPage.getRecordCount() - 1;
-        RowData r;
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            Slot slot = dataPage.getSlot(mid);
-            int mk = slot.getPrimaryKey();
-            if (key.getValue(Integer.class) < mk)
-                high = mid - 1;
-            else if (key.getValue(Integer.class) > mk)
-                low = mid + 1;
-            else {
-                r = dataPage.getRecord(mid, metaData.getTableSchema());
-                return new ClusterIndexEntry(Value.ofInt(mk), r);
-            }
-        }
-        throw new NoSuchElementException("key not found");
+        int idx = binarySearch(key);
+        RowData r = dataPage.getRecord(idx, metaData.getTableSchema());
+        return new ClusterIndexEntry(Value.ofInt(r.getPrimaryKey()), r);
     }
 
     @Override
     public long insert(IndexEntry entry) {
-//        int insertIndex = Collections.binarySearch(entries, entry);
-//        //暂时只能插入唯一键
-//        if (insertIndex >= 0) {
-//            throw new RuntimeException("key already exist");
-//        }
-//        insertIndex = -insertIndex - 1;
-//        entries.add(insertIndex, entry);
-
         if (entry instanceof ClusterIndexEntry) {
             DataPage dataPage = new DataPage(page);
             RowData rowData = ((ClusterIndexEntry) entry).getRecord();
@@ -198,9 +184,34 @@ class LeafNode extends Node {
     }
 
     @Override
+    public long delete(Value<?> key) {
+        //todo 当页内记录数太少时,页合并
+        int idx = binarySearch(key);
+        dataPage.deleteRecord(idx);
+        return NULL_PAGE_ID;
+    }
+
+    @Override
     public Value<?> getFloorKey() {
         int key = dataPage.getSlot(0).getPrimaryKey();
         return Value.ofInt(key);
+    }
+
+    private int binarySearch(Value<?> key) {
+        int low = 0, high = dataPage.getRecordCount() - 1;
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            Slot slot = dataPage.getSlot(mid);
+            int mk = slot.getPrimaryKey();
+            if (key.getValue(Integer.class) < mk)
+                high = mid - 1;
+            else if (key.getValue(Integer.class) > mk)
+                low = mid + 1;
+            else {
+                return mid;
+            }
+        }
+        throw new NoSuchElementException("key not found");
     }
 
     @Override

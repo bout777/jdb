@@ -12,8 +12,7 @@ public interface Index {
 
     void insert(IndexEntry entry);
 
-    void delete(IndexEntry entry);
-
+    void delete(Value<?> key);
 
 }
 
