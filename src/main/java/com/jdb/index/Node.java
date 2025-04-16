@@ -93,7 +93,12 @@ class InnerNode extends Node {
 
     @Override
     public long delete(Value<?> key) {
-        return 0;
+        int cno = indexPage.binarySearch(key) + 1;
+        int pno = indexPage.getChild(cno);
+        long pid = PageHelper.concatPid(this.fid, pno);
+        Node child = Node.load(metaData, pid);
+        //todo 页合并
+        return child.delete(key);
     }
 
     @Override

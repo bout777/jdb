@@ -65,7 +65,7 @@ public class BPTree implements Index {
 
     @Override
     public void delete(Value<?> key) {
-
+        root.delete(key);
     }
 
 

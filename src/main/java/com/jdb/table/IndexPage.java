@@ -100,7 +100,7 @@ public class IndexPage {
 //    }
 
     public long insert(Value<?> key, long pid) {
-        this.page.releaseWriteLock();
+        this.page.acquireWriteLock();
         //找到插入位置
         int idx = binarySearch(key) + 1;
         int offset = HEADER_SIZE + KEY_SIZE * idx + CHILD_SIZE * (idx + 1);
