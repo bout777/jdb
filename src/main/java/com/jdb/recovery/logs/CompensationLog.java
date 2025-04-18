@@ -1,6 +1,5 @@
 package com.jdb.recovery.logs;
 
-import com.jdb.recovery.LogRecord;
 import com.jdb.recovery.LogType;
 
 import java.nio.ByteBuffer;
@@ -15,40 +14,37 @@ import java.nio.ByteBuffer;
  * 在undo阶段，只需要将clr的undoNextLsn取出来即可
  */
 public class CompensationLog extends LogRecord {
-    long undoNextLsn;
+    LogRecord originLog;
 
-    public CompensationLog(long undoNextLsn) {
+    public CompensationLog(LogRecord originLog) {
         super(LogType.COMPENSATION);
+        this.originLog = originLog;
     }
 
     public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
-        return null;
+        LogRecord originLog = LogRecord.deserialize(buffer, offset);
+        return new CompensationLog(originLog);
     }
 
     public long getUndoNextLsn() {
-        return undoNextLsn;
-    }
-
-    @Override
-    public long getPageId() {
-        return 0;
+        return originLog.getPrevLsn();
     }
 
 
     @Override
     public long getXid() {
-        return 0;
+        return originLog.getXid();
     }
 
 
     @Override
     protected int getPayloadSize() {
-        return 0;
+        return originLog.getSize();
     }
 
     @Override
     protected int serializePayload(ByteBuffer buffer, int offset) {
-        return 0;
+        return originLog.serialize(buffer, offset);
     }
 
     @Override
@@ -58,28 +54,26 @@ public class CompensationLog extends LogRecord {
 
     @Override
     public void redo() {
-
+        originLog.undo();
     }
 
     @Override
     public void undo() {
-
+        throw new UnsupportedOperationException("CompensationLog can not be undo");
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return "CompensationLog{" +
-                "undoNextLsn=" + undoNextLsn +
-                ", lsn=" + lsn +
+                "origin="+originLog+
                 '}';
     }
 
     @Override
-    public boolean equals(Object o){
+    public boolean equals(Object o) {
         if (this == o) return true;
         if (o instanceof CompensationLog that)
-            return this.undoNextLsn == that.undoNextLsn&&this.getType() == that.getType()
-                    && this.getLsn() == that.getLsn();
+            return this.originLog.equals(that.originLog);
         return false;
     }
 }

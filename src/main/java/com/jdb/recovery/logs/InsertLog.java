@@ -1,15 +1,16 @@
 package com.jdb.recovery.logs;
 
-import com.jdb.exception.DuplicateInsertException;
-import com.jdb.recovery.LogRecord;
+import com.jdb.catalog.Schema;
+import com.jdb.common.PageHelper;
+import com.jdb.common.Value;
 import com.jdb.recovery.LogType;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
-import com.jdb.table.DataPage;
-import com.jdb.table.PagePointer;
+import com.jdb.table.*;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 
 public class InsertLog extends LogRecord {
     long xid;
@@ -17,7 +18,7 @@ public class InsertLog extends LogRecord {
     PagePointer ptr;
     int len;
     byte[] image;
-    private static final int HEADER_SIZE =Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
+    private static final int HEADER_SIZE = Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
 
     public InsertLog(long xid, long prevLsn, PagePointer ptr, byte[] image) {
         super(LogType.INSERT);
@@ -34,7 +35,7 @@ public class InsertLog extends LogRecord {
                 .putLong(xid)
                 .putLong(prevLsn)
                 .putLong(ptr.pid)
-                .putInt(ptr.offset)
+                .putInt(ptr.sid)
                 .putInt(len)
                 .put(image);
 
@@ -46,11 +47,11 @@ public class InsertLog extends LogRecord {
         long xid = buffer.getLong();
         long prevLsn = buffer.getLong();
         long pid = buffer.getLong();
-        int pof = buffer.getInt();
+        int sid = buffer.getInt();
         int len = buffer.getInt();
         byte[] image = new byte[len];
         buffer.get(image);
-        return new InsertLog(xid,prevLsn, new PagePointer(pid,pof), image);
+        return new InsertLog(xid, prevLsn, new PagePointer(pid, sid), image);
     }
 
 
@@ -62,6 +63,11 @@ public class InsertLog extends LogRecord {
     @Override
     public long getXid() {
         return xid;
+    }
+
+    @Override
+    public long getPrevLsn() {
+        return prevLsn;
     }
 
     @Override
@@ -77,18 +83,24 @@ public class InsertLog extends LogRecord {
 
     @Override
     public void redo() {
+        //redo时可以根据pageLsn跟lsn比较，来判断是否需要redo，所以直接物理插入
         Page page = BufferPool.getInstance().getPage(ptr.pid);
         DataPage dataPage = new DataPage(page);
-        try {
-            dataPage.insertRecord(ptr.offset,image);
-        }catch (DuplicateInsertException e){
-            //record has existed, do nothing
-        }
+//        try {
+        dataPage.insertRecord(ptr.sid, image);
+//        }catch (DuplicateInsertException e){
+//            //record has existed, do nothing
+//        }
     }
 
     @Override
     public void undo() {
-
+        //todo undo需要删除，由于已经插入的记录可能被移动到其他地方(页分裂),所以根据页指针删除是不现实的
+        int fid = PageHelper.getFid(ptr.pid);
+        Table table = TableManager.testTable;
+        Schema schema = table.getSchema();
+        var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
+        table.deleteRecord(Value.ofInt(rowData.getPrimaryKey()),true);
     }
 
     @Override

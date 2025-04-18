@@ -2,9 +2,10 @@ package Log;
 
 import com.jdb.common.Value;
 import com.jdb.recovery.LogManager;
-import com.jdb.recovery.LogRecord;
+import com.jdb.recovery.logs.LogRecord;
 import com.jdb.recovery.LogType;
 import com.jdb.recovery.RecoveryManager;
+import com.jdb.recovery.logs.DeleteLog;
 import com.jdb.recovery.logs.InsertLog;
 import com.jdb.recovery.logs.MasterLog;
 import com.jdb.recovery.logs.UpdateLog;
@@ -22,7 +23,6 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.jdb.common.Constants.LOG_FILE_ID;
 import static org.junit.Assert.assertEquals;
 
 public class LogManagerTest {
@@ -70,6 +70,26 @@ public class LogManagerTest {
         for (int i = 0; i < 1000; i++) {
             InsertLog insertLog = new InsertLog(114514L, 0, new PagePointer(0, 0),image);
             expected.add(insertLog);
+        }
+
+        for (LogRecord l : expected) {
+            logManager.append(l);
+        }
+
+        var iter = logManager.scan();
+        for(LogRecord l:expected){
+            assertEquals(l, iter.next());
+        }
+    }
+
+    @Test
+    public void testIterDelete(){
+        var image = new byte[]{1,2,3,4,5,6,7,8,9,10};
+        List<LogRecord> expected = new ArrayList<>();
+
+        for (int i = 0; i < 1000; i++) {
+            DeleteLog deleteLog = new DeleteLog(114514L, 0, new PagePointer(0, 0),image);
+            expected.add(deleteLog);
         }
 
         for (LogRecord l : expected) {

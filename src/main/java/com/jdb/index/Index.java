@@ -1,7 +1,6 @@
 package com.jdb.index;
 
 import com.jdb.common.Value;
-import com.jdb.table.RowData;
 
 import java.util.List;
 
@@ -10,9 +9,9 @@ public interface Index {
 
     List<IndexEntry> searchRange(Value<?> low, Value<?> high);
 
-    void insert(IndexEntry entry);
+    void insert(IndexEntry entry, boolean shouldLog);
 
-    void delete(Value<?> key);
+    void delete(Value<?> key, boolean shouldLog);
 
 }
 

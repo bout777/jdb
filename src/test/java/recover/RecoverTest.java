@@ -1,12 +1,14 @@
 package recover;
 
 import com.jdb.common.Value;
-import com.jdb.recovery.LogRecord;
 import com.jdb.recovery.LogType;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.recovery.logs.BeginLog;
 import com.jdb.recovery.logs.CommitLog;
+import com.jdb.recovery.logs.LogRecord;
 import com.jdb.table.Table;
+import com.jdb.table.TableManager;
+import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 import index.MockTable;
 import org.junit.Before;
@@ -15,9 +17,9 @@ import version.DeterministicRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 public class RecoverTest {
 
@@ -26,7 +28,7 @@ public class RecoverTest {
 
     @Before
     public void init() {
-        table = MockTable.getTable();
+        table = TableManager.testTable;
     }
 
     @Test
@@ -75,24 +77,82 @@ public class RecoverTest {
     }
 
     @Test
-    public void testRecover(){
+    public void testRecover() {
         var rowbefore = MockTable.generateRecord(123);
         var rowafter = MockTable.generateRecord(123);
-        var tm  = TransactionManager.getInstance();
+        var tm = TransactionManager.getInstance();
         tm.begin();
         table.insertRecord(rowbefore, true, true);
         tm.commit();
 
         tm.begin();
-        table.updateRecord(Value.ofInt(123), rowafter);
+        table.updateRecord(Value.ofInt(123), rowafter, true);
         tm.commit();
     }
 
     @Test
-    public void testCheckpoint() {
-        var rowDate = MockTable.generateRecord(123);
-        table.insertRecord(rowDate, true, true);
+    public void testSimpleUndo() {
+        var tm = TransactionManager.getInstance();
+        var runner = new DeterministicRunner(1);
+        runner.run(0, () -> {
+            tm.begin();
+            table.insertRecord(MockTable.generateRecord(123), true, true);
+            long xid = TransactionContext.getTransaction().getXid();
+            rm.rollback(xid);
+        });
+        tm.begin();
+        try{
+            table.getClusterIndex().searchEqual(Value.ofInt(123));
+            fail();
+        }catch (NoSuchElementException e){
+
+        }
 
 
     }
+
+    @Test
+    public void testAbort() {
+        var tm = TransactionManager.getInstance();
+        var rowbefore = MockTable.generateRecord(123);
+        var rowafter = MockTable.generateRecord(123);
+        var rm = RecoveryManager.getInstance();
+        var runner = new DeterministicRunner(1);
+        runner.run(0, () -> {
+            tm.begin();
+            table.insertRecord(rowbefore, true, true);
+            table.updateRecord(Value.ofInt(123), rowafter, true);
+            long xid = TransactionContext.getTransaction().getXid();
+            rm.rollback(xid);
+        });
+        var lm = rm.getLogManager();
+        var iter = lm.scan();
+        assertEquals(new BeginLog(1), iter.next());
+        assertEquals(LogType.INSERT, iter.next().getType());
+        assertEquals(LogType.DELETE, iter.next().getType());
+        assertEquals(LogType.INSERT, iter.next().getType());
+        assertEquals(LogType.DELETE, iter.next().getType());
+        assertEquals(LogType.INSERT, iter.next().getType());
+        assertEquals(LogType.DELETE, iter.next().getType());
+        assertFalse(iter.hasNext());
+    }
+
+    @Test
+    public void testCheckpoint() {
+        var tm = TransactionManager.getInstance();
+        var runner = new DeterministicRunner(3);
+        runner.run(0, () -> {
+            tm.begin();
+            table.insertRecord(MockTable.generateRecord(1), true, true);
+            table.insertRecord(MockTable.generateRecord(2), true, true);
+            tm.commit();
+        });
+        runner.run(1, () -> {
+            tm.begin();
+            table.insertRecord(MockTable.generateRecord(3), true, true);
+            table.insertRecord(MockTable.generateRecord(4), true, true);
+            tm.commit();
+        });
+    }
+
 }

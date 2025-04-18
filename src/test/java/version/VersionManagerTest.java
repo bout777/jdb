@@ -73,7 +73,7 @@ public class VersionManagerTest {
                     RowData rowData = MockTable.generateRecord(j);
                     IndexEntry e = new ClusterIndexEntry(Value.ofInt(j), rowData);
                     expected.put(j, e);
-                    bptree.insert(e);
+                    bptree.insert(e, true);
                 }
             }));
         }

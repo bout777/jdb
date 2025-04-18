@@ -8,10 +8,7 @@ import com.jdb.storage.Page;
 import com.jdb.version.ReadResult;
 import com.jdb.version.VersionManager;
 
-import java.util.NoSuchElementException;
-
 import static com.jdb.common.Constants.NULL_PAGE_ID;
-import static com.jdb.common.Constants.SLOT_SIZE;
 
 public class Table {
     BufferPool bufferPool;
@@ -46,7 +43,7 @@ public class Table {
     // TODO 把get相关的逻辑弄好，测试，下一步才可以对接索引
     public RowData getRowData(PagePointer ptr) {
         Page page = bufferPool.getPage(ptr.pid);
-        return RowData.deserialize(page.getBuffer(), ptr.offset, schema);
+        return RowData.deserialize(page.getBuffer(), ptr.sid, schema);
     }
 
     public RowData getRowData(Value<?> key) {
@@ -98,20 +95,18 @@ public class Table {
         vm.pushUpdate(tableName, rowData);
 
         var entry = new ClusterIndexEntry(Value.ofInt(rowData.getPrimaryKey()), rowData);
-        clusterIndex.insert(entry);
+        clusterIndex.insert(entry, shouldLog);
     }
 
-    public void updateRecord(Value<?> key, RowData rowData){
+    public void updateRecord(Value<?> key, RowData rowData,boolean shouldLog){
         var vm = VersionManager.getInstance();
         vm.pushUpdate(tableName, rowData);
 
         //todo 暂时先删除再插入以实现更新，这样做代码复杂度比较小，后续在页内添加空闲槽位管理，能最大化利用空间减少复杂度
-        var ptr= clusterIndex.searchEqual(key).getPointer();
-        var page = new DataPage(bufferPool.getPage(ptr.pid));
-        page.updateRecord(ptr.offset, rowData,true);
+        clusterIndex.delete(key, shouldLog);
+        clusterIndex.insert(new ClusterIndexEntry(key, rowData),shouldLog);
     }
-    public void deleteRecord(PagePointer ptr) {
-        DataPage dataPage = new DataPage(bufferPool.getPage(ptr.pid));
-        dataPage.deleteRecord(ptr.offset);
+    public void deleteRecord(Value<?> key,boolean shouldLog) {
+        clusterIndex.delete(key,shouldLog);
     }
 }

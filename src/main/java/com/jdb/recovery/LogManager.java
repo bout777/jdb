@@ -1,11 +1,11 @@
 package com.jdb.recovery;
 
 import com.jdb.common.PageHelper;
+import com.jdb.recovery.logs.LogRecord;
 import com.jdb.recovery.logs.MasterLog;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -51,7 +51,7 @@ public class LogManager {
     }
 
     public synchronized long append(LogRecord log) {
-        if (logTail == null || logTail.getFreeSpace() < log.getPayloadSize()) {
+        if (logTail == null || logTail.getFreeSpace() < log.getSize()) {
             logTail = new LogPage(bufferPool.newPage(LOG_FILE_ID));
             // todo 更新nextpid？
             logTail.init();
@@ -78,7 +78,9 @@ public class LogManager {
 
     public LogRecord getLogRecord(long lsn) {
         LogPage logPage = new LogPage(bufferPool.getPage(getLSNPage(lsn)));
-        return logPage.getLogRecord(getLSNOffset(lsn));
+        var log= logPage.getLogRecord(getLSNOffset(lsn));
+        log.setLsn(lsn);
+        return log;
     }
 
     public Iterator<LogRecord> scanFrom(long lsn) {
@@ -228,6 +230,8 @@ public class LogManager {
                     throw new NoSuchElementException();
                 LogRecord log = LogRecord.deserialize(buffer, offset);
                 offset += log.getSize();
+                long lsn = makeLSN(getPageId(), offset);
+                log.setLsn(lsn);
                 return log;
             }
         }

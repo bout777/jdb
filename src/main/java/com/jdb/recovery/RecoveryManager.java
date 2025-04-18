@@ -65,8 +65,8 @@ public class RecoveryManager {
         logManager.append(log);
     }
 
-    public void logUndoCLR(long undoNextLsn) {
-        logManager.append(new CompensationLog(undoNextLsn));
+    public void logUndoCLR(LogRecord origin) {
+        logManager.append(new CompensationLog(origin));
     }
 
     public synchronized long logInsert(long xid, PagePointer ptr, byte[] image) {
@@ -87,6 +87,20 @@ public class RecoveryManager {
         return lsn;
     }
 
+    public long logDelete(long xid, PagePointer ptr, byte[] image) {
+        assert transactionsTable.containsKey(xid);
+
+        long prevLsn = transactionsTable.get(xid);
+        LogRecord log = new DeleteLog(xid, prevLsn, ptr,image);
+
+        long lsn = logManager.append(log);
+
+        transactionsTable.put(xid, lsn);
+
+        dirtyPage(ptr.pid, lsn);
+        return lsn;
+    }
+
     public void logCommit(long xid) {
         LogRecord log = new CommitLog(xid);
         long lsn = logManager.append(log);
@@ -97,6 +111,10 @@ public class RecoveryManager {
         long lastLsn = transactionsTable.remove(xid);
         LogRecord log = new AbortLog(xid,lastLsn);
         long lsn = logManager.append(log);
+    }
+
+    public void rollback(long xid) {
+        rollback2lsn(xid,NULL_LSN);
     }
 
     public void flush2lsn(long lsn) {
@@ -126,9 +144,8 @@ public class RecoveryManager {
             }
             
             curLsn = log.getPrevLsn();
-            logUndoCLR(curLsn);
-
             log.undo();
+            //试试就逝世
         }
     }
 
@@ -144,8 +161,8 @@ public class RecoveryManager {
 
         var checkpointLog = new CheckpointLog(dirtyPagesTable, transactionsTable);
         long lsn = logManager.append(checkpointLog);
-
         flush2lsn(lsn);
+        logManager.rewriteMasterLog(new MasterLog(lsn));
     }
 
     public void recover() {
@@ -229,8 +246,8 @@ public class RecoveryManager {
                 nextLsn = clr.getUndoNextLsn();
             } else {
                 log.undo();
-                nextLsn = log.getPrevLsn();
-                logManager.append(new CompensationLog(nextLsn));
+                var clr = new CompensationLog(log);
+                logManager.append(clr);
             }
 
             if (nextLsn == NULL_LSN) {

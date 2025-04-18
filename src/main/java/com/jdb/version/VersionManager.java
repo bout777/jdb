@@ -62,16 +62,17 @@ public class VersionManager {
 
         var isolevel = TransactionContext.getTransaction().getIsolationLevel();
         RowData rowData = null;
+        long xid = TransactionContext.getTransaction().getXid();
         switch (isolevel) {
             case READ_COMMITTED -> {
                 long curTs = TransactionManager.getCurrentTrxStamp();
-                var entry = entrySet.floor(curTs);
-                if(entry!=null)
+                var entry = entrySet.getVisibleVersion(curTs);
+                if(entry!=null) {
                     rowData = entry.getRecord();
+                }
             }
             case SNAPSHOT_ISOLATION -> {
-                long xid = TransactionContext.getTransaction().getXid();
-                var entry = entrySet.floor(xid);
+                var entry = entrySet.getVisibleVersion(xid);
                 if(entry!=null)
                     rowData = entry.getRecord();
             }
@@ -82,6 +83,7 @@ public class VersionManager {
         else
             return ReadResult.visible(rowData);
     }
+
 
     public void commit(Set<LogicRid> writeSet) {
         long curTs = TransactionManager.getCurrentTrxStamp();
@@ -143,25 +145,19 @@ public class VersionManager {
             return null;
         }
 
+        public VersionEntry getVisibleVersion(long ts) {
+            var latestEntry = lastEntry().getValue();
+            long xid = TransactionContext.getTransaction().getXid();
+            if(latestEntry.getStartTs()==xid)
+                return latestEntry;
 
-//        private boolean tryPushInReadCommitted(VersionEntry entry){
-//            long curTs = TransactionManager.getCurrentXid();
-//            VersionEntry head = peek();
-//            if(head.endTs>curTs)
-//                return false;
-//
-//            this.addFirst(entry);
-//            return true;
-//        }
-//
-//        private boolean tryPushInSnapshotIsolation(VersionEntry entry){
-//            VersionEntry head = peek();
-//            if(head.endTs>entry.startTs)
-//                return false;
-//
-//            this.addFirst(entry);
-//            return true;
-//        }
+            if(floorEntry(ts)!=null){
+                return floorEntry(ts).getValue();
+            }
+            return null;
+        }
+
+
     }
 }
 

@@ -42,11 +42,9 @@ public class DuraBPTest {
         for (int i = 2000; i >= 0; i--) {
             RowData rowData = MockTable.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), rowData);
-            bpTree.insert(e);
+            bpTree.insert(e, true);
             expect.add(e);
         }
-//        BufferPool.getInstance().flush();
-//        BufferPool.getInstance().shutdown();
         for (int i = 0; i <= 2000; i++) {
             IndexEntry e = bpTree.searchEqual(Value.ofInt(i));
             assertEquals(Value.ofInt(i), e.getKey());
@@ -63,7 +61,7 @@ public class DuraBPTest {
         Collections.shuffle(ids);
         for (Integer id : ids) {
             RowData rowData = MockTable.generateRecord(id);
-            bpTree.insert(new ClusterIndexEntry(Value.ofInt(id), rowData));
+            bpTree.insert(new ClusterIndexEntry(Value.ofInt(id), rowData), true);
         }
 
         for (Integer id : ids) {
@@ -75,11 +73,11 @@ public class DuraBPTest {
     @Test
     public void testSimpleDelete() {
         var row = MockTable.generateRecord(114);
-        bpTree.insert(new ClusterIndexEntry(Value.ofInt(114), row));
+        bpTree.insert(new ClusterIndexEntry(Value.ofInt(114), row), true);
         IndexEntry entry = bpTree.searchEqual(Value.ofInt(114));
         assertEquals(Value.ofInt(114), entry.getKey());
 
-        bpTree.delete(Value.ofInt(114));
+        bpTree.delete(Value.ofInt(114), true);
         try {
             IndexEntry res = bpTree.searchEqual(Value.ofInt(114));
             fail("并非删除: " + res);
@@ -93,11 +91,11 @@ public class DuraBPTest {
         for (int i = 2000; i >= 0; i--) {
             RowData rowData = MockTable.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), rowData);
-            bpTree.insert(e);
+            bpTree.insert(e, true);
         }
 
-        bpTree.delete(Value.ofInt(1743));
-        bpTree.delete(Value.ofInt(199));
+        bpTree.delete(Value.ofInt(1743), true);
+        bpTree.delete(Value.ofInt(199), true);
         try {
             IndexEntry res = bpTree.searchEqual(Value.ofInt(1743));
             fail("并非删除: " + res);

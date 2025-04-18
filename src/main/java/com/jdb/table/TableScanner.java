@@ -18,14 +18,14 @@ public class TableScanner {
             return null;
 
         DataPage dataPage = new DataPage(bufferPool.getPage(pointer.pid));
-        RowData rowData = dataPage.getRecord(pointer.offset, table.schema);
+        RowData rowData = dataPage.getRecord(pointer.sid, table.schema);
 
 
-        if (pointer.offset < dataPage.getRecordCount() - 1) {
-            pointer.offset++;
+        if (pointer.sid < dataPage.getRecordCount() - 1) {
+            pointer.sid++;
         } else {
             pointer.pid = dataPage.getNextPageId();
-            pointer.offset = 0;
+            pointer.sid = 0;
         }
 
         // 如果记录被删除，则返回下一条记录

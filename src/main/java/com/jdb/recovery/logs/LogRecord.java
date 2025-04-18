@@ -1,6 +1,6 @@
-package com.jdb.recovery;
+package com.jdb.recovery.logs;
 
-import com.jdb.recovery.logs.*;
+import com.jdb.recovery.LogType;
 
 import java.nio.ByteBuffer;
 
@@ -32,6 +32,8 @@ public abstract class LogRecord {
             case BEGIN -> BeginLog.deserializePayload(buffer, offset);
             case COMMIT -> CommitLog.deserializePayload(buffer, offset);
             case ABORT -> AbortLog.deserializePayload(buffer, offset);
+            case DELETE -> DeleteLog.deserializePayload(buffer, offset);
+            case COMPENSATION -> CompensationLog.deserializePayload(buffer, offset);
             default -> throw new UnsupportedOperationException("bad log type");
         };
     }

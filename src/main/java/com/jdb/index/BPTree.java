@@ -37,8 +37,8 @@ public class BPTree implements Index {
     }
 
     @Override
-    public void insert(IndexEntry entry) {
-        long newNode = root.insert(entry);
+    public void insert(IndexEntry entry, boolean shouldLog) {
+        long newNode = root.insert(entry,shouldLog);
         if (newNode != NULL_PAGE_ID) {
             //分裂根节点
 
@@ -64,8 +64,8 @@ public class BPTree implements Index {
     }
 
     @Override
-    public void delete(Value<?> key) {
-        root.delete(key);
+    public void delete(Value<?> key, boolean shouldLog) {
+        root.delete(key,shouldLog);
     }
 
 

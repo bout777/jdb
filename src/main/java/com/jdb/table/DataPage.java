@@ -1,12 +1,12 @@
 package com.jdb.table;
 
 import com.jdb.catalog.Schema;
+import com.jdb.common.Value;
 import com.jdb.exception.DuplicateInsertException;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.transaction.TransactionContext;
-import com.jdb.version.VersionManager;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -62,7 +62,7 @@ public class DataPage {
         return buffer.getLong(LSN_OFFSET);
     }
 
-    public void setLsn(long lsn) {
+    public void setPageLsn(long lsn) {
         buffer.putLong(LSN_OFFSET, lsn);
     }
 
@@ -130,15 +130,15 @@ public class DataPage {
     }
 
     public PagePointer insertRecord(RowData rowData, boolean shouldLog, boolean shouldPushVersion) {
-        try  {
+        try {
             this.page.acquireWriteLock();
 
             //移动upper指针
-            int upper= getUpper() - rowData.getSize();
+            int upper = getUpper() - rowData.getSize();
             int lower = getLower();
             //写入slot
             Slot slot = new Slot(upper, rowData.getSize(), rowData.getPrimaryKey());
-            insertSlot(slot);
+            int sid = insertSlot(slot);
 
             //更新lower,upper
             setUpper(upper);
@@ -147,38 +147,62 @@ public class DataPage {
             //写入record
             rowData.serializeTo(buffer, upper);
             setDirty(true);
-            PagePointer ptr = new PagePointer(getPageId(), upper);
+            PagePointer ptr = new PagePointer(getPageId(), sid);
 
             //写日志
-            if(shouldLog) {
+            if (shouldLog) {
                 byte[] image = new byte[slot.size];
                 buffer.get(upper, image);
                 long xid = TransactionContext.getTransaction().getXid();
                 long lsn = RecoveryManager.getInstance().logInsert(xid, ptr, image);
-                setLsn(lsn);
+                setPageLsn(lsn);
             }
             return ptr;
-        }finally {
+        } finally {
             this.page.releaseWriteLock();
         }
     }
 
-
-
-    public PagePointer updateRecord(int offset, RowData rowData, boolean shouldLog) {
+    public long deleteRecord(Value<?> key,boolean shouldLog) {
         try {
             this.page.acquireWriteLock();
-            //todo 检查record是否符合schema
 
-            rowData.serializeTo(buffer, offset);
-            this.setDirty(true);
+            int sid = binarySearch(key);
+            if (sid < 0)
+                throw new NoSuchElementException("key not found");
 
-            PagePointer ptr = new PagePointer(getPageId(), offset);
-            return ptr;
-        }  finally {
+            //写日志
+            if(shouldLog) {
+                Slot slot = getSlot(sid);
+                PagePointer ptr = new PagePointer(getPageId(), sid);
+                byte[] image = Arrays.copyOfRange(buffer.array(), slot.offset, slot.offset + slot.size);
+                long xid = TransactionContext.getTransaction().getXid();
+                long lsn = RecoveryManager.getInstance().logDelete(xid, ptr, image);
+                setPageLsn(lsn);
+            }
+            //删除
+            deleteRecord(sid);
+        } finally {
             this.page.releaseWriteLock();
         }
+        return NULL_PAGE_ID;
     }
+
+
+//    public PagePointer updateRecord(int offset, RowData rowData, boolean shouldLog) {
+//        try {
+//            this.page.acquireWriteLock();
+//            //todo 检查record是否符合schema
+//
+//            rowData.serializeTo(buffer, offset);
+//            this.setDirty(true);
+//
+//            PagePointer ptr = new PagePointer(getPageId(), offset);
+//            return ptr;
+//        }  finally {
+//            this.page.releaseWriteLock();
+//        }
+//    }
 
     /**
      * 用于日志重做
@@ -186,23 +210,31 @@ public class DataPage {
      * @param image;
      * @throws DuplicateInsertException;
      */
-    public void insertRecord(int offset, byte[] image) throws DuplicateInsertException {
+    public void insertRecord(int slotId, byte[] image) throws DuplicateInsertException {
         RowData rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
-        rowData.serializeTo(buffer, offset);
-        Slot slot = new Slot(offset, image.length, rowData.getPrimaryKey());
+        int upper = getUpper() - rowData.getSize();
+        rowData.serializeTo(buffer, upper);
+        Slot slot = new Slot(upper, image.length, rowData.getPrimaryKey());
+
+        //todo 后续改成根据sid插入,实现o(n)
         insertSlot(slot);
     }
 
+    public void deleteRecord(int offset, byte[] image) {
+        RowData rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
+    }
+
+
     public long deleteRecord(int slotId) {
 
-        try {
-            this.page.acquireWriteLock();
 
-            deleteSlot(slotId);
-            setLower(getLower() - SLOT_SIZE);
-        } finally {
-            this.page.releaseWriteLock();
-        }
+        Slot slot = getSlot(slotId);
+        var ptr = new PagePointer(getPageId(), slotId);
+        byte[] image = Arrays.copyOfRange(buffer.array(), slot.offset, slot.offset + slot.size);
+
+        deleteSlot(slotId);
+        setLower(getLower() - SLOT_SIZE);
+
 
         //后续加入页合并的逻辑
         return NULL_PAGE_ID;
@@ -224,17 +256,10 @@ public class DataPage {
     }
 
     private int insertSlot(Slot slot) {
-        int low = 0, high = getRecordCount() - 1;
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            Slot midSlot = getSlot(mid);
-            if (slot.primaryKey > midSlot.primaryKey)
-                low = mid + 1;
-            else if (slot.primaryKey < midSlot.primaryKey)
-                high = mid - 1;
-            else
-                throw new DuplicateInsertException("try to insert a existed slot");
-        }
+        int low = binarySearch(Value.ofInt(slot.primaryKey));
+        if (low >= 0)
+            throw new DuplicateInsertException("try to insert a existed slot");
+        low = -low - 1;
         byte[] data = page.getData();
         //本地方法移动byte数组，腾出插入位置
         int offset = HEADER_SIZE + low * SLOT_SIZE;
@@ -248,7 +273,7 @@ public class DataPage {
     private void deleteSlot(int slotId) {
         int offset = HEADER_SIZE + slotId * SLOT_SIZE;
         byte[] data = page.getData();
-        System.arraycopy(data, offset + SLOT_SIZE, data, offset, (getRecordCount() - slotId - 1) * SLOT_SIZE);
+        System.arraycopy(data, offset + SLOT_SIZE, data, offset, (getRecordCount() - slotId) * SLOT_SIZE);
     }
 
 
@@ -281,6 +306,24 @@ public class DataPage {
             newDataPage.insertRecord(iter.next(), true, false);
         }
         return newDataPage;
+    }
+
+    private int binarySearch(Value<?> key) {
+        int low = 0, high = getRecordCount() - 1;
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            Slot slot = getSlot(mid);
+            int mk = slot.getPrimaryKey();
+            if (key.getValue(Integer.class) < mk)
+                high = mid - 1;
+            else if (key.getValue(Integer.class) > mk)
+                low = mid + 1;
+            else {
+                return mid;
+            }
+        }
+        //返回插入位置
+        return -low - 1;
     }
 
     public Iterator<RowData> scanFrom(int slotId) {

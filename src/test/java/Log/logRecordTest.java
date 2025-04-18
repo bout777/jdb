@@ -1,6 +1,6 @@
 package Log;
 
-import com.jdb.recovery.LogRecord;
+import com.jdb.recovery.logs.LogRecord;
 import com.jdb.recovery.logs.InsertLog;
 import com.jdb.recovery.logs.MasterLog;
 import com.jdb.recovery.logs.UpdateLog;

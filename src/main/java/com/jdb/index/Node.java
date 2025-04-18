@@ -43,9 +43,9 @@ public abstract class Node {
 
     public abstract IndexEntry search(Value<?> key);
 
-    public abstract long insert(IndexEntry entry);
+    public abstract long insert(IndexEntry entry, boolean shouldLog);
 
-    public abstract long delete(Value<?> key);
+    public abstract long delete(Value<?> key, boolean shouldLog);
 
     public abstract Value<?> getFloorKey();
 
@@ -76,12 +76,12 @@ class InnerNode extends Node {
     }
 
     @Override
-    public long insert(IndexEntry entry) {
+    public long insert(IndexEntry entry, boolean shouldLog) {
         int cno = indexPage.binarySearch(entry.getKey()) + 1;
         int pno = indexPage.getChild(cno);
         long pid = PageHelper.concatPid(this.fid, pno);
         Node child = Node.load(metaData, pid);
-        long newChildPid = child.insert(entry);
+        long newChildPid = child.insert(entry, shouldLog);
         if (newChildPid == NULL_PAGE_ID) {
             return NULL_PAGE_ID;
         }
@@ -92,13 +92,13 @@ class InnerNode extends Node {
     }
 
     @Override
-    public long delete(Value<?> key) {
+    public long delete(Value<?> key, boolean shouldLog) {
         int cno = indexPage.binarySearch(key) + 1;
         int pno = indexPage.getChild(cno);
         long pid = PageHelper.concatPid(this.fid, pno);
         Node child = Node.load(metaData, pid);
         //todo 页合并
-        return child.delete(key);
+        return child.delete(key, shouldLog);
     }
 
     @Override
@@ -162,7 +162,7 @@ class LeafNode extends Node {
     }
 
     @Override
-    public long insert(IndexEntry entry) {
+    public long insert(IndexEntry entry, boolean shouldLog) {
         if (entry instanceof ClusterIndexEntry) {
             DataPage dataPage = new DataPage(page);
             RowData rowData = ((ClusterIndexEntry) entry).getRecord();
@@ -177,7 +177,7 @@ class LeafNode extends Node {
                 return newDataPage.getPageId();
             } else {
                 //插入页中
-                dataPage.insertRecord(rowData, true, true);
+                dataPage.insertRecord(rowData, shouldLog, true);
                 return NULL_PAGE_ID;
             }
         } else {
@@ -189,10 +189,9 @@ class LeafNode extends Node {
     }
 
     @Override
-    public long delete(Value<?> key) {
+    public long delete(Value<?> key, boolean shouldLog) {
         //todo 当页内记录数太少时,页合并
-        int idx = binarySearch(key);
-        dataPage.deleteRecord(idx);
+        dataPage.deleteRecord(key,shouldLog);
         return NULL_PAGE_ID;
     }
 

@@ -15,20 +15,20 @@ import java.util.Random;
 public class MockTable {
     private static Table table;
     private static Random r = new Random();
-    static {
-        BufferPool bufferPool = BufferPool.getInstance();
-
-        bufferPool.newFile(777,"test.db");
-        bufferPool.newFile(369,"log");
-        Schema schema = new Schema();
-        schema.add(new Column(DataType.STRING, "name"));
-        schema.add(new Column(DataType.INTEGER, "age"));
-        table = new Table("test.db", schema);
-
-        RecoveryManager.getInstance().setLogManager(new LogManager());
-    }
+//    static {
+//        BufferPool bufferPool = BufferPool.getInstance();
+//
+//        bufferPool.newFile(777,"test.db");
+//        bufferPool.newFile(369,"log");
+//        Schema schema = new Schema();
+//        schema.add(new Column(DataType.STRING, "name"));
+//        schema.add(new Column(DataType.INTEGER, "age"));
+//        table = new Table("test.db", schema);
+//
+//        RecoveryManager.getInstance().setLogManager(new LogManager());
+//    }
     public static Table getTable() {
-        return table;
+        return null;
     }
     public static RowData generateRecord(int i) {
         RowData rowData = new RowData();

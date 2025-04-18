@@ -8,18 +8,18 @@ import java.nio.ByteBuffer;
 public class PagePointer {
     public static final int SIZE = Long.BYTES+Integer.BYTES;
     public long pid;
-    public int offset;
+    public int sid;
 
-    public PagePointer(long pid, int offset) {
+    public PagePointer(long pid, int sid) {
         this.pid = pid;
-        this.offset = offset;
+        this.sid = sid;
     }
 
     @Override
     public String toString() {
         return "PagePointer{" +
                 "pageId=" + pid +
-                ", offset=" + offset +
+                ", slotId=" + sid +
                 '}';
     }
 
@@ -27,14 +27,14 @@ public class PagePointer {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o instanceof PagePointer that)
-            return this.pid == that.pid && this.offset == that.offset;
+            return this.pid == that.pid && this.sid == that.sid;
         return false;
     }
 
     @Override
     public int hashCode() {
         int result = Long.hashCode(pid);
-        result = 31 * result + Integer.hashCode(offset);
+        result = 31 * result + Integer.hashCode(sid);
         return result;
     }
 

@@ -1,6 +1,5 @@
 package com.jdb.recovery.logs;
 
-import com.jdb.recovery.LogRecord;
 import com.jdb.recovery.LogType;
 
 import java.nio.ByteBuffer;
