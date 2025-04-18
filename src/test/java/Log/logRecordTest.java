@@ -19,11 +19,12 @@ import static org.junit.Assert.assertEquals;
 
 public class logRecordTest {
     DataPage dataPage;
-
+    BufferPool bufferPool;
     @Before
     public void init() {
+        bufferPool = BufferPool.getInstance();
         Table table = MockTable.getTable();
-        dataPage = new DataPage(BufferPool.getInstance().newPage(LOG_FILE_ID));
+        dataPage = new DataPage(bufferPool.newPage(LOG_FILE_ID),bufferPool);
     }
 
     @Test

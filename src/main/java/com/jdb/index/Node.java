@@ -9,6 +9,7 @@ import com.jdb.table.IndexPage;
 import com.jdb.table.RowData;
 import com.jdb.table.Slot;
 
+import java.nio.Buffer;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -21,22 +22,23 @@ public abstract class Node {
     public long pid;
     public int fid;
     Page page;
+    BufferPool bufferPool;
     //不应该保存对页对象的引用，而是从BufferPool随用随取，否则会造成大量内存无法回收，
 //    Page page;
 //    List<Value<?>> keys;
     String tableName = "test";
 
-    Node() {
+    Node(BufferPool bufferPool) {
 //        keys = new ArrayList<>();
+        this.bufferPool = bufferPool;
     }
 
-    public static Node load(IndexMetaData metaData, long pid) {
-        BufferPool bp = BufferPool.getInstance();
+    public static Node load(IndexMetaData metaData, long pid, BufferPool bp) {
         Page page = bp.getPage(pid);
         byte[] data = page.getData();
         return switch (data[0]) {
-            case 0x01 -> new InnerNode(metaData, pid, page);
-            case 0x02 -> new LeafNode(metaData, pid, page);
+            case 0x01 -> new InnerNode(metaData, pid, page,bp);
+            case 0x02 -> new LeafNode(metaData, pid, page,bp);
             default -> throw new UnsupportedOperationException("unknown page type");
         };
     }
@@ -58,12 +60,14 @@ class InnerNode extends Node {
 
     IndexPage indexPage;
 
-    public InnerNode(IndexMetaData metaData, long pid, Page page) {
+    public InnerNode(IndexMetaData metaData, long pid, Page page, BufferPool bp) {
+        super(bp);
         this.page = page;
         this.pid = pid;
         this.fid = PageHelper.getFid(pid);
         this.metaData = metaData;
-        indexPage = new IndexPage(pid, page);
+
+        indexPage = new IndexPage(pid, page,bufferPool);
     }
 
     @Override
@@ -71,7 +75,7 @@ class InnerNode extends Node {
         int cno = indexPage.binarySearch(key) + 1;
         int pno = indexPage.getChild(cno);
         long pid = PageHelper.concatPid(this.fid, pno);
-        Node child = Node.load(metaData, pid);
+        Node child = Node.load(metaData, pid, bufferPool);
         return child.search(key);
     }
 
@@ -80,12 +84,12 @@ class InnerNode extends Node {
         int cno = indexPage.binarySearch(entry.getKey()) + 1;
         int pno = indexPage.getChild(cno);
         long pid = PageHelper.concatPid(this.fid, pno);
-        Node child = Node.load(metaData, pid);
+        Node child = Node.load(metaData, pid,bufferPool);
         long newChildPid = child.insert(entry, shouldLog);
         if (newChildPid == NULL_PAGE_ID) {
             return NULL_PAGE_ID;
         }
-        Node newChild = Node.load(metaData, newChildPid);
+        Node newChild = Node.load(metaData, newChildPid,bufferPool);
         indexPage.insert(newChild.getFloorKey(), newChildPid);
         //无需分裂
         return NULL_PAGE_ID;
@@ -96,7 +100,7 @@ class InnerNode extends Node {
         int cno = indexPage.binarySearch(key) + 1;
         int pno = indexPage.getChild(cno);
         long pid = PageHelper.concatPid(this.fid, pno);
-        Node child = Node.load(metaData, pid);
+        Node child = Node.load(metaData, pid,bufferPool);
         //todo 页合并
         return child.delete(key, shouldLog);
     }
@@ -145,13 +149,14 @@ class LeafNode extends Node {
     private LeafNode nextLeaf;
     private DataPage dataPage;
 
-    LeafNode(IndexMetaData metaData, long pid, Page page) {
-        super();
+
+    LeafNode(IndexMetaData metaData, long pid, Page page, BufferPool bp) {
+        super(bp);
         this.metaData = metaData;
         this.page = page;
         this.pid = pid;
 
-        dataPage = new DataPage(page);
+        dataPage = new DataPage(page,bp);
     }
 
     @Override
@@ -164,7 +169,7 @@ class LeafNode extends Node {
     @Override
     public long insert(IndexEntry entry, boolean shouldLog) {
         if (entry instanceof ClusterIndexEntry) {
-            DataPage dataPage = new DataPage(page);
+            DataPage dataPage = new DataPage(page,bufferPool);
             RowData rowData = ((ClusterIndexEntry) entry).getRecord();
             if (dataPage.getFreeSpace() < rowData.getSize() + SLOT_SIZE) {
                 //空间不足，页分裂
@@ -191,7 +196,7 @@ class LeafNode extends Node {
     @Override
     public long delete(Value<?> key, boolean shouldLog) {
         //todo 当页内记录数太少时,页合并
-        dataPage.deleteRecord(key,shouldLog);
+        dataPage.deleteRecord(key, shouldLog);
         return NULL_PAGE_ID;
     }
 

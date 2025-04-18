@@ -29,8 +29,9 @@ public class Schema {
         return this.columns;
     }
 
-    public void add(Column column) {
+    public Schema add(Column column) {
         columns.add(column);
         columnsMap.put(column.getName(), column);
+        return this;
     }
 }

@@ -91,17 +91,17 @@ public class UpdateLog extends LogRecord {
      * 但是会修改二级索引
      */
     @Override
-    public void redo() {
-        Page page = BufferPool.getInstance().getPage(pid);
+    public void redo(BufferPool bp) {
+        Page page = bp.getPage(pid);
         ByteBuffer buffer = page.getBuffer();
         buffer.put(offset, newData);
     }
 
     @Override
     public void undo() {
-        Page page = BufferPool.getInstance().getPage(pid);
-        ByteBuffer buffer = page.getBuffer();
-        buffer.put(offset, oldData);
+//        Page page = BufferPool.getInstance().getPage(pid);
+//        ByteBuffer buffer = page.getBuffer();
+//        buffer.put(offset, oldData);
     }
 
     @Override

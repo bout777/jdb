@@ -1,6 +1,7 @@
 package com.jdb.recovery.logs;
 
 import com.jdb.recovery.LogType;
+import com.jdb.storage.BufferPool;
 
 import java.nio.ByteBuffer;
 
@@ -55,7 +56,7 @@ public class MasterLog extends LogRecord {
     }
 
     @Override
-    public void redo() {
+    public void redo(BufferPool bp) {
 
     }
 

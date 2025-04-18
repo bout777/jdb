@@ -1,6 +1,7 @@
 package com.jdb.recovery.logs;
 
 import com.jdb.recovery.LogType;
+import com.jdb.storage.BufferPool;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -70,7 +71,7 @@ public class CheckpointLog extends LogRecord {
     }
 
     @Override
-    public void redo() {
+    public void redo(BufferPool bp) {
 
     }
 

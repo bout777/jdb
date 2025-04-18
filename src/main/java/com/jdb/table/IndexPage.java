@@ -27,11 +27,13 @@ public class IndexPage {
     private final ByteBuffer bf;
     private Page page;
     private String tableName = "test";
+    private BufferPool bufferPool;
 
 
-    public IndexPage(long pid, Page page) {
+    public IndexPage(long pid, Page page,BufferPool bp) {
         this.page = page;
         this.bf = ByteBuffer.wrap(page.getData());
+        this.bufferPool = bp;
         setPageId(pid);
     }
 
@@ -153,10 +155,10 @@ public class IndexPage {
     }
 
     public IndexPage split() {
-        BufferPool bp = BufferPool.getInstance();
-        Page newPage = bp.newPage(tableName);
 
-        IndexPage newIndexPage = new IndexPage(newPage.pid, newPage);
+        Page newPage = bufferPool.newPage(tableName);
+
+        IndexPage newIndexPage = new IndexPage(newPage.pid, newPage,bufferPool);
         newIndexPage.init();
 
         newIndexPage.setNextPageId(this.getNextPageId());

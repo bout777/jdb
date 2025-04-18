@@ -28,7 +28,7 @@ public class RecoverTest {
 
     @Before
     public void init() {
-        table = TableManager.testTable;
+        table = Table.getTestTable();
     }
 
     @Test

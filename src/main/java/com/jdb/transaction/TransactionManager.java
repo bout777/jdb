@@ -7,17 +7,25 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TransactionManager {
-    private static TransactionManager instance = new TransactionManager();
-    public static TransactionManager getInstance() {
+    //懒加载方法，测试用
+    private static TransactionManager instance ;
+    public synchronized static TransactionManager getInstance() {
+        if(instance == null)
+            instance = new TransactionManager(RecoveryManager.getInstance());
         return instance;
     }
+
     //预分配的xid，递增
     private static AtomicLong trxStartStamp = new AtomicLong(1);
-    private RecoveryManager recoveryManager = RecoveryManager.getInstance();
+    private RecoveryManager recoveryManager;
     private Map<Integer, Transaction> activeTransactions;
     //xid->writeSet
 //    private Map<Long, Set<LogicRid>> writeSetMap;
     //返回xid
+
+    public TransactionManager(RecoveryManager rm){
+        recoveryManager = rm;
+    }
     public long begin() {
         long xid = trxStartStamp.getAndIncrement();
         TransactionContext.setTransactionContext(new TransactionContext(xid));

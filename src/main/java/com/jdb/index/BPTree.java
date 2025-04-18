@@ -17,13 +17,13 @@ public class BPTree implements Index {
     private Node root;
     private IndexMetaData metaData;
 
-    public BPTree(IndexMetaData metaData) {
-        bufferPool = BufferPool.getInstance();
+    public BPTree(IndexMetaData metaData,BufferPool bp) {
+        bufferPool = bp;
         Page page = bufferPool.newPage(metaData.getTableName());
-        DataPage dataPage = new DataPage(page);
+        DataPage dataPage = new DataPage(page,bufferPool);
         dataPage.init();
         this.metaData = metaData;
-        root = new LeafNode(metaData, dataPage.getPageId(), page);
+        root = new LeafNode(metaData, dataPage.getPageId(), page,bufferPool);
     }
 
     @Override
@@ -44,14 +44,14 @@ public class BPTree implements Index {
 
             //新建一个索引页
             Page newpage = bufferPool.newPage(metaData.getTableName());
-            IndexPage nipage = new IndexPage(newpage.pid, newpage);
+            IndexPage nipage = new IndexPage(newpage.pid, newpage,bufferPool);
             nipage.init();
 
             //新建内部节点，作为新的root
-            InnerNode newRoot = new InnerNode(metaData, newpage.pid, newpage);
+            InnerNode newRoot = new InnerNode(metaData, newpage.pid, newpage,bufferPool);
 
             //撸出新节点的两个儿子
-            Node c2 = Node.load(metaData, newNode);
+            Node c2 = Node.load(metaData, newNode,bufferPool);
 
             //写入到新节点中 (*´∀`)~♥
             nipage.addChild(0, root.pid);

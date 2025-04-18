@@ -10,7 +10,6 @@ import com.jdb.table.*;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.NoSuchElementException;
 
 public class InsertLog extends LogRecord {
     long xid;
@@ -82,10 +81,10 @@ public class InsertLog extends LogRecord {
     }
 
     @Override
-    public void redo() {
+    public void redo(BufferPool bp) {
         //redo时可以根据pageLsn跟lsn比较，来判断是否需要redo，所以直接物理插入
-        Page page = BufferPool.getInstance().getPage(ptr.pid);
-        DataPage dataPage = new DataPage(page);
+        Page page = bp.getPage(ptr.pid);
+        DataPage dataPage = new DataPage(page,bp);
 //        try {
         dataPage.insertRecord(ptr.sid, image);
 //        }catch (DuplicateInsertException e){
@@ -96,11 +95,11 @@ public class InsertLog extends LogRecord {
     @Override
     public void undo() {
         //todo undo需要删除，由于已经插入的记录可能被移动到其他地方(页分裂),所以根据页指针删除是不现实的
-        int fid = PageHelper.getFid(ptr.pid);
-        Table table = TableManager.testTable;
-        Schema schema = table.getSchema();
-        var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
-        table.deleteRecord(Value.ofInt(rowData.getPrimaryKey()),true);
+//        int fid = PageHelper.getFid(ptr.pid);
+//        Table table = TableManager.;
+//        Schema schema = table.getSchema();
+//        var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
+//        table.deleteRecord(Value.ofInt(rowData.getPrimaryKey()),true);
     }
 
     @Override

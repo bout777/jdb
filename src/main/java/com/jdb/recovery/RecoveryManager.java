@@ -17,17 +17,27 @@ import static com.jdb.common.Constants.*;
  * 根据xid回滚事务
  */
 public class RecoveryManager {
-    private BufferPool bufferPool;
+    private static RecoveryManager instance;
+    public synchronized static RecoveryManager getInstance() {
+        //懒加载获取实例，测试用
+        if(instance == null) {
+            instance = new RecoveryManager(BufferPool.getInstance());
+            instance.setLogManager(new LogManager(BufferPool.getInstance()));
+        }
+        return instance;
+    }
+
     //private List<LogRecord> logBuffer;
-    private LogManager logManager;
     //脏页表 <pid->recLsn>
-    private Map<Long, Long> dirtyPagesTable = new ConcurrentHashMap<>();
     //活跃事务表 <xid->lsn>
+    private BufferPool bufferPool;
+    private LogManager logManager;
+    private Map<Long, Long> dirtyPagesTable = new ConcurrentHashMap<>();
     private Map<Long, Long> transactionsTable = new ConcurrentHashMap<>();
 
-    public RecoveryManager() {
-      //  logBuffer = new ArrayList<>();
 
+    public RecoveryManager(BufferPool bp) {
+        this.bufferPool = bp;
     }
 
     public void setLogManager(LogManager logManager) {
@@ -38,15 +48,6 @@ public class RecoveryManager {
         return logManager;
     }
 
-
-
-    public static RecoveryManager instance = new RecoveryManager();
-
-
-
-    public static RecoveryManager getInstance() {
-        return instance;
-    }
 
     public synchronized void registerTransaction(long xid) {
         transactionsTable.put(xid, 0L);
@@ -104,7 +105,7 @@ public class RecoveryManager {
     public void logCommit(long xid) {
         LogRecord log = new CommitLog(xid);
         long lsn = logManager.append(log);
-        logManager.flush2lsn(lsn);
+//        logManager.flush2lsn(lsn);
         transactionsTable.remove(xid);
     }
     public void logAbort(long xid) {
@@ -220,7 +221,7 @@ public class RecoveryManager {
             if (log.getLsn() <= page.getLsn())
                 continue;
 
-            log.redo();
+            log.redo(bufferPool);
         }
     }
 
@@ -229,6 +230,8 @@ public class RecoveryManager {
          *  维护一个undo-list优先队列，每次循环取出lsn最大的事务
          *  根据lsn取出log，如果是一个updatelog，执行undo动作，并追加一个clr记录
          *  如果是一个clr，将它指向的undonext加入队列中，进行下一轮循环*/
+
+
         record entry(long xid, long lsn) {
         }
 
@@ -246,15 +249,16 @@ public class RecoveryManager {
                 nextLsn = clr.getUndoNextLsn();
             } else {
                 log.undo();
-                var clr = new CompensationLog(log);
-                logManager.append(clr);
+//                var clr = new CompensationLog(log);
+//                logManager.append(clr);
+                nextLsn = log.getPrevLsn();
             }
 
             if (nextLsn == NULL_LSN) {
                 long lastLsn = transactionsTable.remove(xid);
                 logManager.append(new AbortLog(xid,lastLsn));
             } else {
-                undoList.add(entry);
+                undoList.add(new entry(xid, nextLsn));
             }
         }
     }

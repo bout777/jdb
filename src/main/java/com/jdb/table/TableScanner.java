@@ -17,7 +17,7 @@ public class TableScanner {
         if (pointer.pid == NULL_PAGE_ID)
             return null;
 
-        DataPage dataPage = new DataPage(bufferPool.getPage(pointer.pid));
+        DataPage dataPage = new DataPage(bufferPool.getPage(pointer.pid),bufferPool);
         RowData rowData = dataPage.getRecord(pointer.sid, table.schema);
 
 
@@ -32,9 +32,6 @@ public class TableScanner {
         if (rowData.isDeleted()) {
             return getNextRecord(pointer);
         }
-
-
         return rowData;
-
     }
 }

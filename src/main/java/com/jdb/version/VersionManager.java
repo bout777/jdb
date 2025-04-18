@@ -22,7 +22,9 @@ public class VersionManager {
 
     private static VersionManager instance = new VersionManager();
 
-    public static VersionManager getInstance() {
+    public synchronized static  VersionManager getInstance() {
+        if (instance == null)
+            instance = new VersionManager();
         return instance;
     }
 
@@ -156,8 +158,6 @@ public class VersionManager {
             }
             return null;
         }
-
-
     }
 }
 

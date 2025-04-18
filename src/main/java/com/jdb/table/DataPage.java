@@ -41,13 +41,14 @@ public class DataPage {
     private Table table;
     private final ByteBuffer buffer;
     private Page page;
-
+    private BufferPool bufferPool;
     private Schema schema = Schema.instance;
 
-    public DataPage(Page page) {
+    public DataPage(Page page,BufferPool bp) {
         buffer = page.getBuffer();
         setPageId(page.pid);
         this.page = page;
+        this.bufferPool = bp;
     }
 
     public void init() {
@@ -281,16 +282,15 @@ public class DataPage {
      * 为了测试索引的查找和升序插入，暂时不理会插入的有序性
      * 在测试代码中保证按照主键的升序插入*/
     public DataPage split() {
-        BufferPool bp = BufferPool.getInstance();
         int fid = (int) (getPageId() >> Integer.SIZE);
-        Page newPage = bp.newPage(fid);
+        Page newPage = bufferPool.newPage(fid);
         //创建一个当前页的镜像页
         Page image = new Page(Arrays.copyOf(this.page.getData(), this.page.getData().length));
-        DataPage imageDataPage = new DataPage(image);
+        DataPage imageDataPage = new DataPage(image,bufferPool);
 
         //初始化当前页和新页
         this.init();
-        DataPage newDataPage = new DataPage(newPage);
+        DataPage newDataPage = new DataPage(newPage,bufferPool);
         newDataPage.init();
 
         newDataPage.setNextPageId(this.getNextPageId());

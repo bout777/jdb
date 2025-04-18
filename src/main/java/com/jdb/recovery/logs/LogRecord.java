@@ -1,6 +1,7 @@
 package com.jdb.recovery.logs;
 
 import com.jdb.recovery.LogType;
+import com.jdb.storage.BufferPool;
 
 import java.nio.ByteBuffer;
 
@@ -78,7 +79,7 @@ public abstract class LogRecord {
 
     public abstract LogType getType();
 
-    public void redo(){
+    public void redo(BufferPool bp){
     };
     public void undo(){};
 }

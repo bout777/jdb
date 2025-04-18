@@ -8,9 +8,20 @@ import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 
 public class TableManager {
-    private static TableManager instance = new TableManager();
+    //for test
+    private static TableManager instance;
     public static TableManager getInstance() {
+        if(instance == null){
+            instance = new TableManager(BufferPool.getInstance());
+        }
         return instance;
+    }
+
+
+
+    BufferPool bufferPool;
+    public TableManager(BufferPool bp) {
+        this.bufferPool = bp;
     }
 
 
@@ -19,22 +30,26 @@ public class TableManager {
     }
 
     public Table getTable(String name) {
-        return new Table(name, new Schema());
+        return new Table(name, new Schema(), bufferPool);
     }
-    public Table getTable(int fid) {
-        return testTable;
-    }
+//    public Table getTestTable() {
+//        Schema schema = new Schema()
+//                .add(new Column(DataType.STRING, "name"))
+//                .add(new Column(DataType.INTEGER, "age"));
+//        return new Table("test.db", schema, bufferPool);
+//    }
 
-    public static Table testTable;
-    static {
-        BufferPool bufferPool = BufferPool.getInstance();
-        bufferPool.newFile(777,"test.db");
-        bufferPool.newFile(369,"log");
-        Schema schema = new Schema();
-        schema.add(new Column(DataType.STRING, "name"));
-        schema.add(new Column(DataType.INTEGER, "age"));
-        RecoveryManager.getInstance().setLogManager(new LogManager());
-        testTable= new Table("test.db", schema);
-    }
+//    public static Table testTable;
+//    static {
+//        BufferPool bufferPool = BufferPool.getInstance();
+//        var disk = bufferPool.getDisk();
+//        disk.newFile(777,"test.db");
+//        disk.newFile(369,"log");
+//        Schema schema = new Schema();
+//        schema.add(new Column(DataType.STRING, "name"));
+//        schema.add(new Column(DataType.INTEGER, "age"));
+//        RecoveryManager.getInstance().setLogManager(new LogManager(bufferPool));
+//        testTable= new Table("test.db", schema, bufferPool);
+//    }
 
 }

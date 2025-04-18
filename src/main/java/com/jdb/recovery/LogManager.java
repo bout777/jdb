@@ -25,8 +25,8 @@ public class LogManager {
 
     private long nextPID = MASTER_LOG_PAGE_ID + 1;
 
-    public LogManager() {
-        bufferPool = BufferPool.getInstance();
+    public LogManager(BufferPool bp) {
+        bufferPool = bp;
         unflushedLogTail = new ArrayDeque<>();
         //for master
         bufferPool.newPage(LOG_FILE_ID);
@@ -34,14 +34,13 @@ public class LogManager {
     }
 
     public void rewriteMasterLog(MasterLog masterLog) {
-        var bp = BufferPool.getInstance();
-        var buffer = bp.getPage(MASTER_LOG_PAGE_ID).getBuffer();
+
+        var buffer = bufferPool.getPage(MASTER_LOG_PAGE_ID).getBuffer();
         masterLog.serialize(buffer, 0);
     }
 
     public MasterLog getMasterLog() {
-        var bp = BufferPool.getInstance();
-        var buffer = bp.getPage(MASTER_LOG_PAGE_ID).getBuffer();
+        var buffer = bufferPool.getPage(MASTER_LOG_PAGE_ID).getBuffer();
         LogRecord masterLog = LogRecord.deserialize(buffer, 0);
         return (MasterLog) masterLog;
     }
@@ -78,7 +77,7 @@ public class LogManager {
 
     public LogRecord getLogRecord(long lsn) {
         LogPage logPage = new LogPage(bufferPool.getPage(getLSNPage(lsn)));
-        var log= logPage.getLogRecord(getLSNOffset(lsn));
+        var log = logPage.getLogRecord(getLSNOffset(lsn));
         log.setLsn(lsn);
         return log;
     }
@@ -114,7 +113,7 @@ public class LogManager {
         }
 
         LogIterator() {
-            this.pid = MASTER_LOG_PAGE_ID +1;
+            this.pid = MASTER_LOG_PAGE_ID + 1;
             Page page = bufferPool.getPage(pid);
             pid++;
             LogPage logPage = new LogPage(page);

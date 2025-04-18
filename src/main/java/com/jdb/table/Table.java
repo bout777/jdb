@@ -1,6 +1,8 @@
 package com.jdb.table;
 
+import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
+import com.jdb.common.DataType;
 import com.jdb.common.Value;
 import com.jdb.index.*;
 import com.jdb.storage.BufferPool;
@@ -11,6 +13,18 @@ import com.jdb.version.VersionManager;
 import static com.jdb.common.Constants.NULL_PAGE_ID;
 
 public class Table {
+    private static Table instance ;
+    public static Table getTestTable() {
+        if (instance == null) {
+            Schema schema = new Schema()
+                    .add(new Column(DataType.STRING, "name"))
+                    .add(new Column(DataType.INTEGER, "age"));
+
+            instance = new Table("test.db",schema,BufferPool.getInstance());
+        }
+        return instance;
+    }
+
     BufferPool bufferPool;
     long firstPageId = NULL_PAGE_ID;
     Index clusterIndex;
@@ -21,13 +35,13 @@ public class Table {
 
     Schema schema;
     String tableName = "test";
-    public Table(String name, Schema schema) {
-        this.bufferPool = BufferPool.getInstance();
+    public Table(String name, Schema schema, BufferPool bufferPool) {
         this.schema = schema;
         this.tableName = name;
+        this.bufferPool = bufferPool;
 
         IndexMetaData metaData = new IndexMetaData(getTableName(),schema.columns().get(0),"test",schema);
-        clusterIndex = new BPTree(metaData);
+        clusterIndex = new BPTree(metaData, bufferPool);
     }
 
 

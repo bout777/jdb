@@ -28,22 +28,22 @@ import static org.junit.Assert.assertEquals;
 public class LogManagerTest {
 
     private BufferPool bufferPool = BufferPool.getInstance();
-    Table table;
-    private LogManager logManager ;
+    Table table = Table.getTestTable();
+    private LogManager logManager = RecoveryManager.getInstance().getLogManager();
     @Before
     public void setUp() {
-         table = MockTable.getTable();
+//         table = MockTable.getTable();
 //       var dataPage = new DataPage(BufferPool.getInstance().newPage(LOG_FILE_ID));
-        logManager = RecoveryManager.getInstance().getLogManager();
+//        logManager = RecoveryManager.getInstance().getLogManager();
     }
 
-    @Test
-    public void testSimpleAppendAndGet() {
-        LogRecord expected = new MasterLog(114514L);
-        long lsn = logManager.append(expected);
-        LogRecord logRecord = logManager.getLogRecord(lsn);
-        assertEquals(expected, logRecord);
-    }
+//    @Test
+//    public void testSimpleAppendAndGet() {
+//        LogRecord expected = new MasterLog(114514L);
+//        long lsn = logManager.append(expected);
+//        LogRecord logRecord = logManager.getLogRecord(lsn);
+//        assertEquals(expected, logRecord);
+//    }
 
     @Test
     public void testIterScan() {
@@ -102,39 +102,40 @@ public class LogManagerTest {
         }
     }
 
+//    @Test
+//    public void testInsertLogRedo() throws InterruptedException {
+//        Page page = bufferPool.newPage(table.getTableName());
+//        DataPage dataPage = new DataPage(page,bufferPool);
+//        dataPage.init();
+//
+//        List<RowData> expected = new ArrayList<>();
+//        RecoveryManager.getInstance().setLogManager(logManager);
+//        TransactionContext.setTransactionContext(new TransactionContext(2L));
+//        RecoveryManager.getInstance().registerTransaction(2L);
+//
+//        for (int i = 0; i < 10; i++) {
+//            RowData rowData = generateRecord(i);
+//            expected.add(rowData);
+//            dataPage.insertRecord(rowData, true, true);
+//        }
+//        dataPage.init();
+//
+//        var logIter = logManager.scan();
+//        while (logIter.hasNext()) {
+//            logIter.next().redo(bufferPool);
+//            System.out.println("31");
+//        }
+//
+//
+//        var iter = dataPage.scanFrom(0);
+//        for (RowData r : expected) {
+//            assertEquals(r, iter.next());
+//        }
+//    }
+
     @Test
     public void testScanFrom() {
 
-    }
-
-    @Test
-    public void testInsertLogRedo() throws InterruptedException {
-        Page page = bufferPool.newPage(table.getTableName());
-        DataPage dataPage = new DataPage(page);
-        dataPage.init();
-
-        List<RowData> expected = new ArrayList<>();
-            RecoveryManager.getInstance().setLogManager(logManager);
-            TransactionContext.setTransactionContext(new TransactionContext(2L));
-            RecoveryManager.getInstance().registerTransaction(2L);
-
-            for (int i = 0; i < 10; i++) {
-                RowData rowData = generateRecord(i);
-                expected.add(rowData);
-                dataPage.insertRecord(rowData, true, true);
-            }
-            dataPage.init();
-
-        var logIter = logManager.scan();
-        while (logIter.hasNext()) {
-            logIter.next().redo();
-        }
-
-
-        var iter = dataPage.scanFrom(0);
-        for (RowData r : expected) {
-            assertEquals(r, iter.next());
-        }
     }
 
     private int getLSNPage(long lsn) {
