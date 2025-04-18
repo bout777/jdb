@@ -22,9 +22,9 @@ public class logRecordTest {
     BufferPool bufferPool;
     @Before
     public void init() {
-        bufferPool = BufferPool.getInstance();
-        Table table = MockTable.getTable();
-        dataPage = new DataPage(bufferPool.newPage(LOG_FILE_ID),bufferPool);
+//        bufferPool = BufferPool.getInstance();
+//        Table table = MockTable.getTable();
+//        dataPage = new DataPage(bufferPool.newPage(LOG_FILE_ID),bufferPool, rm);
     }
 
     @Test

@@ -4,10 +4,11 @@ import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
 
 public class IndexMetaData {
-    private String tableName;
-    private Column keySchema;
-    private String indexName;
-    private Schema tableSchema;
+    public String tableName;
+    public Column keySchema;
+    public String indexName;
+    public Schema tableSchema;
+    public int fid;
     public String getTableName() {
         return tableName;
     }
@@ -36,10 +37,11 @@ public class IndexMetaData {
         this.indexName = indexName;
     }
 
-    public IndexMetaData(String tableName, Column keySchema, String indexName, Schema tableSchema) {
+    public IndexMetaData(String tableName, Column keySchema, String indexName, Schema tableSchema, int fid) {
         this.tableName = tableName;
         this.keySchema = keySchema;
         this.indexName = indexName;
         this.tableSchema = tableSchema;
+        this.fid = -1;
     }
 }

@@ -1,9 +1,7 @@
 package com.jdb.storage;
 
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class BufferPool {
@@ -21,7 +19,7 @@ public class BufferPool {
         this.disk = disk;
     }
 
-    public Disk getDisk(){
+    public Disk getDisk() {
         return disk;
     }
 
@@ -35,58 +33,39 @@ public class BufferPool {
 
     public Page getPage(long pid) {
         Page page = buffers.get(pid);
-        if (page == null) {
-            throw new RuntimeException("page not found");
+//        if (page == null) {
 //            page = disk.readPage(pid);
-        } else {
+//        } else {
 //            return page;
-        }
-        buffers.put(pid, page);
+//        }
+//        buffers.put(pid, page);
         return page;
     }
-
-
-    public Page newPage(String fileName) {
-        Page page = new Page();
-        page.pid = disk.getNextPageIdAndIncrease(fileName);
-        buffers.put(page.pid, page);
-        return page;
-    }
-
-
     public Page newPage(int fid) {
-        Page page = new Page();
-        page.pid = disk.getNextPageIdAndIncrease(fid);
+        Page page = disk.allocPage(fid);
         buffers.put(page.pid, page);
         return page;
     }
 
-    public void flush() {
-        Set<Map.Entry<Long, Page>> entries = buffers.entrySet();
-        for (Map.Entry<Long, Page> entry : entries) {
-            Page page = entry.getValue();
-            int pno = getPno(entry.getKey());
-            if (page.isDirty()) {
-                disk.writePage("test.db", pno, page.getData());
-            }
-        }
-    }
+//    public void flush() {
+//        Set<Map.Entry<Long, Page>> entries = buffers.entrySet();
+//        for (Map.Entry<Long, Page> entry : entries) {
+//            Page page = entry.getValue();
+//            int pno = getPno(entry.getKey());
+//            if (page.isDirty()) {
+//                disk.writePage("test.db", pno, page.getData());
+//            }
+//        }
+//    }
 
-    private int getFid(long pid) {
-        return (int) (pid >> 32);
-    }
-
-    private int getPno(long pid) {
-        return (int) (pid & 0xffffffffL);
-    }
 
     public void flushPage(long pid) {
-        int fid = getFid(pid);
-        int pno = getPno(pid);
+//        int fid = PageHelper.getFid(pid);
+//        int pno = PageHelper.getPno(pid);
         Page page = buffers.get(pid);
         if (page == null)
             throw new RuntimeException("page not found");
-        disk.writePage(fid, pno, page.getData());
+        disk.writePage(page);
         page.setDirty(false);
     }
 

@@ -1,6 +1,8 @@
 package com.jdb.recovery.logs;
 
+import com.jdb.Engine;
 import com.jdb.recovery.LogType;
+import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 
 import java.nio.ByteBuffer;
@@ -71,12 +73,12 @@ public class CheckpointLog extends LogRecord {
     }
 
     @Override
-    public void redo(BufferPool bp) {
+    public void redo(BufferPool bp, RecoveryManager rm) {
 
     }
 
     @Override
-    public void undo() {
+    public void undo(Engine engine) {
 
     }
 }

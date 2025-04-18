@@ -3,116 +3,67 @@ package com.jdb.storage;
 import com.jdb.common.PageHelper;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
-
-import static com.jdb.common.Constants.PAGE_SIZE;
 
 public class Disk {
     //懒加载单例，测试用
     private static Disk disk;
+
     public synchronized static Disk getInstance() {
         if (disk == null) {
             disk = new Disk("./data");
-            disk.newFile(777,"test.db");
-            disk.newFile(369,"log");
+            disk.putFile(777, "test.db");
+            disk.putFile(369, "log");
         }
         return disk;
     }
 
-    RandomAccessFile file;
+    private final String path;
 
-    // fid<->filename
-    private FileMap fileMap = new FileMap();
+    // fid->jbfile
+    Map<Integer, JBFile> files = new HashMap<>();
 
-    private class FileMap {
-        private Map<Integer, String> fid2name = new HashMap<>();
-        private Map<String, Integer> name2fid = new HashMap<>();
 
-        public String getName(int fid) {
-            String name = fid2name.get(fid);
-            if (name == null)
-                throw new NoSuchElementException("no such file");
-            return name;
-        }
-
-        public int getFid(String fileName) {
-            Integer fid = name2fid.get(fileName);
-            if (fid == null)
-                throw new NoSuchElementException("no such file");
-            return fid;
-        }
-
-        public void put(int fid, String fileName) {
-            fid2name.put(fid, fileName);
-            name2fid.put(fileName, fid);
-        }
-
-        public boolean contains(int fid) {
-            return fid2name.containsKey(fid);
-        }
-
-        public boolean contains(String fileName) {
-            return name2fid.containsKey(fileName);
-        }
-
-        public void clear() {
-            fid2name.clear();
-            name2fid.clear();
-        }
-    }
-
-    // filename->nextPageId
-    private final Map<String, Long> nextPage = new HashMap<>();
+    // fid->nextPageId
+    private final Map<Integer, Long> nextPage = new HashMap<>();
 
     public Disk(String path) {
-    }
-
-
-
-    //页面在磁盘中以pageId连续存储
-    public void readPage(String path, int pno, byte[] data) {
-        try {
-            file = new RandomAccessFile(path, "r");
-            int pos = pno * PAGE_SIZE;
-            if (pos > file.length())
-                throw new NoSuchElementException("pno out of range");
-            file.seek((long) pno * PAGE_SIZE);
-            file.read(data);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        this.path = path;
     }
 
     public Page readPage(long pid) {
+        Page page = new Page(pid);
         int fid = PageHelper.getFid(pid);
         int pno = PageHelper.getPno(pid);
-        Page page = new Page();
-        page.pid = pid;
         readPage(fid, pno, page.getData());
         return page;
     }
 
-    public void readPage(int fid, int pno, byte[] data) {
-        String path = fileMap.getName(fid);
-        readPage(path, pno, data);
-    }
-
-    public void writePage(String path, int pno, byte[] data) {
+    private void readPage(int fid, int pno, byte[] data) {
+        JBFile file = files.get(fid);
         try {
-            file = new RandomAccessFile(path, "rw");
-            file.seek((long) pno * PAGE_SIZE);
-            file.write(data);
-        } catch (Exception e) {
+            file.rlock.lock();
+            file.read(pno, data);
+        } catch (IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            file.rlock.unlock();
         }
     }
 
-    public void writePage(int fid, int pno, byte[] data) {
-        String path = fileMap.getName(fid);
-        writePage(path, pno, data);
+    private void writePage(int fid, int pno, byte[] data) {
+//        String path = fileMap.getName(fid);
+//        writePage(path, pno, data);
+        JBFile file = files.get(fid);
+        try {
+            file.wlock.lock();
+            file.write(pno, data);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            file.wlock.unlock();
+        }
     }
 
     public void writePage(Page page) {
@@ -121,23 +72,21 @@ public class Disk {
         writePage(fid, pno, page.getData());
     }
 
-    public long getNextPageIdAndIncrease(int fid) {
-        String path = fileMap.getName(fid);
-        long pid = nextPage.getOrDefault(path, PageHelper.concatPid(fid, 0));
-        nextPage.put(path, pid + 1);
+    private long getNextPageIdAndIncrease(int fid) {
+        long pid = nextPage.getOrDefault(fid, PageHelper.concatPid(fid, 0));
+        nextPage.put(fid, pid + 1);
         return pid;
     }
 
-    public long getNextPageIdAndIncrease(String path) {
-        int fid = fileMap.getFid(path);
-        long pid = nextPage.getOrDefault(path, PageHelper.concatPid(fid, 0));
-        nextPage.put(path, pid + 1);
-        return pid;
+    public Page allocPage(int fid) {
+        //todo rm记录日志
+        long pid = getNextPageIdAndIncrease(fid);
+        return new Page(pid);
     }
 
-
-    public int newFile(int fid, String fileName) {
-        fileMap.put(fid, fileName);
-        return fid;
+    public void putFile(int fid, String fileName) {
+        if (files.containsKey(fid))
+            throw new RuntimeException("file already exists");
+        files.put(fid, new JBFile(path + "/" + fileName));
     }
 }

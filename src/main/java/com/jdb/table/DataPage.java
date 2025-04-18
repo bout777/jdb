@@ -42,13 +42,15 @@ public class DataPage {
     private final ByteBuffer buffer;
     private Page page;
     private BufferPool bufferPool;
+    private RecoveryManager recoveryManager;
     private Schema schema = Schema.instance;
 
-    public DataPage(Page page,BufferPool bp) {
+    public DataPage(Page page, BufferPool bp, RecoveryManager rm) {
         buffer = page.getBuffer();
         setPageId(page.pid);
         this.page = page;
         this.bufferPool = bp;
+        this.recoveryManager = rm;
     }
 
     public void init() {
@@ -155,7 +157,8 @@ public class DataPage {
                 byte[] image = new byte[slot.size];
                 buffer.get(upper, image);
                 long xid = TransactionContext.getTransaction().getXid();
-                long lsn = RecoveryManager.getInstance().logInsert(xid, ptr, image);
+                //fixme 构造器注入
+                long lsn = recoveryManager.logInsert(xid, ptr, image);
                 setPageLsn(lsn);
             }
             return ptr;
@@ -178,7 +181,7 @@ public class DataPage {
                 PagePointer ptr = new PagePointer(getPageId(), sid);
                 byte[] image = Arrays.copyOfRange(buffer.array(), slot.offset, slot.offset + slot.size);
                 long xid = TransactionContext.getTransaction().getXid();
-                long lsn = RecoveryManager.getInstance().logDelete(xid, ptr, image);
+                long lsn = recoveryManager.logDelete(xid, ptr, image);
                 setPageLsn(lsn);
             }
             //删除
@@ -286,11 +289,11 @@ public class DataPage {
         Page newPage = bufferPool.newPage(fid);
         //创建一个当前页的镜像页
         Page image = new Page(Arrays.copyOf(this.page.getData(), this.page.getData().length));
-        DataPage imageDataPage = new DataPage(image,bufferPool);
+        DataPage imageDataPage = new DataPage(image,bufferPool, recoveryManager);
 
         //初始化当前页和新页
         this.init();
-        DataPage newDataPage = new DataPage(newPage,bufferPool);
+        DataPage newDataPage = new DataPage(newPage,bufferPool, recoveryManager);
         newDataPage.init();
 
         newDataPage.setNextPageId(this.getNextPageId());

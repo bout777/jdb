@@ -13,10 +13,10 @@ public class Page {
     private boolean isDirty;
     private ByteBuffer buffer;
     private ReadWriteLock rw=new ReentrantReadWriteLock();;
-    public Page() {
+    public Page(long pid) {
         this.data = new byte[PAGE_SIZE];
         this.buffer = ByteBuffer.wrap(this.data);
-
+        this.pid = pid;
     }
 
     public Page(byte[] data){

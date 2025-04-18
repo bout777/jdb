@@ -1,6 +1,9 @@
 package com.jdb;
 
+import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
+import com.jdb.common.DataType;
+import com.jdb.common.Value;
 import com.jdb.exception.DatabaseException;
 import com.jdb.recovery.LogManager;
 import com.jdb.recovery.RecoveryManager;
@@ -18,8 +21,13 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class Engine {
+import static com.jdb.common.Constants.LOG_FILE_ID;
+import static com.jdb.common.Constants.TABLE_META_DATA_FILE_ID;
 
+public class Engine {
+    public static void main(String[] args) {
+
+    }
 
     private Table tableMetadata;
 
@@ -41,11 +49,68 @@ public class Engine {
     public Engine(String path) {
         boolean init = setupDirectory(path);
         disk = new Disk(path);
+        disk.putFile(LOG_FILE_ID, "log");
+        disk.putFile(TABLE_META_DATA_FILE_ID, "_meta.table");
+
         bufferPool = new BufferPool(disk);
+
         recoveryManager = new RecoveryManager(bufferPool);
-        tableManager = new TableManager(bufferPool);
+        recoveryManager.setEngine(this);
+        recoveryManager.setLogManager(new LogManager(bufferPool));
+        if (!init) recoveryManager.init();
+
+        tableManager = new TableManager(bufferPool,disk,recoveryManager);
         transactionManager = new TransactionManager(recoveryManager);
         versionManager = new VersionManager();
+
+//        transactionManager.begin();
+//        if (!init) {
+//            this.initTableInfo();
+//        } else {
+//            this.loadMetadata();
+//        }
+//        transactionManager.commit();
+    }
+
+    private void loadMetadata() {
+
+    }
+
+    private void initTableInfo() {
+        bufferPool.newPage(TABLE_META_DATA_FILE_ID);
+        tableManager.create("_meta.table", getTableMataSchema());
+        tableMetadata = tableManager.getTable("_meta.table");
+    }
+
+    private Schema getTableMataSchema() {
+        return new Schema()
+                .add(new Column(DataType.STRING, "table_name"))
+                .add(new Column(DataType.INTEGER, "file_id"))
+                .add(new Column(DataType.STRING,"schema"));
+    }
+
+    public VersionManager getVersionManager() {
+        return versionManager;
+    }
+
+    public TransactionManager getTransactionManager() {
+        return transactionManager;
+    }
+
+    public TableManager getTableManager() {
+        return tableManager;
+    }
+
+    public RecoveryManager getRecoveryManager() {
+        return recoveryManager;
+    }
+
+    public BufferPool getBufferPool() {
+        return bufferPool;
+    }
+
+    public Disk getDisk() {
+        return disk;
     }
 
     private boolean setupDirectory(String path) {
@@ -66,17 +131,34 @@ public class Engine {
         return initialized;
     }
 
-    public void insert(String tableName, RowData rowData){}
+    public void beginTransaction() {
+        transactionManager.begin();
+    }
 
-    public void update(String tableName, RowData rowData){}
+    public void insert(String tableName, RowData rowData) {
+        var table = tableManager.getTable(tableName);
+        table.insertRecord(rowData,true,true);
+    }
 
-    public void delete(String tableName, RowData rowData){}
+    public void update(String tableName, RowData rowData) {
+    }
 
-    public void createTable(String tableName, Schema schema){}
+    public void delete(String tableName, RowData rowData) {
+        var table = tableManager.getTable(tableName);
+        table.deleteRecord(Value.ofInt(rowData.getPrimaryKey()),true);
+    }
 
-    public void dropTable(String tableName){}
+    public void createTable(String tableName, Schema schema) {
+        tableManager.create(tableName, schema);
+    }
 
-    public void createIndex(String tableName, String columnName){}
+    public void dropTable(String tableName) {
+        tableManager.drop(tableName);
+    }
 
-    public void dropIndex(String tableName, String columnName){}
+    public void createIndex(String tableName, String columnName) {
+    }
+
+    public void dropIndex(String tableName, String columnName) {
+    }
 }

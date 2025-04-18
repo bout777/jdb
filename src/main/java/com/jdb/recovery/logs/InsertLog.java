@@ -1,9 +1,11 @@
 package com.jdb.recovery.logs;
 
+import com.jdb.Engine;
 import com.jdb.catalog.Schema;
 import com.jdb.common.PageHelper;
 import com.jdb.common.Value;
 import com.jdb.recovery.LogType;
+import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.*;
@@ -81,10 +83,10 @@ public class InsertLog extends LogRecord {
     }
 
     @Override
-    public void redo(BufferPool bp) {
+    public void redo(BufferPool bp, RecoveryManager rm) {
         //redo时可以根据pageLsn跟lsn比较，来判断是否需要redo，所以直接物理插入
         Page page = bp.getPage(ptr.pid);
-        DataPage dataPage = new DataPage(page,bp);
+        DataPage dataPage = new DataPage(page,bp, rm);
 //        try {
         dataPage.insertRecord(ptr.sid, image);
 //        }catch (DuplicateInsertException e){
@@ -93,13 +95,13 @@ public class InsertLog extends LogRecord {
     }
 
     @Override
-    public void undo() {
+    public void undo(Engine engine) {
         //todo undo需要删除，由于已经插入的记录可能被移动到其他地方(页分裂),所以根据页指针删除是不现实的
-//        int fid = PageHelper.getFid(ptr.pid);
-//        Table table = TableManager.;
-//        Schema schema = table.getSchema();
-//        var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
-//        table.deleteRecord(Value.ofInt(rowData.getPrimaryKey()),true);
+
+        var table = engine.getTableManager().getTable(PageHelper.getFid(ptr.pid));
+        Schema schema = table.getSchema();
+        var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
+        table.deleteRecord(Value.ofInt(rowData.getPrimaryKey()),true);
     }
 
     @Override

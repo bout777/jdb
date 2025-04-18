@@ -1,8 +1,10 @@
 package com.jdb.recovery.logs;
 
+import com.jdb.Engine;
 import com.jdb.catalog.Schema;
 import com.jdb.common.PageHelper;
 import com.jdb.recovery.LogType;
+import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.*;
@@ -80,10 +82,10 @@ public class DeleteLog extends LogRecord {
 
 
     @Override
-    public void redo(BufferPool bp) {
+    public void redo(BufferPool bp, RecoveryManager rm) {
         //redo时可以根据pageLsn跟lsn比较，来判断是否需要redo，所以直接物理删除
         Page page = bp.getPage(ptr.pid);
-        DataPage dataPage = new DataPage(page,bp);
+        DataPage dataPage = new DataPage(page,bp, rm);
 //        try {
             dataPage.deleteRecord(ptr.sid);
 //        }catch(NoSuchElementException e){
@@ -93,7 +95,7 @@ public class DeleteLog extends LogRecord {
     }
 
     @Override
-    public void undo() {
+    public void undo(Engine engine) {
 //        Page page = BufferPool.getInstance().getPage(ptr.pid);
 //        DataPage dataPage = new DataPage(page);
 //        try {
@@ -104,10 +106,10 @@ public class DeleteLog extends LogRecord {
 
         //同insertLog，如果直接在该页插入，可能会破坏有序性
 //        int fid = PageHelper.getFid(ptr.pid);
-//        Table table = TableManager.getInstance().getTestTable();
-//        Schema schema = table.getSchema();
-//        var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
-//        table.insertRecord(rowData,true,true);
+        Table table = engine.getTableManager().getTable(PageHelper.getFid(ptr.pid));
+        Schema schema = table.getSchema();
+        var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
+        table.insertRecord(rowData,true,false);
 
     }
 

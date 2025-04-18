@@ -1,5 +1,6 @@
 package com.jdb.recovery;
 
+import com.jdb.Engine;
 import com.jdb.recovery.logs.*;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
@@ -30,6 +31,7 @@ public class RecoveryManager {
     //private List<LogRecord> logBuffer;
     //脏页表 <pid->recLsn>
     //活跃事务表 <xid->lsn>
+    private Engine engine;
     private BufferPool bufferPool;
     private LogManager logManager;
     private Map<Long, Long> dirtyPagesTable = new ConcurrentHashMap<>();
@@ -40,12 +42,18 @@ public class RecoveryManager {
         this.bufferPool = bp;
     }
 
+
+
     public void setLogManager(LogManager logManager) {
         this.logManager = logManager;
     }
 
     public LogManager getLogManager() {
         return logManager;
+    }
+
+    public void setEngine(Engine engine) {
+        this.engine = engine;
     }
 
 
@@ -145,7 +153,7 @@ public class RecoveryManager {
             }
             
             curLsn = log.getPrevLsn();
-            log.undo();
+            log.undo(engine);
             //试试就逝世
         }
     }
@@ -221,7 +229,7 @@ public class RecoveryManager {
             if (log.getLsn() <= page.getLsn())
                 continue;
 
-            log.redo(bufferPool);
+            log.redo(bufferPool, this);
         }
     }
 
@@ -248,7 +256,7 @@ public class RecoveryManager {
             if (log instanceof CompensationLog clr) {
                 nextLsn = clr.getUndoNextLsn();
             } else {
-                log.undo();
+                log.undo(engine);
 //                var clr = new CompensationLog(log);
 //                logManager.append(clr);
                 nextLsn = log.getPrevLsn();
@@ -269,5 +277,9 @@ public class RecoveryManager {
 
     public int getNextLsn() {
         return 0;
+    }
+
+    public void init() {
+
     }
 }

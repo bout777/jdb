@@ -13,4 +13,8 @@ public class Constants {
     public final static long NULL_XID = 0;
 
     public static final int LOG_FILE_ID = 369;
+
+    public static final int TABLE_META_DATA_FILE_ID = 114;
+
+    public static final int INDEX_META_DATA_FILE_ID = 514;
 }

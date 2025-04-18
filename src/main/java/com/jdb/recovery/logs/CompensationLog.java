@@ -1,6 +1,8 @@
 package com.jdb.recovery.logs;
 
+import com.jdb.Engine;
 import com.jdb.recovery.LogType;
+import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 
 import java.nio.ByteBuffer;
@@ -54,12 +56,12 @@ public class CompensationLog extends LogRecord {
     }
 
     @Override
-    public void redo(BufferPool bp) {
-        originLog.undo();
+    public void redo(BufferPool bp, RecoveryManager rm) {
+//        originLog.undo(engine);
     }
 
     @Override
-    public void undo() {
+    public void undo(Engine engine) {
         throw new UnsupportedOperationException("CompensationLog can not be undo");
     }
 
