@@ -1,5 +1,6 @@
-package recover;
+package com.jdb.recover;
 
+import com.jdb.TestUtil;
 import com.jdb.common.Value;
 import com.jdb.recovery.LogType;
 import com.jdb.recovery.RecoveryManager;
@@ -7,13 +8,11 @@ import com.jdb.recovery.logs.BeginLog;
 import com.jdb.recovery.logs.CommitLog;
 import com.jdb.recovery.logs.LogRecord;
 import com.jdb.table.Table;
-import com.jdb.table.TableManager;
 import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
-import index.MockTable;
 import org.junit.Before;
 import org.junit.Test;
-import version.DeterministicRunner;
+import com.jdb.version.DeterministicRunner;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +33,7 @@ public class RecoverTest {
     @Test
 
     public void testSimpleTrx() {
-        var rowDate = MockTable.generateRecord(123);
+        var rowDate = TestUtil.generateRecord(123);
         TransactionManager.getInstance().begin();
         table.insertRecord(rowDate, true, true);
         TransactionManager.getInstance().commit();
@@ -53,11 +52,11 @@ public class RecoverTest {
         var tm = TransactionManager.getInstance();
         runner.run(0, () -> {
             tm.begin();
-            table.insertRecord(MockTable.generateRecord(123), true, true);
+            table.insertRecord(TestUtil.generateRecord(123), true, true);
         });
         runner.run(1, () -> {
             tm.begin();
-            table.insertRecord(MockTable.generateRecord(456), true, true);
+            table.insertRecord(TestUtil.generateRecord(456), true, true);
         });
         runner.run(1, () -> {
             tm.commit();
@@ -78,8 +77,8 @@ public class RecoverTest {
 
     @Test
     public void testRecover() {
-        var rowbefore = MockTable.generateRecord(123);
-        var rowafter = MockTable.generateRecord(123);
+        var rowbefore = TestUtil.generateRecord(123);
+        var rowafter = TestUtil.generateRecord(123);
         var tm = TransactionManager.getInstance();
         tm.begin();
         table.insertRecord(rowbefore, true, true);
@@ -96,7 +95,7 @@ public class RecoverTest {
         var runner = new DeterministicRunner(1);
         runner.run(0, () -> {
             tm.begin();
-            table.insertRecord(MockTable.generateRecord(123), true, true);
+            table.insertRecord(TestUtil.generateRecord(123), true, true);
             long xid = TransactionContext.getTransaction().getXid();
             rm.rollback(xid);
         });
@@ -114,8 +113,8 @@ public class RecoverTest {
     @Test
     public void testAbort() {
         var tm = TransactionManager.getInstance();
-        var rowbefore = MockTable.generateRecord(123);
-        var rowafter = MockTable.generateRecord(123);
+        var rowbefore = TestUtil.generateRecord(123);
+        var rowafter = TestUtil.generateRecord(123);
         var rm = RecoveryManager.getInstance();
         var runner = new DeterministicRunner(1);
         runner.run(0, () -> {
@@ -143,14 +142,14 @@ public class RecoverTest {
         var runner = new DeterministicRunner(3);
         runner.run(0, () -> {
             tm.begin();
-            table.insertRecord(MockTable.generateRecord(1), true, true);
-            table.insertRecord(MockTable.generateRecord(2), true, true);
+            table.insertRecord(TestUtil.generateRecord(1), true, true);
+            table.insertRecord(TestUtil.generateRecord(2), true, true);
             tm.commit();
         });
         runner.run(1, () -> {
             tm.begin();
-            table.insertRecord(MockTable.generateRecord(3), true, true);
-            table.insertRecord(MockTable.generateRecord(4), true, true);
+            table.insertRecord(TestUtil.generateRecord(3), true, true);
+            table.insertRecord(TestUtil.generateRecord(4), true, true);
             tm.commit();
         });
     }

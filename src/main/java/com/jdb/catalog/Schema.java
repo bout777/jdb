@@ -7,14 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 
 public class Schema {
-    //for test
-    public static final Schema instance;
-
-    static {
-        instance = new Schema();
-        instance.add(new Column(DataType.STRING, "name"));
-        instance.add(new Column(DataType.INTEGER, "age"));
-    }
 
     private List<Column> columns;
     private HashMap<String, Column> columnsMap;
@@ -33,5 +25,9 @@ public class Schema {
         columns.add(column);
         columnsMap.put(column.getName(), column);
         return this;
+    }
+
+    public Column get(int i) {
+        return columns.get(i);
     }
 }

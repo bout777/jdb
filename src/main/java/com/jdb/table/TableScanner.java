@@ -6,9 +6,9 @@
 //
 //public class TableScanner {
 //    private final BufferPool bufferPool;
-//    private final Table table;
+//    private final com.jdb.Table table;
 //
-//    public TableScanner(BufferPool bufferPool, Table table) {
+//    public TableScanner(BufferPool bufferPool, com.jdb.Table table) {
 //        this.bufferPool = bufferPool;
 //        this.table = table;
 //    }

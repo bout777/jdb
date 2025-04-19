@@ -1,5 +1,7 @@
 package com.jdb.table;
 
+import com.jdb.common.Value;
+
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
@@ -8,13 +10,13 @@ public class Slot {
     int offset;
 
     int size;
-    int primaryKey;
+//    int primaryKey;
 
-    public Slot(int offset, int size, int primaryKey) {
+    public Slot(int offset, int size) {
         this.offset = offset;
         this.size = size;
 //          this.next = next;
-        this.primaryKey = primaryKey;
+//        this.primaryKey = primaryKey;
     }
 
     public Slot() {
@@ -25,20 +27,20 @@ public class Slot {
         slot.offset = buffer.getInt(offset);
         offset += Integer.BYTES;
         slot.size = buffer.getInt(offset);
-        offset += Integer.BYTES;
-        slot.primaryKey = buffer.getInt(offset);
+//        offset += Integer.BYTES;
+//        slot.primaryKey = buffer.getInt(offset);
         return slot;
     }
 
-    public int getPrimaryKey() {
-        return primaryKey;
-    }
+//    public Value getPrimaryKey() {
+//        return primaryKey;
+//    }
 
     public void serialize(int offset, ByteBuffer buffer) {
         buffer.putInt(offset, this.offset);
         offset += Integer.BYTES;
         buffer.putInt(offset, this.size);
-        offset += Integer.BYTES;
-        buffer.putInt(offset, this.primaryKey);
+//        offset += Integer.BYTES;
+//        buffer.putInt(offset, this.primaryKey);
     }
 }

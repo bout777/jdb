@@ -1,22 +1,15 @@
-package Log;
+package com.jdb.Log;
 
-import com.jdb.common.Value;
 import com.jdb.recovery.LogManager;
 import com.jdb.recovery.logs.LogRecord;
 import com.jdb.recovery.LogType;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.recovery.logs.DeleteLog;
 import com.jdb.recovery.logs.InsertLog;
-import com.jdb.recovery.logs.MasterLog;
 import com.jdb.recovery.logs.UpdateLog;
 import com.jdb.storage.BufferPool;
-import com.jdb.storage.Page;
-import com.jdb.table.DataPage;
-import com.jdb.table.RowData;
 import com.jdb.table.PagePointer;
 import com.jdb.table.Table;
-import com.jdb.transaction.TransactionContext;
-import index.MockTable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,7 +25,7 @@ public class LogManagerTest {
     private LogManager logManager = RecoveryManager.getInstance().getLogManager();
     @Before
     public void setUp() {
-//         table = MockTable.getTable();
+//         table = TestUtil.getTable();
 //       var dataPage = new DataPage(BufferPool.getInstance().newPage(LOG_FILE_ID));
 //        logManager = RecoveryManager.getInstance().getLogManager();
     }
@@ -153,21 +146,4 @@ public class LogManagerTest {
         return log;
     }
 
-    public RowData generateRecord(int i) {
-        RowData rowData = new RowData();
-
-        rowData.primaryKey = i;
-        rowData.isDeleted = 0;
-
-        rowData.size += Integer.BYTES * 2 + Byte.BYTES;
-
-        rowData.values.add(Value.ofString("hehe"));
-        rowData.values.add(Value.ofInt(1414810));
-
-        for (Value val : rowData.values) {
-            rowData.size += val.getBytes();
-        }
-
-        return rowData;
-    }
 }

@@ -1,11 +1,13 @@
 package com.jdb.version;
 
+import com.jdb.common.Value;
+
 import java.util.Objects;
 
 public class LogicRid {
     private final String tableName;
-    private final int primaryKey;
-    LogicRid(String tableName, int primaryKey) {
+    private final Value<?> primaryKey;
+    LogicRid(String tableName, Value<?> primaryKey) {
         this.tableName = tableName;
         this.primaryKey = primaryKey;
     }

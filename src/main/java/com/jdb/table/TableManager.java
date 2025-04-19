@@ -82,14 +82,14 @@ public class TableManager {
 
     public void drop(String tableName) {
     }
-//    public Table getTestTable() {
+//    public com.jdb.Table getTestTable() {
 //        Schema schema = new Schema()
 //                .add(new Column(DataType.STRING, "name"))
 //                .add(new Column(DataType.INTEGER, "age"));
-//        return new Table("test.db", schema, bufferPool);
+//        return new com.jdb.Table("test.db", schema, bufferPool);
 //    }
 
-//    public static Table testTable;
+//    public static com.jdb.Table testTable;
 //    static {
 //        BufferPool bufferPool = BufferPool.getInstance();
 //        var disk = bufferPool.getDisk();
@@ -99,7 +99,7 @@ public class TableManager {
 //        schema.add(new Column(DataType.STRING, "name"));
 //        schema.add(new Column(DataType.INTEGER, "age"));
 //        RecoveryManager.getInstance().setLogManager(new LogManager(bufferPool));
-//        testTable= new Table("test.db", schema, bufferPool);
+//        testTable= new com.jdb.Table("test.db", schema, bufferPool);
 //    }
 
 }

@@ -1,6 +1,4 @@
-package index;
-
-import com.jdb.index.BPTree;
+package com.jdb.index;
 
 public class BPTreeTest {
     BPTree bpTree;

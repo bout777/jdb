@@ -5,10 +5,10 @@ import com.jdb.catalog.Schema;
 import com.jdb.common.PageHelper;
 import com.jdb.common.Value;
 import com.jdb.recovery.LogType;
-import com.jdb.recovery.RecoveryManager;
-import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
-import com.jdb.table.*;
+import com.jdb.table.DataPage;
+import com.jdb.table.PagePointer;
+import com.jdb.table.RowData;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -83,15 +83,17 @@ public class InsertLog extends LogRecord {
     }
 
     @Override
-    public void redo(BufferPool bp, RecoveryManager rm) {
+    public void redo(Engine engine) {
         //redo时可以根据pageLsn跟lsn比较，来判断是否需要redo，所以直接物理插入
+        var bp = engine.getBufferPool();
+        var rm = engine.getRecoveryManager();
+
+        int fid = PageHelper.getFid(ptr.pid);
+        var schema = engine.getTableManager().getTable(fid).getSchema();
         Page page = bp.getPage(ptr.pid);
-        DataPage dataPage = new DataPage(page,bp, rm);
-//        try {
+
+        DataPage dataPage = new DataPage(page, bp, rm, schema);
         dataPage.insertRecord(ptr.sid, image);
-//        }catch (DuplicateInsertException e){
-//            //record has existed, do nothing
-//        }
     }
 
     @Override
@@ -101,7 +103,7 @@ public class InsertLog extends LogRecord {
         var table = engine.getTableManager().getTable(PageHelper.getFid(ptr.pid));
         Schema schema = table.getSchema();
         var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
-        table.deleteRecord(Value.ofInt(rowData.getPrimaryKey()),true);
+        table.deleteRecord(rowData.getPrimaryKey(), true);
     }
 
     @Override

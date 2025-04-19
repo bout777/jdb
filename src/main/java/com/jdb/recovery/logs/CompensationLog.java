@@ -2,8 +2,6 @@ package com.jdb.recovery.logs;
 
 import com.jdb.Engine;
 import com.jdb.recovery.LogType;
-import com.jdb.recovery.RecoveryManager;
-import com.jdb.storage.BufferPool;
 
 import java.nio.ByteBuffer;
 
@@ -56,8 +54,8 @@ public class CompensationLog extends LogRecord {
     }
 
     @Override
-    public void redo(BufferPool bp, RecoveryManager rm) {
-//        originLog.undo(engine);
+    public void redo(Engine engine) {
+//        originLog.undo(com.jdb.engine);
     }
 
     @Override

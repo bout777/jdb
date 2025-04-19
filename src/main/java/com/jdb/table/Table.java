@@ -111,7 +111,7 @@ public class Table {
         var vm = VersionManager.getInstance();
         vm.pushUpdate(meta.name, rowData);
 
-        var entry = new ClusterIndexEntry(Value.ofInt(rowData.getPrimaryKey()), rowData);
+        var entry = new ClusterIndexEntry(rowData.getPrimaryKey(), rowData);
         clusterIndex.insert(entry, shouldLog);
     }
 

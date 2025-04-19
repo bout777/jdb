@@ -4,10 +4,11 @@ import com.jdb.Engine;
 import com.jdb.catalog.Schema;
 import com.jdb.common.PageHelper;
 import com.jdb.recovery.LogType;
-import com.jdb.recovery.RecoveryManager;
-import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
-import com.jdb.table.*;
+import com.jdb.table.DataPage;
+import com.jdb.table.PagePointer;
+import com.jdb.table.RowData;
+import com.jdb.table.Table;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -18,7 +19,8 @@ public class DeleteLog extends LogRecord {
     PagePointer ptr;
     int len;
     byte[] image;
-    private static final int HEADER_SIZE =Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
+    private static final int HEADER_SIZE = Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
+
     public DeleteLog(long xid, long prevLsn, PagePointer ptr, byte[] image) {
         super(LogType.DELETE);
         this.xid = xid;
@@ -51,7 +53,7 @@ public class DeleteLog extends LogRecord {
         int len = buffer.getInt();
         byte[] image = new byte[len];
         buffer.get(image);
-        return new DeleteLog(xid,prevLsn, new PagePointer(pid,pof), image);
+        return new DeleteLog(xid, prevLsn, new PagePointer(pid, pof), image);
     }
 
     @Override
@@ -60,12 +62,11 @@ public class DeleteLog extends LogRecord {
     }
 
 
-
-
     @Override
     public long getXid() {
         return xid;
     }
+
     @Override
     public long getPrevLsn() {
         return prevLsn;
@@ -75,6 +76,7 @@ public class DeleteLog extends LogRecord {
     protected int getPayloadSize() {
         return HEADER_SIZE + image.length;
     }
+
     @Override
     public LogType getType() {
         return LogType.DELETE;
@@ -82,16 +84,15 @@ public class DeleteLog extends LogRecord {
 
 
     @Override
-    public void redo(BufferPool bp, RecoveryManager rm) {
+    public void redo(Engine engine) {
         //redo时可以根据pageLsn跟lsn比较，来判断是否需要redo，所以直接物理删除
+        var bp = engine.getBufferPool();
+        var rm = engine.getRecoveryManager();
+        int fid = PageHelper.getFid(ptr.pid);
+        var schema = engine.getTableManager().getTable(fid).getSchema();
         Page page = bp.getPage(ptr.pid);
-        DataPage dataPage = new DataPage(page,bp, rm);
-//        try {
-            dataPage.deleteRecord(ptr.sid);
-//        }catch(NoSuchElementException e){
-//            //record has been deleted, do nothing
-//
-//        }
+        DataPage dataPage = new DataPage(page, bp, rm, schema);
+        dataPage.deleteRecord(ptr.sid);
     }
 
     @Override
@@ -109,7 +110,7 @@ public class DeleteLog extends LogRecord {
         Table table = engine.getTableManager().getTable(PageHelper.getFid(ptr.pid));
         Schema schema = table.getSchema();
         var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
-        table.insertRecord(rowData,true,false);
+        table.insertRecord(rowData, true, false);
 
     }
 

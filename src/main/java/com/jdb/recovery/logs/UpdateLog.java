@@ -2,8 +2,6 @@ package com.jdb.recovery.logs;
 
 import com.jdb.Engine;
 import com.jdb.recovery.LogType;
-import com.jdb.recovery.RecoveryManager;
-import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
 import com.jdb.table.PagePointer;
 
@@ -93,7 +91,8 @@ public class UpdateLog extends LogRecord {
      * 但是会修改二级索引
      */
     @Override
-    public void redo(BufferPool bp, RecoveryManager rm) {
+    public void redo(Engine engine) {
+        var bp = engine.getBufferPool();
         Page page = bp.getPage(pid);
         ByteBuffer buffer = page.getBuffer();
         buffer.put(offset, newData);

@@ -67,7 +67,7 @@ public class IndexPage {
     }
 
 
-    // return the index of max floor entry of key
+    // return the com.jdb.index of max floor entry of key
     public int binarySearch(Value<?> key) {
         int low = 0, high = getKeyCount() - 1;
         while (low <= high) {

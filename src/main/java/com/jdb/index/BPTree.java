@@ -31,7 +31,7 @@ public class BPTree implements Index {
 
     public void init() {
         Page page = bufferPool.newPage(metaData.fid);
-        DataPage dataPage = new DataPage(page, bufferPool, recoveryManager);
+        DataPage dataPage = new DataPage(page, bufferPool, recoveryManager,metaData.tableSchema);
         dataPage.init();
         root = new LeafNode(metaData, dataPage.getPageId(), page, bufferPool,recoveryManager);
     }

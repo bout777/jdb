@@ -5,7 +5,7 @@ import com.jdb.catalog.Schema;
 
 public class IndexMetaData {
     public String tableName;
-    public Column keySchema;
+    public Column keyColumn;
     public String indexName;
     public Schema tableSchema;
     public int fid;
@@ -21,12 +21,12 @@ public class IndexMetaData {
         this.tableName = tableName;
     }
 
-    public Column getKeySchema() {
-        return keySchema;
+    public Column getKeyColumn() {
+        return keyColumn;
     }
 
-    public void setKeySchema(Column keySchema) {
-        this.keySchema = keySchema;
+    public void setKeyColumn(Column keyColumn) {
+        this.keyColumn = keyColumn;
     }
 
     public String getIndexName() {
@@ -37,11 +37,11 @@ public class IndexMetaData {
         this.indexName = indexName;
     }
 
-    public IndexMetaData(String tableName, Column keySchema, String indexName, Schema tableSchema, int fid) {
+    public IndexMetaData(String tableName, Column keyColumn, String indexName, Schema tableSchema, int fid) {
         this.tableName = tableName;
-        this.keySchema = keySchema;
+        this.keyColumn = keyColumn;
         this.indexName = indexName;
         this.tableSchema = tableSchema;
-        this.fid = -1;
+        this.fid = fid;
     }
 }

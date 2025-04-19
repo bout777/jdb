@@ -1,11 +1,13 @@
+package com.jdb.engine;
+
 import com.jdb.Engine;
+import com.jdb.TestUtil;
 import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
 import com.jdb.common.DataType;
 import com.jdb.common.Value;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
-import com.jdb.table.TableManager;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,15 +38,12 @@ public class EngineTest {
 
     @Test
     public void testCreateTable() {
-        Schema schema = new Schema()
-                .add(new Column(DataType.STRING, "name"))
-                .add(new Column(DataType.INTEGER, "age"));
-
+        Schema schema = TestUtil.recordSchema();
         engine.createTable("student.table",schema);
     }
 
     @Test
-    public void testInsert() {
+    public void testSimpleInsert() {
         testCreateTable();
         var rowData = TestUtil.generateRecord(3);
         engine.beginTransaction();
@@ -53,8 +52,11 @@ public class EngineTest {
         var tbm = engine.getTableManager();
         Table table = tbm.getTable("student.table");
 
-        var row = table.getRowData(Value.ofInt(rowData.getPrimaryKey()));
+        var row = table.getRowData(rowData.getPrimaryKey());
         assertEquals(rowData,row);
 
+        row =(RowData) table.getClusterIndex().searchEqual(rowData.getPrimaryKey()).getValue();
+        assertEquals(rowData,row);
+        System.out.println(row);
     }
 }

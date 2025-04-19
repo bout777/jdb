@@ -1,5 +1,6 @@
-package version;
+package com.jdb.version;
 
+import com.jdb.TestUtil;
 import com.jdb.common.Value;
 import com.jdb.index.ClusterIndexEntry;
 import com.jdb.index.Index;
@@ -7,9 +8,6 @@ import com.jdb.index.IndexEntry;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
 import com.jdb.transaction.TransactionManager;
-import com.jdb.version.ReadResult;
-import com.jdb.version.VersionManager;
-import index.MockTable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,7 +25,7 @@ public class VersionManagerTest {
 
     @Before
     public void init() {
-        table = MockTable.getTable();
+        table = TestUtil.getTable();
     }
 
     @Test
@@ -38,7 +36,7 @@ public class VersionManagerTest {
 //        runner.run(1, () -> {
 //            TransactionManager.getInstance().begin();
 //            for (int i = 0; i < 500; i++) {
-//                Record record = MockTable.generateRecord(i);
+//                Record record = TestUtil.generateRecord(i);
 //                IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), record);
 //                expected.put(i,e);
 //                bptree.insert(e);
@@ -47,7 +45,7 @@ public class VersionManagerTest {
 //        runner.run(0, () -> {
 //            TransactionManager.getInstance().begin();
 //            for (int i = 500; i < 1000; i++) {
-//                Record record = MockTable.generateRecord(i);
+//                Record record = TestUtil.generateRecord(i);
 //                IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), record);
 //                expected.put(i,e);
 //                bptree.insert(e);
@@ -56,7 +54,7 @@ public class VersionManagerTest {
 //        runner.run(2,()->{
 //            TransactionManager.getInstance().begin();
 //            for (int i = 1500; i >= 1000; i--) {
-//                Record record = MockTable.generateRecord(i);
+//                Record record = TestUtil.generateRecord(i);
 //                IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), record);
 //                expected.put(i,e);
 //                bptree.insert(e);
@@ -70,7 +68,7 @@ public class VersionManagerTest {
             threads.add(new Thread(() -> {
                 TransactionManager.getInstance().begin();
                 for (int j = finalI * 10; j < (finalI + 1) * 10; j++) {
-                    RowData rowData = MockTable.generateRecord(j);
+                    RowData rowData = TestUtil.generateRecord(j);
                     IndexEntry e = new ClusterIndexEntry(Value.ofInt(j), rowData);
                     expected.put(j, e);
                     bptree.insert(e, true);
@@ -103,7 +101,7 @@ public class VersionManagerTest {
         * 事务2查询记录a，可见*/
         DeterministicRunner runner = new DeterministicRunner(2);
         var vm = VersionManager.getInstance();
-        RowData rowData = MockTable.generateRecord(20);
+        RowData rowData = TestUtil.generateRecord(20);
         var tm = TransactionManager.getInstance();
         runner.run(0, () -> {
             tm.begin();
@@ -111,7 +109,7 @@ public class VersionManagerTest {
         });
         runner.run(1, () -> {
             tm.begin();
-            var key = Value.ofInt(rowData.getPrimaryKey());
+            var key =rowData.getPrimaryKey();
             var result = vm.read(table.getTableName(),key );
             assertEquals(ReadResult.Visibility.INVISIBLE, result.getVisibility());
         });
@@ -119,7 +117,7 @@ public class VersionManagerTest {
             TransactionManager.getInstance().commit();
         });
         runner.run(1,()->{
-            var key = Value.ofInt(rowData.getPrimaryKey());
+            var key = rowData.getPrimaryKey();
             var result = vm.read(table.getTableName(), key);
             assertEquals(ReadResult.Visibility.VISIBLE, result.getVisibility());
             assertEquals(rowData, result.getRowData());

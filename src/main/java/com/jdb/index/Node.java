@@ -24,13 +24,8 @@ public abstract class Node {
     Page page;
     BufferPool bufferPool;
     RecoveryManager recoveryManager;
-    //不应该保存对页对象的引用，而是从BufferPool随用随取，否则会造成大量内存无法回收，
-//    Page page;
-//    List<Value<?>> keys;
-    String tableName = "test";
 
     Node(BufferPool bufferPool,RecoveryManager rm) {
-//        keys = new ArrayList<>();
         this.bufferPool = bufferPool;
         this.recoveryManager = rm;
     }
@@ -166,25 +161,27 @@ class LeafNode extends Node {
         this.metaData = metaData;
         this.page = page;
         this.pid = pid;
-        dataPage = new DataPage(page,bp, rm);
+        dataPage = new DataPage(page,bp, rm,metaData.tableSchema);
     }
 
     @Override
     public IndexEntry search(Value<?> key) {
-        int idx = binarySearch(key);
-        RowData r = dataPage.getRecord(idx, metaData.getTableSchema());
-        return new ClusterIndexEntry(Value.ofInt(r.getPrimaryKey()), r);
+        int idx = dataPage.binarySearch(key);
+        if(idx<0)
+            throw new NoSuchElementException("404 not found");
+        RowData r = dataPage.getRecord(idx);
+        return new ClusterIndexEntry(r.getPrimaryKey(),r);
     }
 
     @Override
     public long insert(IndexEntry entry, boolean shouldLog) {
         if (entry instanceof ClusterIndexEntry) {
-            DataPage dataPage = new DataPage(page,bufferPool,recoveryManager);
+            DataPage dataPage = new DataPage(page,bufferPool,recoveryManager,metaData.tableSchema);
             RowData rowData = ((ClusterIndexEntry) entry).getRecord();
             if (dataPage.getFreeSpace() < rowData.getSize() + SLOT_SIZE) {
                 //空间不足，页分裂
                 DataPage newDataPage = dataPage.split();
-                if (rowData.getPrimaryKey() < newDataPage.getSlot(0).getPrimaryKey()) {
+                if (rowData.getPrimaryKey().compareTo(newDataPage.getRecord(0).getPrimaryKey())<0) {
                     dataPage.insertRecord(rowData, true, true);
                 } else {
                     newDataPage.insertRecord(rowData, true, true);
@@ -212,26 +209,25 @@ class LeafNode extends Node {
 
     @Override
     public Value<?> getFloorKey() {
-        int key = dataPage.getSlot(0).getPrimaryKey();
-        return Value.ofInt(key);
+        var key = dataPage.getRecord(0).getPrimaryKey();
+        return key;
     }
 
-    private int binarySearch(Value<?> key) {
-        int low = 0, high = dataPage.getRecordCount() - 1;
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            Slot slot = dataPage.getSlot(mid);
-            int mk = slot.getPrimaryKey();
-            if (key.getValue(Integer.class) < mk)
-                high = mid - 1;
-            else if (key.getValue(Integer.class) > mk)
-                low = mid + 1;
-            else {
-                return mid;
-            }
-        }
-        throw new NoSuchElementException("key not found");
-    }
+//    public int binarySearch(Value<?> key) {
+//        int low = 0, high = dataPage.getRecordCount() - 1;
+//        while (low <= high) {
+//            int mid = (low + high) >>> 1;
+//            var midKey = dataPage.getRecord(mid, metaData.getTableSchema()).getPrimaryKey();
+//            if (key.compareTo(midKey)<0)
+//                high = mid - 1;
+//            else if (key.compareTo(midKey)>0)
+//                low = mid + 1;
+//            else {
+//                return mid;
+//            }
+//        }
+//        throw new NoSuchElementException("key not found");
+//    }
 
     @Override
     public void readFromPage(int pageId) {

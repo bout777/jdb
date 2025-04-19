@@ -1,12 +1,13 @@
-package index;
+package com.jdb.index;
 
-import Table.TableTest;
+import com.jdb.DummyBufferPool;
+import com.jdb.DummyRecoverManager;
+import com.jdb.Table.TableTest;
+import com.jdb.TestUtil;
 import com.jdb.common.Value;
-import com.jdb.index.ClusterIndexEntry;
-import com.jdb.index.Index;
-import com.jdb.index.IndexEntry;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
+import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 import org.junit.After;
 import org.junit.Before;
@@ -21,27 +22,29 @@ public class DuraBPTest {
     Random r = new Random();
 
 
-    Index bpTree;
-    TableTest tt;
+    BPTree bpTree;
+
 
     @Before
     public void init() {
-        Table table = MockTable.getTable();
-        bpTree = table.getClusterIndex();
-        TransactionManager.getInstance().begin();
+        var mata = new IndexMetaData("table1",TestUtil.recordSchema().get(0), "index1", TestUtil.recordSchema(), 33);
+        var bp = new DummyBufferPool();
+        bpTree = new BPTree(mata,bp, new DummyRecoverManager());
+        bpTree.init();
+        TransactionContext.setTransactionContext(new TransactionContext(1));
     }
 
     @After
     public void clean() {
-
+        TransactionContext.unsetTransaction();
     }
 
     @Test
     public void testDescInsertAndSearch() {
         List<IndexEntry> expect = new ArrayList<>();
         for (int i = 2000; i >= 0; i--) {
-            RowData rowData = MockTable.generateRecord(i);
-            IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), rowData);
+            var rowData = TestUtil.generateRecord(i);
+            var e = new ClusterIndexEntry(Value.ofInt(i), rowData);
             bpTree.insert(e, true);
             expect.add(e);
         }
@@ -60,7 +63,7 @@ public class DuraBPTest {
         }
         Collections.shuffle(ids);
         for (Integer id : ids) {
-            RowData rowData = MockTable.generateRecord(id);
+            RowData rowData = TestUtil.generateRecord(id);
             bpTree.insert(new ClusterIndexEntry(Value.ofInt(id), rowData), true);
         }
 
@@ -72,7 +75,7 @@ public class DuraBPTest {
 
     @Test
     public void testSimpleDelete() {
-        var row = MockTable.generateRecord(114);
+        var row = TestUtil.generateRecord(114);
         bpTree.insert(new ClusterIndexEntry(Value.ofInt(114), row), true);
         IndexEntry entry = bpTree.searchEqual(Value.ofInt(114));
         assertEquals(Value.ofInt(114), entry.getKey());
@@ -89,7 +92,7 @@ public class DuraBPTest {
     @Test
     public void testInnerNodeDelete() {
         for (int i = 2000; i >= 0; i--) {
-            RowData rowData = MockTable.generateRecord(i);
+            RowData rowData = TestUtil.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), rowData);
             bpTree.insert(e, true);
         }

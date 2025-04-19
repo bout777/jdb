@@ -35,22 +35,21 @@ public class DataPage {
     private static final int LOWER_OFFSET = NEXT_PAGE_ID_OFFSET + Long.BYTES;
     private static final int UPPER_OFFSET = LOWER_OFFSET + Integer.BYTES;
     private static final int HEADER_SIZE = UPPER_OFFSET + Integer.BYTES;
-    // todo 这个页所属的表名，后续需要在构造函数中注入
-    private String tableName = "test";
-    // todo 这个页所属的表id，同上
+
     private Table table;
     private final ByteBuffer buffer;
-    private Page page;
-    private BufferPool bufferPool;
-    private RecoveryManager recoveryManager;
-    private Schema schema = Schema.instance;
+    private final Page page;
+    private final BufferPool bufferPool;
+    private final RecoveryManager recoveryManager;
+    private final Schema schema;
 
-    public DataPage(Page page, BufferPool bp, RecoveryManager rm) {
+    public DataPage(Page page, BufferPool bp, RecoveryManager rm, Schema schema) {
         buffer = page.getBuffer();
         setPageId(page.pid);
         this.page = page;
         this.bufferPool = bp;
         this.recoveryManager = rm;
+        this.schema = schema;
     }
 
     public void init() {
@@ -140,8 +139,8 @@ public class DataPage {
             int upper = getUpper() - rowData.getSize();
             int lower = getLower();
             //写入slot
-            Slot slot = new Slot(upper, rowData.getSize(), rowData.getPrimaryKey());
-            int sid = insertSlot(slot);
+            Slot slot = new Slot(upper, rowData.getSize());
+            int sid = insertSlot(slot,rowData.getPrimaryKey());
 
             //更新lower,upper
             setUpper(upper);
@@ -167,7 +166,7 @@ public class DataPage {
         }
     }
 
-    public long deleteRecord(Value<?> key,boolean shouldLog) {
+    public long deleteRecord(Value<?> key, boolean shouldLog) {
         try {
             this.page.acquireWriteLock();
 
@@ -176,7 +175,7 @@ public class DataPage {
                 throw new NoSuchElementException("key not found");
 
             //写日志
-            if(shouldLog) {
+            if (shouldLog) {
                 Slot slot = getSlot(sid);
                 PagePointer ptr = new PagePointer(getPageId(), sid);
                 byte[] image = Arrays.copyOfRange(buffer.array(), slot.offset, slot.offset + slot.size);
@@ -218,10 +217,10 @@ public class DataPage {
         RowData rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
         int upper = getUpper() - rowData.getSize();
         rowData.serializeTo(buffer, upper);
-        Slot slot = new Slot(upper, image.length, rowData.getPrimaryKey());
+        Slot slot = new Slot(upper, image.length);
 
         //todo 后续改成根据sid插入,实现o(n)
-        insertSlot(slot);
+        insertSlot(slot, rowData.getPrimaryKey());
     }
 
     public void deleteRecord(int offset, byte[] image) {
@@ -230,7 +229,7 @@ public class DataPage {
 
 
     public long deleteRecord(int slotId) {
-
+        //todo lock
 
         Slot slot = getSlot(slotId);
         var ptr = new PagePointer(getPageId(), slotId);
@@ -245,7 +244,7 @@ public class DataPage {
     }
 
 
-    public RowData getRecord(int slotId, Schema schema) {
+    public RowData getRecord(int slotId) {
         try {
             this.page.acquireReadLock();
             if (slotId >= getRecordCount()) {
@@ -259,8 +258,8 @@ public class DataPage {
         }
     }
 
-    private int insertSlot(Slot slot) {
-        int low = binarySearch(Value.ofInt(slot.primaryKey));
+    private int insertSlot(Slot slot,Value<?> key) {
+        int low = binarySearch(key);
         if (low >= 0)
             throw new DuplicateInsertException("try to insert a existed slot");
         low = -low - 1;
@@ -272,6 +271,12 @@ public class DataPage {
 
         //返回插入的位置，用于日志
         return low;
+    }
+
+    private Value<?> getPrimaryKey(Slot slot) {
+        var type = schema.columns().get(0).getType();
+        Value<?> key = Value.deserialize(buffer, slot.offset, type);
+        return key;
     }
 
     private void deleteSlot(int slotId) {
@@ -289,11 +294,11 @@ public class DataPage {
         Page newPage = bufferPool.newPage(fid);
         //创建一个当前页的镜像页
         Page image = new Page(Arrays.copyOf(this.page.getData(), this.page.getData().length));
-        DataPage imageDataPage = new DataPage(image,bufferPool, recoveryManager);
+        DataPage imageDataPage = new DataPage(image, bufferPool, recoveryManager, schema);
 
         //初始化当前页和新页
         this.init();
-        DataPage newDataPage = new DataPage(newPage,bufferPool, recoveryManager);
+        DataPage newDataPage = new DataPage(newPage, bufferPool, recoveryManager, schema);
         newDataPage.init();
 
         newDataPage.setNextPageId(this.getNextPageId());
@@ -311,15 +316,14 @@ public class DataPage {
         return newDataPage;
     }
 
-    private int binarySearch(Value<?> key) {
+    public int binarySearch(Value<?> key) {
         int low = 0, high = getRecordCount() - 1;
         while (low <= high) {
             int mid = (low + high) >>> 1;
-            Slot slot = getSlot(mid);
-            int mk = slot.getPrimaryKey();
-            if (key.getValue(Integer.class) < mk)
+            var midKey = getRecord(mid).getPrimaryKey();
+            if (key.compareTo(midKey) < 0)
                 high = mid - 1;
-            else if (key.getValue(Integer.class) > mk)
+            else if (key.compareTo(midKey) > 0)
                 low = mid + 1;
             else {
                 return mid;
@@ -350,7 +354,7 @@ public class DataPage {
         public RowData next() {
             if (!hasNext())
                 throw new NoSuchElementException();
-            return getRecord(slotId++, schema);
+            return getRecord(slotId++);
         }
     }
 

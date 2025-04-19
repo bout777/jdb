@@ -57,7 +57,7 @@ public class VersionManager {
     public ReadResult read(String tableName, Value<?> key) {
         int primaryKey = key.getValue(Integer.class);
         rw.readLock().lock();
-        var rid = new LogicRid(tableName, primaryKey);
+        var rid = new LogicRid(tableName, key);
         var entrySet = versionMap.get(rid);
         if (entrySet == null)
             return ReadResult.notPresent();
@@ -112,7 +112,7 @@ public class VersionManager {
     }
 
 
-    //maintain a version list for each record
+    //maintain a com.jdb.version list for each record
     private class VersionEntrySet extends TreeMap<Long, VersionEntry> {
         LogicRid ptr;
 

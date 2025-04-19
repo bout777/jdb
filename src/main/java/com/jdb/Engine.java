@@ -25,14 +25,12 @@ import static com.jdb.common.Constants.LOG_FILE_ID;
 import static com.jdb.common.Constants.TABLE_META_DATA_FILE_ID;
 
 public class Engine {
-    public static void main(String[] args) {
-
-    }
 
     private Table tableMetadata;
 
     private Table indexMetadata;
 
+    public static Engine instance;
 
     private final Disk disk;
 
@@ -70,6 +68,7 @@ public class Engine {
 //            this.loadMetadata();
 //        }
 //        transactionManager.commit();
+        instance = this;
     }
 
     private void loadMetadata() {
@@ -145,7 +144,7 @@ public class Engine {
 
     public void delete(String tableName, RowData rowData) {
         var table = tableManager.getTable(tableName);
-        table.deleteRecord(Value.ofInt(rowData.getPrimaryKey()),true);
+        table.deleteRecord(rowData.getPrimaryKey(),true);
     }
 
     public void createTable(String tableName, Schema schema) {

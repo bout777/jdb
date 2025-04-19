@@ -1,4 +1,4 @@
-package Log;
+package com.jdb.Log;
 
 import com.jdb.recovery.logs.LogRecord;
 import com.jdb.recovery.logs.InsertLog;
@@ -7,14 +7,11 @@ import com.jdb.recovery.logs.UpdateLog;
 import com.jdb.storage.BufferPool;
 import com.jdb.table.DataPage;
 import com.jdb.table.PagePointer;
-import com.jdb.table.Table;
-import index.MockTable;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
-import static com.jdb.common.Constants.LOG_FILE_ID;
 import static org.junit.Assert.assertEquals;
 
 public class logRecordTest {
@@ -23,7 +20,7 @@ public class logRecordTest {
     @Before
     public void init() {
 //        bufferPool = BufferPool.getInstance();
-//        Table table = MockTable.getTable();
+//        com.jdb.Table table = TestUtil.getTable();
 //        dataPage = new DataPage(bufferPool.newPage(LOG_FILE_ID),bufferPool, rm);
     }
 

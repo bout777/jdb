@@ -229,7 +229,7 @@ public class RecoveryManager {
             if (log.getLsn() <= page.getLsn())
                 continue;
 
-            log.redo(bufferPool, this);
+            log.redo(engine);
         }
     }
 

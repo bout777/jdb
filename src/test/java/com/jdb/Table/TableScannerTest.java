@@ -1,4 +1,4 @@
-package Table;
+package com.jdb.Table;
 
 public class TableScannerTest {
 }

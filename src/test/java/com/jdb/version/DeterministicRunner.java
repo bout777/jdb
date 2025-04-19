@@ -1,4 +1,4 @@
-package version;
+package com.jdb.version;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
