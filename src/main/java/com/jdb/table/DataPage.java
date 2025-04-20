@@ -60,20 +60,20 @@ public class DataPage {
         buffer.put(0, b);
     }
 
-    public long getLsn() {
-        return buffer.getLong(LSN_OFFSET);
-    }
+//    public long getLsn() {
+//        return buffer.getLong(LSN_OFFSET);
+//    }
 
     public void setPageLsn(long lsn) {
         buffer.putLong(LSN_OFFSET, lsn);
     }
 
-    public int getNextPageId() {
-        return buffer.getInt(NEXT_PAGE_ID_OFFSET);
+    public long getNextPageId() {
+        return buffer.getLong(NEXT_PAGE_ID_OFFSET);
     }
 
-    public void setNextPageId(long nextPageNo) {
-        buffer.putLong(NEXT_PAGE_ID_OFFSET, nextPageNo);
+    public void setNextPageId(long nextPageId) {
+        buffer.putLong(NEXT_PAGE_ID_OFFSET, nextPageId);
     }
 
     public long getPageId() {
@@ -297,11 +297,11 @@ public class DataPage {
         DataPage imageDataPage = new DataPage(image, bufferPool, recoveryManager, schema);
 
         //初始化当前页和新页
-        this.init();
+//        this.init();
         DataPage newDataPage = new DataPage(newPage, bufferPool, recoveryManager, schema);
         newDataPage.init();
-
         newDataPage.setNextPageId(this.getNextPageId());
+        this.init();
         this.setNextPageId(newDataPage.getPageId());
 
         //读取镜像页的数据，分别插入当前页和新页

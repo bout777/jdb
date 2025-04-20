@@ -109,7 +109,7 @@ public class BPTree implements Index {
                     internalIterator = null;
                     break;
                 }else{
-                    dataPage = Node.load(metaData,pid,bufferPool,recoveryManager).getFirstLeafPage();
+                    dataPage = new DataPage(bufferPool.getPage(pid),bufferPool,recoveryManager,metaData.tableSchema);
                     internalIterator = dataPage.scanFrom(0);
                 }
             }
