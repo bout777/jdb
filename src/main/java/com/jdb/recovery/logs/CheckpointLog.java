@@ -31,7 +31,7 @@ public class CheckpointLog extends LogRecord {
 
     @Override
     protected int getPayloadSize() {
-        return LogRecord.HEADER_SIZE + 2 * Short.BYTES + dptSize * Long.BYTES + attSize * Long.BYTES;
+        return LogRecord.HEADER_SIZE + 2 * Short.BYTES + 2*dptSize * Long.BYTES + 2*attSize * Long.BYTES;
     }
 
     @Override
@@ -67,16 +67,16 @@ public class CheckpointLog extends LogRecord {
 
     @Override
     public LogType getType() {
-        return null;
+        return LogType.CHECKPOINT;
     }
 
     @Override
-    public void redo(Engine engine) {
-
-    }
-
-    @Override
-    public void undo(Engine engine) {
-
+    public String toString() {
+        return "CheckpointLog{" +
+                "dptSize=" + dptSize +
+                ", attSize=" + attSize +
+                ", dpt=" + dpt +
+                ", att=" + att +
+                '}';
     }
 }
