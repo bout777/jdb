@@ -15,8 +15,7 @@ import org.junit.Test;
 
 import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class DuraBPTest {
     Random r = new Random();
@@ -27,7 +26,7 @@ public class DuraBPTest {
 
     @Before
     public void init() {
-        var mata = new IndexMetaData("table1",TestUtil.recordSchema().get(0), "index1", TestUtil.recordSchema(), 33);
+        var mata = new IndexMetaData("table1",TestUtil.recordSchema().get(0), "index1", TestUtil.recordSchema(), 0);
         var bp = new DummyBufferPool();
         bpTree = new BPTree(mata,bp, new DummyRecoverManager());
         bpTree.init();
@@ -41,16 +40,16 @@ public class DuraBPTest {
 
     @Test
     public void testDescInsertAndSearch() {
-        List<IndexEntry> expect = new ArrayList<>();
+        List<RowData> expect = new ArrayList<>();
         for (int i = 2000; i >= 0; i--) {
             var rowData = TestUtil.generateRecord(i);
             var e = new ClusterIndexEntry(Value.ofInt(i), rowData);
             bpTree.insert(e, true);
-            expect.add(e);
+            expect.add(e.rowData);
         }
         for (int i = 0; i <= 2000; i++) {
             IndexEntry e = bpTree.searchEqual(Value.ofInt(i));
-            assertEquals(Value.ofInt(i), e.getKey());
+            assertEquals(Value.ofInt(i),((RowData)e.getValue()).getPrimaryKey());
         }
 
     }
@@ -109,6 +108,22 @@ public class DuraBPTest {
             fail("并非删除: " + res);
         } catch (NoSuchElementException e) {
         }
+    }
+
+    @Test
+    public void testScanAll(){
+        for (int i = 2000; i >= 0 ; i--) {
+            RowData rowData = TestUtil.generateRecord(i);
+            IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), rowData);
+            bpTree.insert(e, true);
+        }
+
+        var iterator = bpTree.scanAll();
+
+        while (iterator.hasNext()){
+            System.out.println(iterator.next());
+        }
+//        assertFalse(iterator.hasNext());
     }
 
 

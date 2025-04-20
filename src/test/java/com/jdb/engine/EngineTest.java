@@ -14,6 +14,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -58,5 +60,29 @@ public class EngineTest {
         row =(RowData) table.getClusterIndex().searchEqual(rowData.getPrimaryKey()).getValue();
         assertEquals(rowData,row);
         System.out.println(row);
+    }
+
+    @Test
+    public void testSearch() {
+        testCreateTable();
+        engine.beginTransaction();
+        List<RowData> expected =new ArrayList<>();
+        List<RowData> actual = new ArrayList<>();
+        for(int i = 1; i <=1000; i++){
+            var rowData = TestUtil.generateRecord(i);
+            expected.add(rowData);
+            engine.insert("student.table",rowData);
+        }
+
+        Table table = engine.getTableManager().getTable("student.table");
+
+        var index = table.getClusterIndex();
+
+        for(int i = 1; i <=1000; i++){
+            var row = (RowData) index.searchEqual(Value.ofInt(i)).getValue();
+            actual.add(row);
+        }
+
+        assertEquals(expected,actual);
     }
 }
