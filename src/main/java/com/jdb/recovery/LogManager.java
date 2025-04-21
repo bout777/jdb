@@ -228,9 +228,9 @@ public class LogManager {
                 if (!hasNext())
                     throw new NoSuchElementException();
                 LogRecord log = LogRecord.deserialize(buffer, offset);
-                offset += log.getSize();
                 long lsn = makeLSN(getPageId(), offset);
                 log.setLsn(lsn);
+                offset += log.getSize();
                 return log;
             }
         }
