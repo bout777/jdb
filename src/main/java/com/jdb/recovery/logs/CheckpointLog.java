@@ -1,6 +1,5 @@
 package com.jdb.recovery.logs;
 
-import com.jdb.Engine;
 import com.jdb.recovery.LogType;
 
 import java.nio.ByteBuffer;
@@ -31,7 +30,7 @@ public class CheckpointLog extends LogRecord {
 
     @Override
     protected int getPayloadSize() {
-        return LogRecord.HEADER_SIZE + 2 * Short.BYTES + 2*dptSize * Long.BYTES + 2*attSize * Long.BYTES;
+        return 2 * Short.BYTES + 2 * dptSize * Long.BYTES + 2 * attSize * Long.BYTES;
     }
 
     @Override
