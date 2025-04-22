@@ -15,18 +15,18 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class Table {
-    private static Table instance;
-
-    public static Table getTestTable() {
-        if (instance == null) {
-            Schema schema = new Schema()
-                    .add(new Column(DataType.STRING, "name"))
-                    .add(new Column(DataType.INTEGER, "age"));
-
-            instance = new Table("test.db", 777, schema, BufferPool.getInstance(), RecoveryManager.getInstance());
-        }
-        return instance;
-    }
+//    private static Table instance;
+//
+//    public static Table getTestTable() {
+//        if (instance == null) {
+//            Schema schema = new Schema()
+//                    .add(new Column(DataType.STRING, "name"))
+//                    .add(new Column(DataType.INTEGER, "age"));
+//
+//            instance = new Table("test.db", 777, schema, BufferPool.getInstance(), RecoveryManager.getInstance());
+//        }
+//        return instance;
+//    }
 
     private record TableMeta(int fid, String name, Schema schema) {
     }
@@ -34,6 +34,7 @@ public class Table {
     TableMeta meta;
     BufferPool bufferPool;
     RecoveryManager recoveryManager;
+    VersionManager versionManager;
     BPTree clusterIndex;
     Map<String, Index> secIndices;
 
@@ -41,21 +42,22 @@ public class Table {
         return meta.schema;
     }
 
-    public Table(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm) {
+    public Table(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm,VersionManager vm) {
         this.meta = new TableMeta(fid, name, schema);
         this.bufferPool = bp;
         this.recoveryManager = rm;
+        this.versionManager = vm;
         IndexMetaData clusterIdxMeta = new IndexMetaData(getTableName(), schema.columns().get(0), getTableName(), schema, fid);
         clusterIndex = new BPTree(clusterIdxMeta, bp, rm);
     }
-    public static Table createInMemory(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm){
-        var table = new Table(name, fid, schema, bp, rm);
+    public static Table createInMemory(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm,VersionManager vm){
+        var table = new Table(name, fid, schema, bp, rm,vm);
         table.getClusterIndex().init();
         return table;
     }
 
-    public static Table loadFromDisk(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm){
-        var table = new Table(name, fid, schema, bp, rm);
+    public static Table loadFromDisk(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm,VersionManager vm){
+        var table = new Table(name, fid, schema, bp, rm,vm);
         table.getClusterIndex().load();
         return table;
     }
@@ -77,7 +79,7 @@ public class Table {
     }
 
     public RowData getRowData(Value<?> key) {
-        var vm = VersionManager.getInstance();
+        var vm = versionManager;
         var result = vm.read(meta.name, key);
         if (result.getVisibility() == ReadResult.Visibility.VISIBLE) {
             return result.getRowData();
@@ -89,40 +91,10 @@ public class Table {
     }
 
     //需要改成走索引插入
-//    public void insertRecord(RowData rowData) {
-//        //表还没有页面，创建一个
-//        if (firstPageId == NULL_PAGE_ID) {
-//            firstPageId = 0;
-//            bufferPool.newPage(tableName);
-//            DataPage dataPage = new DataPage(bufferPool.getPage(firstPageId));
-//            dataPage.init();
-//        }
-//
-//        long pid = firstPageId;
-//
-//        DataPage dataPage = new DataPage(bufferPool.getPage(pid));
-//
-//        //遍历页面，找到一个能插入的
-//        while (dataPage.getFreeSpace() < rowData.getSize() + SLOT_SIZE && dataPage.getNextPageId() != NULL_PAGE_ID) {
-//            pid++;
-//            dataPage = new DataPage(bufferPool.getPage(pid));
-//        }
-//        //如果找不到，创建一个新页面
-//        if (dataPage.getFreeSpace() < rowData.getSize() + SLOT_SIZE && dataPage.getNextPageId() == NULL_PAGE_ID) {
-//            pid++;
-//            dataPage.setNextPageId(pid);
-//            Page page = bufferPool.newPage(tableName);
-//            dataPage = new DataPage(page);
-//            dataPage.init();
-//        }
-//
-//        //插入record
-//        dataPage.insertRecord(rowData, true, true);
-//    }
 
     public void insertRecord(RowData rowData, boolean shouldLog, boolean shouldPushVersion) {
         if (shouldPushVersion) {
-            var vm = VersionManager.getInstance();
+            var vm = versionManager;
             vm.pushUpdate(meta.name, rowData);
         }
 
@@ -131,7 +103,7 @@ public class Table {
     }
 
     public void updateRecord(Value<?> key, RowData rowData, boolean shouldLog) {
-        var vm = VersionManager.getInstance();
+        var vm = versionManager;
         vm.pushUpdate(meta.name, rowData);
 
         //todo 暂时先删除再插入以实现更新，这样做代码复杂度比较小，后续在页内添加空闲槽位管理，能最大化利用空间减少复杂度

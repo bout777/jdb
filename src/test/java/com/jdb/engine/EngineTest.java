@@ -47,7 +47,7 @@ public class EngineTest {
     @Test
     public void testCreateTable() {
         Schema schema = TestUtil.recordSchema();
-        engine.createTable("student.table",schema);
+        engine.createTable("student",schema);
     }
 
     @Test
@@ -55,10 +55,10 @@ public class EngineTest {
         testCreateTable();
         var rowData = TestUtil.generateRecord(3);
 //        engine.beginTransaction();
-        engine.insert("student.table",rowData);
+        engine.insert("student",rowData);
 
         var tbm = engine.getTableManager();
-        Table table = tbm.getTable("student.table");
+        Table table = tbm.getTable("student");
 
         var row = table.getRowData(rowData.getPrimaryKey());
         assertEquals(rowData,row);
@@ -77,10 +77,10 @@ public class EngineTest {
         for(int i = 1; i <=1000; i++){
             var rowData = TestUtil.generateRecord(i);
             expected.add(rowData);
-            engine.insert("student.table",rowData);
+            engine.insert("student",rowData);
         }
 
-        Table table = engine.getTableManager().getTable("student.table");
+        Table table = engine.getTableManager().getTable("student");
 
         var index = table.getClusterIndex();
 

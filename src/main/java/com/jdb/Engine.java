@@ -31,49 +31,87 @@ public class Engine {
 
     private Table indexMetadata;
 
-    public static Engine instance;
 
-    private final Disk disk;
+//    public static Engine instance;
+    private  Disk disk;
 
-    private final BufferPool bufferPool;
+    private  BufferPool bufferPool;
 
-    private final RecoveryManager recoveryManager;
+    private LogManager logManager;
+    private  RecoveryManager recoveryManager;
 
-    private final TableManager tableManager;
+    private  TableManager tableManager;
 
-    private final TransactionManager transactionManager;
+    private  TransactionManager transactionManager;
 
-    private final VersionManager versionManager;
+    private  VersionManager versionManager;
+
+    private String dbDir;
 
     public Engine(String path) {
+        this.dbDir = path;
         boolean initialized = setupDirectory(path);
 
-        disk = new Disk(path);
-        bufferPool = new BufferPool(disk);
+//        disk = new Disk(path);
+//        bufferPool = new BufferPool(disk);
+//
+//        recoveryManager = new RecoveryManager(bufferPool);
+//        disk.setRecoveryManager(recoveryManager);
+//
+//        recoveryManager.setEngine(this);
+//        recoveryManager.setLogManager(new LogManager(bufferPool));
+//        if (!initialized) recoveryManager.init();
+//
+//
+//
+//        tableManager = new TableManager(bufferPool,disk,recoveryManager,initialized);
+//
+//        disk.setFileTable(tableManager.getFileMeta());
+//        if(initialized)disk.load();
+//
+//        versionManager = new VersionManager();
+//        transactionManager = new TransactionManager(recoveryManager,versionManager);
+//
+//        recoveryManager.restart();
 
-        recoveryManager = new RecoveryManager(bufferPool);
-        disk.setRecoveryManager(recoveryManager);
+        managerInstantiation();
+        dependencyInjection();
 
-        recoveryManager.setEngine(this);
-        recoveryManager.setLogManager(new LogManager(bufferPool));
-        if (!initialized) recoveryManager.init();
-
-
-        tableManager = new TableManager(bufferPool,disk,recoveryManager,initialized);
-
+        if (!initialized) {
+            //创建系统表
+            tableManager.init();
+            //写masterLog
+            logManager.init();
+        }else {
+            //从磁盘中读系统表
+            tableManager.load();
+        }
+        //注入文件表
         disk.setFileTable(tableManager.getFileMeta());
+        //从文件表中读文件列表
+        if(initialized) disk.load();
+    }
 
-        transactionManager = new TransactionManager(recoveryManager);
-        versionManager = new VersionManager();
 
-//        transactionManager.begin();
-//        if (!init) {
-//            this.initTableInfo();
-//        } else {
-//            this.loadMetadata();
-//        }
-//        transactionManager.commit();
-//        instance = this;
+
+    public void managerInstantiation() {
+        disk = new Disk(this);
+        bufferPool = new BufferPool(this);
+        recoveryManager = new RecoveryManager(this);
+        tableManager = new TableManager(this);
+        transactionManager = new TransactionManager(this);
+        versionManager = new VersionManager(this);
+        logManager = new LogManager(this);
+    }
+
+    public void dependencyInjection() {
+        disk.injectDependency();
+        bufferPool.injectDependency();
+        recoveryManager.injectDependency();
+        tableManager.injectDependency();
+        transactionManager.injectDependency();
+        versionManager.injectDependency();
+        logManager.injectDependency();
     }
 
     private void loadMetadata() {
@@ -84,8 +122,8 @@ public class Engine {
 //        bufferPool.newPage(TABLE_META_DATA_FILE_ID);
 //        tableManager.create("_meta.table", getTableMataSchema());
 //        tableMetadata = tableManager.getTable("_meta.table");
-//    }
 
+//    }
     private Schema getTableMataSchema() {
         return new Schema()
                 .add(new Column(DataType.STRING, "table_name"))
@@ -111,6 +149,10 @@ public class Engine {
 
     public BufferPool getBufferPool() {
         return bufferPool;
+    }
+
+    public LogManager getLogManager() {
+        return logManager;
     }
 
     public Disk getDisk() {
@@ -147,7 +189,7 @@ public class Engine {
     }
 
     public void abort(){
-        transactionManager.abort(TransactionContext.getTransaction().getXid());
+        transactionManager.abort();
     }
 
     public void insert(String tableName, RowData rowData) {
@@ -160,9 +202,9 @@ public class Engine {
         table.updateRecord(key,rowData,true);
     }
 
-    public void delete(String tableName,RowData rowData) {
+    public void delete(String tableName,Value key) {
         var table = tableManager.getTable(tableName);
-        table.deleteRecord(rowData.getPrimaryKey(),true);
+        table.deleteRecord(key,true);
     }
 
     public void createTable(String tableName, Schema schema) {
@@ -177,5 +219,14 @@ public class Engine {
     }
 
     public void dropIndex(String tableName, String columnName) {
+    }
+
+    public void close() {
+        bufferPool.close();
+        disk.close();
+    }
+
+    public String getDir() {
+        return dbDir;
     }
 }

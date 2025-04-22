@@ -1,5 +1,6 @@
 package com.jdb.recovery;
 
+import com.jdb.Engine;
 import com.jdb.common.PageHelper;
 import com.jdb.recovery.logs.LogRecord;
 import com.jdb.recovery.logs.MasterLog;
@@ -18,18 +19,29 @@ import static com.jdb.common.Constants.*;
  * 由于日志页有固定的fid，所以每页只用保存pno
  * */
 public class LogManager {
+    private Engine engine;
+
     private static final long MASTER_LOG_PAGE_ID = PageHelper.concatPid(LOG_FILE_ID, 0);
     private BufferPool bufferPool;
-    private Deque<Integer> unflushedLogTail;
+    private Deque<Integer> unflushedLogTail = new ArrayDeque<>();;
     private LogPage logTail;
 
     private long nextPID = MASTER_LOG_PAGE_ID + 1;
 
     public LogManager(BufferPool bp) {
         bufferPool = bp;
-        unflushedLogTail = new ArrayDeque<>();
+
 
     }
+
+    public LogManager(Engine engine) {
+        this.engine = engine;
+    }
+
+    public void injectDependency() {
+        bufferPool = engine.getBufferPool();
+    }
+
     public void init(){
         //init master
         bufferPool.newPage(LOG_FILE_ID);

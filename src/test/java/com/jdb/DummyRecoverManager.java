@@ -8,7 +8,8 @@ import com.jdb.table.PagePointer;
 
 public class DummyRecoverManager extends RecoveryManager {
     public DummyRecoverManager() {
-        super(null);
+//        super(null);
+        super(new DummyBufferPool());
     }
 
     @Override

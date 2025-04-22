@@ -1,5 +1,6 @@
 package com.jdb.table;
 
+import com.jdb.Engine;
 import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
 import com.jdb.common.DataType;
@@ -7,6 +8,7 @@ import com.jdb.common.Value;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Disk;
+import com.jdb.version.VersionManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,10 +26,22 @@ public class TableManager {
 //        }
 //        return instance;
 //    }
+    Engine engine;
 
     Table tableMeta;
     Table indexMeta;
     Table fileMeta;
+
+    public TableManager(Engine engine) {
+        this.engine = engine;
+    }
+
+    public void injectDependency() {
+        disk = engine.getDisk();
+        recoveryManager = engine.getRecoveryManager();
+        bufferPool = engine.getBufferPool();
+        versionManager = engine.getVersionManager();
+    }
 
     public Table getTableMeta() {
         return tableMeta;
@@ -47,6 +61,7 @@ public class TableManager {
     BufferPool bufferPool;
     RecoveryManager recoveryManager;
     Disk disk;
+    VersionManager versionManager;
 
     public TableManager(BufferPool bp, Disk disk, RecoveryManager rm, boolean initialized) {
         this.bufferPool = bp;
@@ -61,15 +76,15 @@ public class TableManager {
     }
 
     public void init() {
-        tableMeta = Table.createInMemory(TABLE_META_DATA_FILE_NAME, TABLE_META_DATA_FILE_ID, TableMataSchema(), bufferPool, recoveryManager);
-        indexMeta = Table.createInMemory(INDEX_META_DATA_FILE_NAME, INDEX_META_DATA_FILE_ID, IndexMataSchema(),bufferPool, recoveryManager);
-        fileMeta = Table.createInMemory(FILE_META_DATA_FILE_NAME, FILE_META_DATA_FILE_ID, fileMataSchema(),bufferPool, recoveryManager);
+        tableMeta = Table.createInMemory(TABLE_META_DATA_FILE_NAME, TABLE_META_DATA_FILE_ID, TableMataSchema(), bufferPool, recoveryManager,versionManager);
+        indexMeta = Table.createInMemory(INDEX_META_DATA_FILE_NAME, INDEX_META_DATA_FILE_ID, IndexMataSchema(),bufferPool, recoveryManager,versionManager);
+        fileMeta = Table.createInMemory(FILE_META_DATA_FILE_NAME, FILE_META_DATA_FILE_ID, fileMataSchema(),bufferPool, recoveryManager,versionManager);
     }
 
     public void load() {
-        tableMeta = Table.loadFromDisk(TABLE_META_DATA_FILE_NAME, TABLE_META_DATA_FILE_ID, TableMataSchema(),bufferPool, recoveryManager);
-        indexMeta = Table.loadFromDisk(INDEX_META_DATA_FILE_NAME, INDEX_META_DATA_FILE_ID, IndexMataSchema(),bufferPool, recoveryManager);
-        fileMeta = Table.loadFromDisk(FILE_META_DATA_FILE_NAME, FILE_META_DATA_FILE_ID, fileMataSchema(),bufferPool, recoveryManager);
+        tableMeta = Table.loadFromDisk(TABLE_META_DATA_FILE_NAME, TABLE_META_DATA_FILE_ID, TableMataSchema(),bufferPool, recoveryManager,versionManager);
+        indexMeta = Table.loadFromDisk(INDEX_META_DATA_FILE_NAME, INDEX_META_DATA_FILE_ID, IndexMataSchema(),bufferPool, recoveryManager,versionManager);
+        fileMeta = Table.loadFromDisk(FILE_META_DATA_FILE_NAME, FILE_META_DATA_FILE_ID, fileMataSchema(),bufferPool, recoveryManager,versionManager);
     }
 
     private Schema TableMataSchema() {
@@ -117,7 +132,7 @@ public class TableManager {
 
     public void create(String tableName, Schema schema) {
         int fid = disk.addFile(tableName + TABLE_FILE_SUFFIX);
-        Table table = Table.createInMemory(tableName, fid, schema, bufferPool, recoveryManager);
+        Table table = Table.createInMemory(tableName, fid, schema, bufferPool, recoveryManager,versionManager);
         tables.put(tableName, table);
 
         //meta写记录

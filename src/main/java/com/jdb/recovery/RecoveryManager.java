@@ -18,15 +18,15 @@ import static com.jdb.common.Constants.*;
  * 根据xid回滚事务
  */
 public class RecoveryManager {
-    private static RecoveryManager instance;
-    public synchronized static RecoveryManager getInstance() {
-        //懒加载获取实例，测试用
-        if(instance == null) {
-            instance = new RecoveryManager(BufferPool.getInstance());
-            instance.setLogManager(new LogManager(BufferPool.getInstance()));
-        }
-        return instance;
-    }
+//    private static RecoveryManager instance;
+//    public synchronized static RecoveryManager getInstance() {
+//        //懒加载获取实例，测试用
+//        if(instance == null) {
+//            instance = new RecoveryManager(BufferPool.getInstance());
+//            instance.setLogManager(new LogManager(BufferPool.getInstance()));
+//        }
+//        return instance;
+//    }
 
     //private List<LogRecord> logBuffer;
     //脏页表 <pid->recLsn>
@@ -42,6 +42,14 @@ public class RecoveryManager {
         this.bufferPool = bp;
     }
 
+    public RecoveryManager(Engine engine) {
+        this.engine = engine;
+    }
+
+    public void injectDependency(){
+        this.bufferPool = engine.getBufferPool();
+        this.logManager = engine.getLogManager();
+    }
 
 
     public void setLogManager(LogManager logManager) {

@@ -1,34 +1,44 @@
 package com.jdb.storage;
 
 
+import com.jdb.Engine;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class BufferPool {
-    private static volatile BufferPool instance;
+    Engine engine;
+//    private static volatile BufferPool instance;
     /*
      * 为了实现单表暂时这样写
      * 后续要根据表空间来分配
      * 缓冲池内应该有多张表的页*/
-    private final Disk disk;
-    private final Map<Long, Page> buffers;
+    private Disk disk;
+    private final Map<Long, Page> buffers=new ConcurrentHashMap<>();
 
 
     public BufferPool(Disk disk) {
-        buffers = new ConcurrentHashMap<>();
         this.disk = disk;
+    }
+
+    public BufferPool(Engine engine) {
+        this.engine = engine;
+    }
+
+    public void injectDependency() {
+        disk = engine.getDisk();
     }
 
     public Disk getDisk() {
         return disk;
     }
 
-    public synchronized static BufferPool getInstance() {
-        if (instance == null) {
-            instance = new BufferPool(Disk.getInstance());
-        }
-        return instance;
-    }
+//    public synchronized static BufferPool getInstance() {
+//        if (instance == null) {
+//            instance = new BufferPool(Disk.getInstance());
+//        }
+//        return instance;
+//    }
 
 
     public Page getPage(long pid) {
@@ -67,7 +77,7 @@ public class BufferPool {
         page.setDirty(false);
     }
 
-    public void shutdown() {
+    public void close() {
         buffers.clear();
     }
 

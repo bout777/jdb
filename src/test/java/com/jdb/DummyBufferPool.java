@@ -37,7 +37,7 @@ public class DummyBufferPool extends BufferPool {
     }
 
     @Override
-    public void shutdown() {
+    public void close() {
         pages.clear();
     }
 

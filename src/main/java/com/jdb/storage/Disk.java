@@ -1,5 +1,6 @@
 package com.jdb.storage;
 
+import com.jdb.Engine;
 import com.jdb.common.PageHelper;
 import com.jdb.common.Value;
 import com.jdb.recovery.RecoveryManager;
@@ -16,22 +17,24 @@ import static com.jdb.common.Constants.*;
 
 public class Disk {
     //懒加载单例，测试用
-    private static Disk disk;
+//    private static Disk disk;
+//
+//    public synchronized static Disk getInstance() {
+//        if (disk == null) {
+////            disk = new Disk("./data");
+////            disk.putFile(777, "test.db");
+////            disk.putFile(369, "log");
+//        }
+//        return disk;
+//    }
 
-    public synchronized static Disk getInstance() {
-        if (disk == null) {
-//            disk = new Disk("./data");
-//            disk.putFile(777, "test.db");
-//            disk.putFile(369, "log");
-        }
-        return disk;
-    }
+    private Engine engine;
 
     private Table fileTable;
 
     private int nextFid = 100;
 
-    private final String dbDir;
+    private String dbDir;
 
     private RecoveryManager recoveryManager;
 
@@ -44,6 +47,15 @@ public class Disk {
     //======init method======//
     public Disk(String dbDir) {
         this.dbDir = dbDir;
+    }
+
+    public Disk(Engine engine){
+        this.engine = engine;
+    }
+
+    public void injectDependency() {
+        this.recoveryManager = engine.getRecoveryManager();
+        this.dbDir = engine.getDir();
     }
 
     public void setFileTable(Table fileTable) {
@@ -150,5 +162,17 @@ public class Disk {
         fileTable.insertRecord(new RowData(values), true, false);
 
         return fid;
+    }
+
+    public void close() {
+        for (JBFile file : files.values()) {
+            try {
+                file.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        files.clear();
+        nextPage.clear();
     }
 }

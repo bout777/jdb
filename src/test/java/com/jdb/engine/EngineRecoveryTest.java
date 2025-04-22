@@ -40,29 +40,39 @@ public class EngineRecoveryTest {
         engine.beginTransaction();
         Schema schema = TestUtil.recordSchema();
         engine.createTable("student",schema);
-        Table stutable = engine.getTableManager().getTable("student");
+        Table student_table = engine.getTableManager().getTable("student");
         engine.insert("student",expected.get(0));
         engine.insert("student",expected.get(1));
         engine.insert("student",expected.get(2));
         engine.commit();
 
         engine.beginTransaction();
-        engine.delete("student",expected.get(0));
-        engine.delete("student",expected.get(1));
+        engine.delete("student",expected.get(0).getPrimaryKey());
+        engine.delete("student",expected.get(1).getPrimaryKey());
 
-        var iter = stutable.scan();
+        var iter = student_table.scan();
         assertEquals(iter.next(),expected.get(2));
         assertFalse(iter.hasNext());
         engine.abort();
 
-        iter = stutable.scan();
+        iter = student_table.scan();
         var actual = new ArrayList<RowData>();
         while (iter.hasNext()){
             actual.add(iter.next());
         }
         assertEquals(expected,actual);
-
-
     }
+
+    @Test
+    public void testRecoveryRestart(){
+        var expected = new ArrayList<RowData>();
+        for (int i = 0; i < 2000; i++) {
+            expected.add(TestUtil.generateRecord(i));
+        }
+    }
+
+
+
+
 
 }

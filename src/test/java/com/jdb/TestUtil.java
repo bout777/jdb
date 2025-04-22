@@ -36,7 +36,7 @@ public class TestUtil {
                 .add(new Column(DataType.INTEGER, "age"));
     }
 
-    public static Table getTable() {
-        return Table.getTestTable();
-    }
+//    public static Table getTable() {
+//        return Table.getTestTable();
+//    }
 }

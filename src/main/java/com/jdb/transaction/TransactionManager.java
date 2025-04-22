@@ -1,5 +1,6 @@
 package com.jdb.transaction;
 
+import com.jdb.Engine;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.version.VersionManager;
 
@@ -8,24 +9,37 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class TransactionManager {
     //懒加载方法，测试用
-    private static TransactionManager instance ;
-    public synchronized static TransactionManager getInstance() {
-        if(instance == null)
-            instance = new TransactionManager(RecoveryManager.getInstance());
-        return instance;
-    }
+//    private static TransactionManager instance ;
+//    public synchronized static TransactionManager getInstance() {
+//        if(instance == null)
+//            instance = new TransactionManager(RecoveryManager.getInstance());
+//        return instance;
+//    }
+    private Engine engine;
 
     //预分配的xid，递增
     private static AtomicLong trxStartStamp = new AtomicLong(1);
     private RecoveryManager recoveryManager;
+    private VersionManager versionManager;
     private Map<Integer, Transaction> activeTransactions;
     //xid->writeSet
 //    private Map<Long, Set<LogicRid>> writeSetMap;
     //返回xid
 
-    public TransactionManager(RecoveryManager rm){
+    public TransactionManager(RecoveryManager rm, VersionManager vm){
         recoveryManager = rm;
+        versionManager = vm;
     }
+
+    public TransactionManager(Engine engine) {
+        this.engine = engine;
+    }
+
+    public void injectDependency() {
+        recoveryManager = engine.getRecoveryManager();
+        versionManager = engine.getVersionManager();
+    }
+
     public long begin() {
         long xid = trxStartStamp.getAndIncrement();
         TransactionContext.setTransactionContext(new TransactionContext(xid));
@@ -36,8 +50,7 @@ public class TransactionManager {
     public void commit() {
         var writeSet = TransactionContext.getTransaction().getWriteSet();
         if (writeSet != null) {
-            var vm = VersionManager.getInstance();
-            vm.commit(writeSet);
+            versionManager.commit(writeSet);
         }
 
         //todo 调用recover写日志
@@ -62,9 +75,14 @@ public class TransactionManager {
      *
      * @param xid
      */
-    public void abort(long xid) {
-        //todo 清理版本
+    public void abort() {
+        long xid = TransactionContext.getTransaction().getXid();
         recoveryManager.rollback(xid);
+
+        var writeSet = TransactionContext.getTransaction().getWriteSet();
+        if (writeSet != null) {
+            versionManager.cleanup(writeSet);
+        }
 
         TransactionContext.unsetTransaction();
     }

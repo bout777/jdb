@@ -1,6 +1,8 @@
 package com.jdb.version;
 
+import com.jdb.Engine;
 import com.jdb.common.Value;
+import com.jdb.exception.WriteConflictException;
 import com.jdb.table.RowData;
 import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
@@ -20,16 +22,25 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * */
 public class VersionManager {
 
-    private static VersionManager instance = new VersionManager();
+//    private static VersionManager instance = new VersionManager();
+//
+//    public synchronized static  VersionManager getInstance() {
+//        if (instance == null)
+//            instance = new VersionManager();
+//        return instance;
+//    }
 
-    public synchronized static  VersionManager getInstance() {
-        if (instance == null)
-            instance = new VersionManager();
-        return instance;
-    }
-
+    private  Engine engine;
     private final ReadWriteLock rw = new ReentrantReadWriteLock();
     private Map<LogicRid, VersionEntrySet> versionMap = new HashMap<>();
+
+    public VersionManager(Engine engine) {
+        this.engine = engine;
+    }
+
+    public void injectDependency() {
+
+    }
 
 
     //
@@ -47,7 +58,7 @@ public class VersionManager {
         }
         if (!deque.tryPush(rowData)) {
             //todo 冲突回滚
-            throw new RuntimeException("测试代码不该跑到这,tell me why?");
+            throw new WriteConflictException("write conflict,abort needed");
         }
 
         var curTrx = TransactionContext.getTransaction();
@@ -92,15 +103,6 @@ public class VersionManager {
         //事务提交期间，阻塞读线程
         rw.writeLock().lock();
 
-        //这里用了O(klogn),后续可以优化成O(k)？
-//        for (PagePointer ptr : writeSet) {
-//            var deque = versionMap.get(ptr);
-//            for (VersionEntry entry : deque) {
-//                if (entry.getStartTs() == curTs) {
-//                    entry.setEndTs(TransactionManager.getCurrentTrxStamp());
-//                }
-//            }
-//        }
         for (LogicRid ptr : writeSet) {
             var entries = versionMap.get(ptr);
             var entry = entries.pollLastEntry().getValue();
@@ -109,6 +111,13 @@ public class VersionManager {
         }
 
         rw.writeLock().unlock();
+    }
+
+    public void cleanup(Set<LogicRid> writeSet) {
+        for (LogicRid ptr : writeSet){
+            var entries = versionMap.get(ptr);
+            entries.pollLastEntry();
+        }
     }
 
 
