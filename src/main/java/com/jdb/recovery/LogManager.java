@@ -23,7 +23,7 @@ public class LogManager {
 
     private static final long MASTER_LOG_PAGE_ID = PageHelper.concatPid(LOG_FILE_ID, 0);
     private BufferPool bufferPool;
-    private Deque<Integer> unflushedLogTail = new ArrayDeque<>();;
+    private Deque<Integer> unflushedLogTail = new ArrayDeque<>();
     private LogPage logTail;
 
     private long nextPID = MASTER_LOG_PAGE_ID + 1;
@@ -42,7 +42,7 @@ public class LogManager {
         bufferPool = engine.getBufferPool();
     }
 
-    public void init(){
+    public void init() {
         //init master
         bufferPool.newPage(LOG_FILE_ID);
         rewriteMasterLog(new MasterLog(NULL_LSN));
@@ -98,7 +98,10 @@ public class LogManager {
     }
 
     public Iterator<LogRecord> scanFrom(long lsn) {
-        return new LogIterator(lsn);
+        if (lsn <= NULL_LSN)
+            return scan();
+        else
+            return new LogIterator(lsn);
     }
 
     public Iterator<LogRecord> scan() {
@@ -119,6 +122,7 @@ public class LogManager {
 //        int nextPNO;
 
         LogIterator(long lsn) {
+
             this.pid = getLSNPage(lsn);
             Page page = bufferPool.getPage(pid);
             this.pid++;

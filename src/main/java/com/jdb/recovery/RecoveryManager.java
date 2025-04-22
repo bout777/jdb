@@ -121,7 +121,7 @@ public class RecoveryManager {
     public void logCommit(long xid) {
         LogRecord log = new CommitLog(xid);
         long lsn = logManager.append(log);
-//        logManager.flush2lsn(lsn);
+        logManager.flush2lsn(lsn);
         transactionsTable.remove(xid);
     }
     public void logAbort(long xid) {
@@ -136,6 +136,7 @@ public class RecoveryManager {
 
     public void rollback(long xid) {
         rollback2lsn(xid,NULL_LSN);
+        logAbort(xid);
     }
 
     public void flush2lsn(long lsn) {
@@ -187,26 +188,28 @@ public class RecoveryManager {
     }
 
     public void restart() {
-        analyze();
-        redo();
+        long redoLsn = analyze();
+        redo(redoLsn);
         undo();
         checkpoint();
     }
-//    long redoLsn;
+    long redoLsn;
 
-    public void analyze() {
+    private long analyze() {
 
-        /*TODO
+        /*
          *  找到一个合适的，足够小的redolsn，保证该lsn之前的log已经不需要处理
          *  即redolsn之前的对数据库更改已经持久化*/
 
-        /*TODO
+        /*
          *  从redolsn开始往后扫描，维护一个undo-list
          *  将每个扫描到的log中的事务添加到undo-list中
          *  如果遇到commit或者abort记录，将该事务从undo-list中移出
          *  在扫描过程中，如果有update记录的页不在脏页表里，添加该页到脏页表*/
         MasterLog masterLog = logManager.getMasterLog();
         long lastCheckpointLsn = masterLog.getLastCheckpointLsn();
+        if(lastCheckpointLsn == NULL_LSN)
+            return lastCheckpointLsn;
         var logIter = logManager.scanFrom(lastCheckpointLsn);
         var checkpointLog = (CheckpointLog) logIter.next();
 
@@ -228,11 +231,15 @@ public class RecoveryManager {
             }
         }
 
-//        redoLsn = Collections.min(dirtyPagesTable.values());
+        if(dirtyPagesTable.isEmpty())
+            redoLsn = lastCheckpointLsn;
+        else
+            redoLsn = Collections.min(dirtyPagesTable.values());
+
+        return redoLsn;
     }
 
-    public void redo() {
-        long redoLsn = Collections.min(dirtyPagesTable.values());
+    private void redo(long redoLsn) {
         var logIter = logManager.scanFrom(redoLsn);
         while (logIter.hasNext()) {
             var log = logIter.next();
@@ -248,7 +255,7 @@ public class RecoveryManager {
         }
     }
 
-    public void undo() {
+    private void undo() {
         /*TODO
          *  维护一个undo-list优先队列，每次循环取出lsn最大的事务
          *  根据lsn取出log，如果是一个updatelog，执行undo动作，并追加一个clr记录

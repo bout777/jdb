@@ -8,10 +8,7 @@ import com.jdb.table.RowData;
 import com.jdb.table.Table;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.jdb.common.Constants.*;
 
@@ -78,8 +75,12 @@ public class Disk {
     }
 
     public void init() {
-
+        putFileMap(LOG_FILE_ID, LOG_FILE_NAME);
+        putFileMap(FILE_META_DATA_FILE_ID,FILE_META_DATA_FILE_NAME+TABLE_FILE_SUFFIX);
+        putFileMap(TABLE_META_DATA_FILE_ID,TABLE_META_DATA_FILE_NAME+TABLE_FILE_SUFFIX);
+        putFileMap(INDEX_META_DATA_FILE_ID,INDEX_META_DATA_FILE_NAME+TABLE_FILE_SUFFIX);
     }
+
 
 
     //======page api======//
@@ -123,14 +124,14 @@ public class Disk {
 
     public Page allocPage(int fid) {
         long pid = getNextPageIdAndIncrease(fid);
-
         recoveryManager.logPageAlloc(pid);
-
         return new Page(pid);
     }
 
     private long getNextPageIdAndIncrease(int fid) {
-        long pid = nextPage.getOrDefault(fid, PageHelper.concatPid(fid, 0));
+        if(!nextPage.containsKey(fid))
+            throw new NoSuchElementException("file no existed");
+        long pid = nextPage.get(fid);
         nextPage.put(fid, pid + 1);
         return pid;
     }

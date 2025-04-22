@@ -36,4 +36,12 @@ public class AbortLog extends LogRecord {
         long prevLsn = buffer.getLong();
         return new AbortLog(xid,prevLsn);
     }
+
+    @Override
+    public String toString() {
+        return "AbortLog{" +
+                "xid=" + xid +
+                ", prevLsn=" + prevLsn +
+                '}';
+    }
 }

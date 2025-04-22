@@ -14,6 +14,8 @@ public class Constants {
 
     public static final int LOG_FILE_ID = 369;
 
+    public static final String LOG_FILE_NAME = "log";
+
     public static final String TABLE_FILE_SUFFIX = ".table";
 
     public static final int TABLE_META_DATA_FILE_ID = 114;

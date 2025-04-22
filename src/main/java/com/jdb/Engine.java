@@ -1,8 +1,6 @@
 package com.jdb;
 
-import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
-import com.jdb.common.DataType;
 import com.jdb.common.Value;
 import com.jdb.exception.DatabaseException;
 import com.jdb.recovery.LogManager;
@@ -12,7 +10,6 @@ import com.jdb.storage.Disk;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
 import com.jdb.table.TableManager;
-import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 import com.jdb.version.VersionManager;
 
@@ -22,9 +19,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static com.jdb.common.Constants.LOG_FILE_ID;
-import static com.jdb.common.Constants.TABLE_META_DATA_FILE_ID;
-
 public class Engine {
 
     private Table tableMetadata;
@@ -32,19 +26,20 @@ public class Engine {
     private Table indexMetadata;
 
 
-//    public static Engine instance;
-    private  Disk disk;
+    //    public static Engine instance;
+    private Disk disk;
 
-    private  BufferPool bufferPool;
+    private BufferPool bufferPool;
 
     private LogManager logManager;
-    private  RecoveryManager recoveryManager;
 
-    private  TableManager tableManager;
+    private RecoveryManager recoveryManager;
 
-    private  TransactionManager transactionManager;
+    private TableManager tableManager;
 
-    private  VersionManager versionManager;
+    private TransactionManager transactionManager;
+
+    private VersionManager versionManager;
 
     private String dbDir;
 
@@ -77,21 +72,31 @@ public class Engine {
         managerInstantiation();
         dependencyInjection();
 
+        //读or创建一些必须的文件
+        disk.init();
+
         if (!initialized) {
             //创建系统表
             tableManager.init();
             //写masterLog
             logManager.init();
-        }else {
+        } else {
             //从磁盘中读系统表
             tableManager.load();
         }
         //注入文件表
         disk.setFileTable(tableManager.getFileMeta());
         //从文件表中读文件列表
-        if(initialized) disk.load();
-    }
+        disk.load();
 
+        //启动恢复事务
+        transactionManager.begin();
+        //执行崩溃恢复
+        recoveryManager.restart();
+        //提交
+        transactionManager.commit();
+
+    }
 
 
     public void managerInstantiation() {
@@ -114,22 +119,6 @@ public class Engine {
         logManager.injectDependency();
     }
 
-    private void loadMetadata() {
-
-    }
-
-//    private void initTableInfo() {
-//        bufferPool.newPage(TABLE_META_DATA_FILE_ID);
-//        tableManager.create("_meta.table", getTableMataSchema());
-//        tableMetadata = tableManager.getTable("_meta.table");
-
-//    }
-    private Schema getTableMataSchema() {
-        return new Schema()
-                .add(new Column(DataType.STRING, "table_name"))
-                .add(new Column(DataType.INTEGER, "file_id"))
-                .add(new Column(DataType.STRING,"schema"));
-    }
 
     public VersionManager getVersionManager() {
         return versionManager;
@@ -159,6 +148,10 @@ public class Engine {
         return disk;
     }
 
+    public String getDir() {
+        return dbDir;
+    }
+
     private boolean setupDirectory(String path) {
         File dir = new File(path);
         boolean initialized = dir.exists();
@@ -184,27 +177,27 @@ public class Engine {
         transactionManager.begin();
     }
 
-    public void commit(){
+    public void commit() {
         transactionManager.commit();
     }
 
-    public void abort(){
+    public void abort() {
         transactionManager.abort();
     }
 
     public void insert(String tableName, RowData rowData) {
         var table = tableManager.getTable(tableName);
-        table.insertRecord(rowData,true,true);
+        table.insertRecord(rowData, true, true);
     }
 
-    public void update(String tableName,Value<?> key,RowData rowData) {
+    public void update(String tableName, Value<?> key, RowData rowData) {
         var table = tableManager.getTable(tableName);
-        table.updateRecord(key,rowData,true);
+        table.updateRecord(key, rowData, true);
     }
 
-    public void delete(String tableName,Value key) {
+    public void delete(String tableName, Value key) {
         var table = tableManager.getTable(tableName);
-        table.deleteRecord(key,true);
+        table.deleteRecord(key, true);
     }
 
     public void createTable(String tableName, Schema schema) {
@@ -224,9 +217,5 @@ public class Engine {
     public void close() {
         bufferPool.close();
         disk.close();
-    }
-
-    public String getDir() {
-        return dbDir;
     }
 }

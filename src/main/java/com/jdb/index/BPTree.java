@@ -92,10 +92,11 @@ public class BPTree implements Index {
         RowDataIterator(){
             this.dataPage = root.getFirstLeafPage();
             this.internalIterator = dataPage.scanFrom(0);
+
         }
         @Override
         public boolean hasNext() {
-            return internalIterator!=null;
+            return internalIterator!=null&&internalIterator.hasNext();
         }
 
         @Override
