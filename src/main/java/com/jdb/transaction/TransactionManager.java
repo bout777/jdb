@@ -63,7 +63,10 @@ public class TransactionManager {
      * @param xid
      */
     public void abort(long xid) {
+        //todo 清理版本
+        recoveryManager.rollback(xid);
 
+        TransactionContext.unsetTransaction();
     }
 }
 

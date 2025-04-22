@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static com.jdb.common.Constants.PAGE_SIZE;
 
-public class JBFile {
+public class JBFile implements AutoCloseable{
   private   ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private RandomAccessFile file;
     private int fid;
@@ -40,4 +40,17 @@ public class JBFile {
         file.write(data);
     }
 
+    public long length(){
+        try {
+            return file.length();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    @Override
+    public void close() throws Exception {
+        file.close();
+    }
 }

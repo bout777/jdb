@@ -31,13 +31,13 @@ public class TableTest {
     public void testUpdate() {
         var rowData = TestUtil.generateRecord(147);
         table.insertRecord(rowData, true,true);
-        var before = table.getRowData(Value.ofInt(147));
+        var before = table.getRowData(Value.of(147));
 
         assertEquals(rowData, before);
 
         rowData = TestUtil.generateRecord(147);
-        table.updateRecord(Value.ofInt(147), rowData, true);
-        RowData after = table.getRowData(Value.ofInt(147));
+        table.updateRecord(Value.of(147), rowData, true);
+        RowData after = table.getRowData(Value.of(147));
 
         assertEquals(rowData, after);
     }

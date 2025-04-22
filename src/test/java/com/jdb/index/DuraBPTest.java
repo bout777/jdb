@@ -2,13 +2,10 @@ package com.jdb.index;
 
 import com.jdb.DummyBufferPool;
 import com.jdb.DummyRecoverManager;
-import com.jdb.Table.TableTest;
 import com.jdb.TestUtil;
 import com.jdb.common.Value;
 import com.jdb.table.RowData;
-import com.jdb.table.Table;
 import com.jdb.transaction.TransactionContext;
-import com.jdb.transaction.TransactionManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,13 +40,13 @@ public class DuraBPTest {
         List<RowData> expect = new ArrayList<>();
         for (int i = 2000; i >= 0; i--) {
             var rowData = TestUtil.generateRecord(i);
-            var e = new ClusterIndexEntry(Value.ofInt(i), rowData);
+            var e = new ClusterIndexEntry(Value.of(i), rowData);
             bpTree.insert(e, true);
             expect.add(e.rowData);
         }
         for (int i = 0; i <= 2000; i++) {
-            IndexEntry e = bpTree.searchEqual(Value.ofInt(i));
-            assertEquals(Value.ofInt(i),((RowData)e.getValue()).getPrimaryKey());
+            IndexEntry e = bpTree.searchEqual(Value.of(i));
+            assertEquals(Value.of(i),((RowData)e.getValue()).getPrimaryKey());
         }
 
     }
@@ -63,25 +60,25 @@ public class DuraBPTest {
         Collections.shuffle(ids);
         for (Integer id : ids) {
             RowData rowData = TestUtil.generateRecord(id);
-            bpTree.insert(new ClusterIndexEntry(Value.ofInt(id), rowData), true);
+            bpTree.insert(new ClusterIndexEntry(Value.of(id), rowData), true);
         }
 
         for (Integer id : ids) {
-            IndexEntry e = bpTree.searchEqual(Value.ofInt(id));
-            assertEquals(Value.ofInt(id), e.getKey());
+            IndexEntry e = bpTree.searchEqual(Value.of(id));
+            assertEquals(Value.of(id), e.getKey());
         }
     }
 
     @Test
     public void testSimpleDelete() {
         var row = TestUtil.generateRecord(114);
-        bpTree.insert(new ClusterIndexEntry(Value.ofInt(114), row), true);
-        IndexEntry entry = bpTree.searchEqual(Value.ofInt(114));
-        assertEquals(Value.ofInt(114), entry.getKey());
+        bpTree.insert(new ClusterIndexEntry(Value.of(114), row), true);
+        IndexEntry entry = bpTree.searchEqual(Value.of(114));
+        assertEquals(Value.of(114), entry.getKey());
 
-        bpTree.delete(Value.ofInt(114), true);
+        bpTree.delete(Value.of(114), true);
         try {
-            IndexEntry res = bpTree.searchEqual(Value.ofInt(114));
+            IndexEntry res = bpTree.searchEqual(Value.of(114));
             fail("并非删除: " + res);
         } catch (NoSuchElementException e) {
 
@@ -92,19 +89,19 @@ public class DuraBPTest {
     public void testInnerNodeDelete() {
         for (int i = 2000; i >= 0; i--) {
             RowData rowData = TestUtil.generateRecord(i);
-            IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), rowData);
+            IndexEntry e = new ClusterIndexEntry(Value.of(i), rowData);
             bpTree.insert(e, true);
         }
 
-        bpTree.delete(Value.ofInt(1743), true);
-        bpTree.delete(Value.ofInt(199), true);
+        bpTree.delete(Value.of(1743), true);
+        bpTree.delete(Value.of(199), true);
         try {
-            IndexEntry res = bpTree.searchEqual(Value.ofInt(1743));
+            IndexEntry res = bpTree.searchEqual(Value.of(1743));
             fail("并非删除: " + res);
         } catch (NoSuchElementException e) {
         }
         try {
-            IndexEntry res = bpTree.searchEqual(Value.ofInt(199));
+            IndexEntry res = bpTree.searchEqual(Value.of(199));
             fail("并非删除: " + res);
         } catch (NoSuchElementException e) {
         }
@@ -114,17 +111,21 @@ public class DuraBPTest {
     public void testScanAll(){
         for (int i = 2000; i >= 0 ; i--) {
             RowData rowData = TestUtil.generateRecord(i);
-            IndexEntry e = new ClusterIndexEntry(Value.ofInt(i), rowData);
+            IndexEntry e = new ClusterIndexEntry(Value.of(i), rowData);
             bpTree.insert(e, true);
         }
 
         var iterator = bpTree.scanAll();
 
-        while (iterator.hasNext()){
-            System.out.println(iterator.next());
+        for (int i = 0; i <= 2000; i++) {
+            RowData next = iterator.next();
+            assertEquals(Value.of(i), next.getPrimaryKey());
         }
-//        assertFalse(iterator.hasNext());
+
+        assertFalse(iterator.hasNext());
     }
+
+
 
 
 }

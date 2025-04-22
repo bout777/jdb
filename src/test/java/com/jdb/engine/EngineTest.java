@@ -2,12 +2,11 @@ package com.jdb.engine;
 
 import com.jdb.Engine;
 import com.jdb.TestUtil;
-import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
-import com.jdb.common.DataType;
 import com.jdb.common.Value;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,7 +30,14 @@ public class EngineTest {
         File testDir = folder.newFolder(TEST_PATH);
         fileName = testDir.getAbsolutePath();
         engine = new Engine(fileName);
+        engine.beginTransaction();
     }
+
+    @After
+    public void cleanup() {
+        engine.commit();
+    }
+
 
     @Test
     public void testInit() {
@@ -48,7 +54,7 @@ public class EngineTest {
     public void testSimpleInsert() {
         testCreateTable();
         var rowData = TestUtil.generateRecord(3);
-        engine.beginTransaction();
+//        engine.beginTransaction();
         engine.insert("student.table",rowData);
 
         var tbm = engine.getTableManager();
@@ -63,9 +69,9 @@ public class EngineTest {
     }
 
     @Test
-    public void testSearch() {
+    public void testInsertAndSearch() {
         testCreateTable();
-        engine.beginTransaction();
+//        engine.beginTransaction();
         List<RowData> expected =new ArrayList<>();
         List<RowData> actual = new ArrayList<>();
         for(int i = 1; i <=1000; i++){
@@ -79,10 +85,12 @@ public class EngineTest {
         var index = table.getClusterIndex();
 
         for(int i = 1; i <=1000; i++){
-            var row = (RowData) index.searchEqual(Value.ofInt(i)).getValue();
+            var row = (RowData) index.searchEqual(Value.of(i)).getValue();
             actual.add(row);
         }
-
         assertEquals(expected,actual);
     }
+
+
+
 }

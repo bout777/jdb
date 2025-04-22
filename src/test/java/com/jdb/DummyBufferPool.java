@@ -11,11 +11,14 @@ import java.util.Map;
 public class DummyBufferPool extends BufferPool {
     Map<Long, Page> pages = new HashMap<>();
     Map<Integer, Long> nextPages = new HashMap<>();
+    private Disk disk ;
     @Override
     public Page getPage(long pid) {
         Page page = pages.get(pid);
-        if(page==null)
-            throw new RuntimeException("page not found");
+        if(page==null){
+            page = disk.readPage(pid);
+            pages.put(pid, page);
+        }
         return page;
     }
 
@@ -30,14 +33,16 @@ public class DummyBufferPool extends BufferPool {
 
     @Override
     public void flushPage(long pid) {
+        disk.writePage(pages.get(pid));
     }
 
     @Override
     public void shutdown() {
-
+        pages.clear();
     }
 
     public DummyBufferPool() {
         super(new MockDisk("aldksj"));
+        disk = getDisk();
     }
 }

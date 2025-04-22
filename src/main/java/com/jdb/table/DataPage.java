@@ -136,10 +136,10 @@ public class DataPage {
             this.page.acquireWriteLock();
 
             //移动upper指针
-            int upper = getUpper() - rowData.getSize();
+            int upper = getUpper() - rowData.size();
             int lower = getLower();
             //写入slot
-            Slot slot = new Slot(upper, rowData.getSize());
+            Slot slot = new Slot(upper, rowData.size());
             int sid = insertSlot(slot,rowData.getPrimaryKey());
 
             //更新lower,upper
@@ -147,7 +147,7 @@ public class DataPage {
             setLower(lower + SLOT_SIZE);
 
             //写入record
-            rowData.serializeTo(buffer, upper);
+            rowData.serialize(buffer, upper);
             setDirty(true);
             PagePointer ptr = new PagePointer(getPageId(), sid);
 
@@ -215,8 +215,8 @@ public class DataPage {
      */
     public void insertRecord(int slotId, byte[] image) throws DuplicateInsertException {
         RowData rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
-        int upper = getUpper() - rowData.getSize();
-        rowData.serializeTo(buffer, upper);
+        int upper = getUpper() - rowData.size();
+        rowData.serialize(buffer, upper);
         Slot slot = new Slot(upper, image.length);
 
         //todo 后续改成根据sid插入,实现o(n)

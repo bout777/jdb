@@ -33,12 +33,10 @@ public class BufferPool {
 
     public Page getPage(long pid) {
         Page page = buffers.get(pid);
-//        if (page == null) {
-//            page = disk.readPage(pid);
-//        } else {
-//            return page;
-//        }
-//        buffers.put(pid, page);
+        if (page == null) {
+            page = disk.readPage(pid);
+            buffers.put(pid, page);
+        }
         return page;
     }
     public Page newPage(int fid) {

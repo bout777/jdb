@@ -28,7 +28,10 @@ public class LogManager {
     public LogManager(BufferPool bp) {
         bufferPool = bp;
         unflushedLogTail = new ArrayDeque<>();
-        //for master
+
+    }
+    public void init(){
+        //init master
         bufferPool.newPage(LOG_FILE_ID);
         rewriteMasterLog(new MasterLog(NULL_LSN));
     }
@@ -57,7 +60,7 @@ public class LogManager {
             unflushedLogTail.add(logTail.getPageNo());
         }
         int offset = logTail.append(log);
-        long lsn = makeLSN(nextPID, offset);
+        long lsn = makeLSN(logTail.getPageId(), offset);
         log.setLsn(lsn);
         return lsn;
     }

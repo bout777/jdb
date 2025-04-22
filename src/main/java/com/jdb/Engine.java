@@ -12,6 +12,7 @@ import com.jdb.storage.Disk;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
 import com.jdb.table.TableManager;
+import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 import com.jdb.version.VersionManager;
 
@@ -45,19 +46,23 @@ public class Engine {
     private final VersionManager versionManager;
 
     public Engine(String path) {
-        boolean init = setupDirectory(path);
-        disk = new Disk(path);
-        disk.putFile(LOG_FILE_ID, "log");
-        disk.putFile(TABLE_META_DATA_FILE_ID, "_meta.table");
+        boolean initialized = setupDirectory(path);
 
+        disk = new Disk(path);
         bufferPool = new BufferPool(disk);
 
         recoveryManager = new RecoveryManager(bufferPool);
+        disk.setRecoveryManager(recoveryManager);
+
         recoveryManager.setEngine(this);
         recoveryManager.setLogManager(new LogManager(bufferPool));
-        if (!init) recoveryManager.init();
+        if (!initialized) recoveryManager.init();
 
-        tableManager = new TableManager(bufferPool,disk,recoveryManager);
+
+        tableManager = new TableManager(bufferPool,disk,recoveryManager,initialized);
+
+        disk.setFileTable(tableManager.getFileMeta());
+
         transactionManager = new TransactionManager(recoveryManager);
         versionManager = new VersionManager();
 
@@ -68,18 +73,18 @@ public class Engine {
 //            this.loadMetadata();
 //        }
 //        transactionManager.commit();
-        instance = this;
+//        instance = this;
     }
 
     private void loadMetadata() {
 
     }
 
-    private void initTableInfo() {
-        bufferPool.newPage(TABLE_META_DATA_FILE_ID);
-        tableManager.create("_meta.table", getTableMataSchema());
-        tableMetadata = tableManager.getTable("_meta.table");
-    }
+//    private void initTableInfo() {
+//        bufferPool.newPage(TABLE_META_DATA_FILE_ID);
+//        tableManager.create("_meta.table", getTableMataSchema());
+//        tableMetadata = tableManager.getTable("_meta.table");
+//    }
 
     private Schema getTableMataSchema() {
         return new Schema()
@@ -130,8 +135,19 @@ public class Engine {
         return initialized;
     }
 
+
+    //======api======//
+
     public void beginTransaction() {
         transactionManager.begin();
+    }
+
+    public void commit(){
+        transactionManager.commit();
+    }
+
+    public void abort(){
+        transactionManager.abort(TransactionContext.getTransaction().getXid());
     }
 
     public void insert(String tableName, RowData rowData) {
@@ -139,10 +155,12 @@ public class Engine {
         table.insertRecord(rowData,true,true);
     }
 
-    public void update(String tableName, RowData rowData) {
+    public void update(String tableName,Value<?> key,RowData rowData) {
+        var table = tableManager.getTable(tableName);
+        table.updateRecord(key,rowData,true);
     }
 
-    public void delete(String tableName, RowData rowData) {
+    public void delete(String tableName,RowData rowData) {
         var table = tableManager.getTable(tableName);
         table.deleteRecord(rowData.getPrimaryKey(),true);
     }

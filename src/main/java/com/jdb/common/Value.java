@@ -43,11 +43,11 @@ public abstract class Value<T> implements Comparable<Value> {
 //            throw new IllegalArgumentException("Unsupported type: " + value.getClass());
 //        }
 //    }
-    public static Value ofInt(int value) {
+    public static Value of(int value) {
         return new IntValue(value);
     }
 
-    public static Value ofString(String value) {
+    public static Value of(String value) {
         return new StringValue(value);
     }
 

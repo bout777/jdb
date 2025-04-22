@@ -9,7 +9,7 @@ public class AllocPageLog extends LogRecord{
     long prevLsn;
     long pid;
     protected AllocPageLog() {
-        super(LogType.NEW_PAGE);
+        super(LogType.ALLOC_PAGE);
     }
 
     @Override
@@ -24,6 +24,6 @@ public class AllocPageLog extends LogRecord{
 
     @Override
     public LogType getType() {
-        return LogType.NEW_PAGE;
+        return LogType.ALLOC_PAGE;
     }
 }

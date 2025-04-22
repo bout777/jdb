@@ -14,7 +14,19 @@ public class Constants {
 
     public static final int LOG_FILE_ID = 369;
 
+    public static final String TABLE_FILE_SUFFIX = ".table";
+
     public static final int TABLE_META_DATA_FILE_ID = 114;
 
+    public static final String TABLE_META_DATA_FILE_NAME = "table_meta";
+
     public static final int INDEX_META_DATA_FILE_ID = 514;
+
+    public static final String INDEX_META_DATA_FILE_NAME = "index_meta";
+
+    public static final int FILE_META_DATA_FILE_ID = 0;
+
+    public static final String FILE_META_DATA_FILE_NAME = "file_meta";
+
+
 }

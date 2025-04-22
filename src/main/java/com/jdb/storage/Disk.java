@@ -1,10 +1,18 @@
 package com.jdb.storage;
 
 import com.jdb.common.PageHelper;
+import com.jdb.common.Value;
+import com.jdb.recovery.RecoveryManager;
+import com.jdb.table.RowData;
+import com.jdb.table.Table;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import static com.jdb.common.Constants.*;
 
 public class Disk {
     //懒加载单例，测试用
@@ -12,26 +20,57 @@ public class Disk {
 
     public synchronized static Disk getInstance() {
         if (disk == null) {
-            disk = new Disk("./data");
-            disk.putFile(777, "test.db");
-            disk.putFile(369, "log");
+//            disk = new Disk("./data");
+//            disk.putFile(777, "test.db");
+//            disk.putFile(369, "log");
         }
         return disk;
     }
 
-    private final String path;
+    private Table fileTable;
+
+    private int nextFid = 100;
+
+    private final String dbDir;
+
+    private RecoveryManager recoveryManager;
 
     // fid->jbfile
-    Map<Integer, JBFile> files = new HashMap<>();
-
+    private final Map<Integer, JBFile> files = new HashMap<>();
 
     // fid->nextPageId
     private final Map<Integer, Long> nextPage = new HashMap<>();
 
-    public Disk(String path) {
-        this.path = path;
+    //======init method======//
+    public Disk(String dbDir) {
+        this.dbDir = dbDir;
     }
 
+    public void setFileTable(Table fileTable) {
+        this.fileTable = fileTable;
+    }
+
+    public void setRecoveryManager(RecoveryManager rm) {
+        this.recoveryManager = rm;
+    }
+
+    public void load() {
+        var iter = fileTable.scan();
+        while (iter.hasNext()) {
+            var rowData = iter.next();
+            int fid = (int) rowData.values.get(0).getValue(Integer.class);
+            String fileName = (String) rowData.values.get(1).getValue(String.class);
+            putFileMap(fid, fileName);
+            nextFid = fid+1;
+        }
+    }
+
+    public void init() {
+
+    }
+
+
+    //======page api======//
     public Page readPage(long pid) {
         Page page = new Page(pid);
         int fid = PageHelper.getFid(pid);
@@ -52,9 +91,13 @@ public class Disk {
         }
     }
 
+    public void writePage(Page page) {
+        int fid = PageHelper.getFid(page.pid);
+        int pno = PageHelper.getPno(page.pid);
+        writePage(fid, pno, page.getData());
+    }
+
     private void writePage(int fid, int pno, byte[] data) {
-//        String path = fileMap.getName(fid);
-//        writePage(path, pno, data);
         JBFile file = files.get(fid);
         try {
             file.wlock.lock();
@@ -66,10 +109,12 @@ public class Disk {
         }
     }
 
-    public void writePage(Page page) {
-        int fid = PageHelper.getFid(page.pid);
-        int pno = PageHelper.getPno(page.pid);
-        writePage(fid, pno, page.getData());
+    public Page allocPage(int fid) {
+        long pid = getNextPageIdAndIncrease(fid);
+
+        recoveryManager.logPageAlloc(pid);
+
+        return new Page(pid);
     }
 
     private long getNextPageIdAndIncrease(int fid) {
@@ -78,15 +123,32 @@ public class Disk {
         return pid;
     }
 
-    public Page allocPage(int fid) {
-        //todo rm记录日志
-        long pid = getNextPageIdAndIncrease(fid);
-        return new Page(pid);
+
+    //======file api======//
+
+    public int addFile(String fileName){
+        int fid = putFileTable(fileName);
+        putFileMap(fid, fileName);
+        return fid;
     }
 
-    public void putFile(int fid, String fileName) {
-        if (files.containsKey(fid))
-            throw new RuntimeException("file already exists");
-        files.put(fid, new JBFile(path + "/" + fileName));
+    private void putFileMap(int fid, String fileName){
+//        if (files.containsKey(fid))
+//            throw new RuntimeException("file already exists");
+        var file = new JBFile(dbDir + "/" + fileName);
+        files.put(fid, file);
+        nextPage.put(fid, PageHelper.concatPid(fid,(int)file.length() / PAGE_SIZE));
+    }
+
+    private int putFileTable(String fileName){
+        int fid = nextFid++;
+
+        List<Value> values = new ArrayList<>();
+        values.add(Value.of(fid));
+        values.add(Value.of(fileName));
+
+        fileTable.insertRecord(new RowData(values), true, false);
+
+        return fid;
     }
 }

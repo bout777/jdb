@@ -33,7 +33,7 @@ public class ClusterIndexEntry extends IndexEntry {
 
     @Override
     public int getBytes() {
-        return key.getBytes() + rowData.getSize();
+        return key.getBytes() + rowData.size();
     }
 
     @Override

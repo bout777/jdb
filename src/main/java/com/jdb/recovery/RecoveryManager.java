@@ -122,6 +122,10 @@ public class RecoveryManager {
         long lsn = logManager.append(log);
     }
 
+    public void logPageAlloc(long pid){
+
+    }
+
     public void rollback(long xid) {
         rollback2lsn(xid,NULL_LSN);
     }
@@ -174,8 +178,11 @@ public class RecoveryManager {
         logManager.rewriteMasterLog(new MasterLog(lsn));
     }
 
-    public void recover() {
-
+    public void restart() {
+        analyze();
+        redo();
+        undo();
+        checkpoint();
     }
 //    long redoLsn;
 
@@ -256,7 +263,7 @@ public class RecoveryManager {
             if (log instanceof CompensationLog clr) {
                 nextLsn = clr.getUndoNextLsn();
             } else {
-                log.undo(engine);
+//                log.undo(engine);
 //                var clr = new CompensationLog(log);
 //                logManager.append(clr);
                 nextLsn = log.getPrevLsn();
@@ -280,6 +287,6 @@ public class RecoveryManager {
     }
 
     public void init() {
-
+        logManager.init();
     }
 }

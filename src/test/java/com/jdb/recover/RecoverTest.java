@@ -2,6 +2,7 @@ package com.jdb.recover;
 
 import com.jdb.DummyBufferPool;
 import com.jdb.TestUtil;
+import com.jdb.common.PageHelper;
 import com.jdb.common.Value;
 import com.jdb.recovery.LogManager;
 import com.jdb.recovery.LogType;
@@ -77,6 +78,17 @@ public class RecoverTest {
 
     @Test
     public void testSimpleRecover(){
+        rm.logTrxBegin(1L);
+        rm.logInsert(1L, new PagePointer(1,1), new byte[]{1,2,3,4});
+        rm.logInsert(1L, new PagePointer(2,1), new byte[]{1,2,3,4});
+
+        rm.logTrxBegin(2L);
+        rm.logInsert(2L, new PagePointer(3,1), new byte[]{1,2,3,4});
+        rm.logInsert(2L, new PagePointer(4,1), new byte[]{1,2,3,4});
+
+        rm.logCommit(1L);
+        rm.checkpoint();
+
 
     }
 

@@ -97,14 +97,6 @@ public class DeleteLog extends LogRecord {
 
     @Override
     public void undo(Engine engine) {
-//        Page page = BufferPool.getInstance().getPage(ptr.pid);
-//        DataPage dataPage = new DataPage(page);
-//        try {
-//            dataPage.insertRecord(ptr.sid,image);
-//        }catch (DuplicateInsertException e){
-//            //record has existed, do nothing
-//        }
-
         //同insertLog，如果直接在该页插入，可能会破坏有序性
 //        int fid = PageHelper.getFid(ptr.pid);
         Table table = engine.getTableManager().getTable(PageHelper.getFid(ptr.pid));

@@ -69,7 +69,7 @@ public class VersionManagerTest {
                 TransactionManager.getInstance().begin();
                 for (int j = finalI * 10; j < (finalI + 1) * 10; j++) {
                     RowData rowData = TestUtil.generateRecord(j);
-                    IndexEntry e = new ClusterIndexEntry(Value.ofInt(j), rowData);
+                    IndexEntry e = new ClusterIndexEntry(Value.of(j), rowData);
                     expected.put(j, e);
                     bptree.insert(e, true);
                 }
@@ -87,7 +87,7 @@ public class VersionManagerTest {
 
         TransactionManager.getInstance().begin();
         for (int i = 0; i < 100; i++) {
-            IndexEntry indexEntry = bptree.searchEqual(Value.ofInt(i));
+            IndexEntry indexEntry = bptree.searchEqual(Value.of(i));
             assertEquals(expected.get(i), indexEntry);
         }
     }

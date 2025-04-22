@@ -8,7 +8,6 @@ import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
 import com.jdb.table.IndexPage;
 import com.jdb.table.RowData;
-import com.jdb.table.Slot;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -178,7 +177,7 @@ class LeafNode extends Node {
         if (entry instanceof ClusterIndexEntry) {
             DataPage dataPage = new DataPage(page,bufferPool,recoveryManager,metaData.tableSchema);
             RowData rowData = ((ClusterIndexEntry) entry).getRecord();
-            if (dataPage.getFreeSpace() < rowData.getSize() + SLOT_SIZE) {
+            if (dataPage.getFreeSpace() < rowData.size() + SLOT_SIZE) {
                 //空间不足，页分裂
                 DataPage newDataPage = dataPage.split();
                 if (rowData.getPrimaryKey().compareTo(newDataPage.getRecord(0).getPrimaryKey())<0) {

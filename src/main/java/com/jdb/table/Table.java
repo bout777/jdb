@@ -14,41 +14,54 @@ import com.jdb.version.VersionManager;
 import java.util.Iterator;
 import java.util.Map;
 
-import static com.jdb.common.Constants.NULL_PAGE_ID;
-
 public class Table {
-    private static Table instance ;
+    private static Table instance;
+
     public static Table getTestTable() {
         if (instance == null) {
             Schema schema = new Schema()
                     .add(new Column(DataType.STRING, "name"))
                     .add(new Column(DataType.INTEGER, "age"));
 
-            instance = new Table("test.db", 777,schema,BufferPool.getInstance(),RecoveryManager.getInstance());
+            instance = new Table("test.db", 777, schema, BufferPool.getInstance(), RecoveryManager.getInstance());
         }
         return instance;
     }
-    private record TableMeta(int fid,String name, Schema schema){
+
+    private record TableMeta(int fid, String name, Schema schema) {
     }
+
     TableMeta meta;
     BufferPool bufferPool;
     RecoveryManager recoveryManager;
     BPTree clusterIndex;
-    Map<String,Index> secIndices;
+    Map<String, Index> secIndices;
+
     public Schema getSchema() {
         return meta.schema;
     }
+
     public Table(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm) {
-        this.meta = new TableMeta(fid,name,schema);
+        this.meta = new TableMeta(fid, name, schema);
         this.bufferPool = bp;
         this.recoveryManager = rm;
-        IndexMetaData clusterIdxMeta = new IndexMetaData(getTableName(),schema.columns().get(0),getTableName(),schema,fid);
-        clusterIndex = new BPTree(clusterIdxMeta,bp,rm);
-        clusterIndex.init();
+        IndexMetaData clusterIdxMeta = new IndexMetaData(getTableName(), schema.columns().get(0), getTableName(), schema, fid);
+        clusterIndex = new BPTree(clusterIdxMeta, bp, rm);
+    }
+    public static Table createInMemory(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm){
+        var table = new Table(name, fid, schema, bp, rm);
+        table.getClusterIndex().init();
+        return table;
+    }
+
+    public static Table loadFromDisk(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm){
+        var table = new Table(name, fid, schema, bp, rm);
+        table.getClusterIndex().load();
+        return table;
     }
 
 
-    public Index getClusterIndex() {
+    public BPTree getClusterIndex() {
         return clusterIndex;
     }
 
@@ -66,9 +79,9 @@ public class Table {
     public RowData getRowData(Value<?> key) {
         var vm = VersionManager.getInstance();
         var result = vm.read(meta.name, key);
-        if(result.getVisibility()==ReadResult.Visibility.VISIBLE){
+        if (result.getVisibility() == ReadResult.Visibility.VISIBLE) {
             return result.getRowData();
-        }else if(result.getVisibility()==ReadResult.Visibility.INVISIBLE){
+        } else if (result.getVisibility() == ReadResult.Visibility.INVISIBLE) {
             return null;
         }
         IndexEntry entry = clusterIndex.searchEqual(key);
@@ -107,27 +120,30 @@ public class Table {
 //        dataPage.insertRecord(rowData, true, true);
 //    }
 
-    public void insertRecord(RowData rowData, boolean shouldLog, boolean shouldPushVersion){
-        var vm = VersionManager.getInstance();
-        vm.pushUpdate(meta.name, rowData);
+    public void insertRecord(RowData rowData, boolean shouldLog, boolean shouldPushVersion) {
+        if (shouldPushVersion) {
+            var vm = VersionManager.getInstance();
+            vm.pushUpdate(meta.name, rowData);
+        }
 
         var entry = new ClusterIndexEntry(rowData.getPrimaryKey(), rowData);
         clusterIndex.insert(entry, shouldLog);
     }
 
-    public void updateRecord(Value<?> key, RowData rowData,boolean shouldLog){
+    public void updateRecord(Value<?> key, RowData rowData, boolean shouldLog) {
         var vm = VersionManager.getInstance();
         vm.pushUpdate(meta.name, rowData);
 
         //todo 暂时先删除再插入以实现更新，这样做代码复杂度比较小，后续在页内添加空闲槽位管理，能最大化利用空间减少复杂度
         clusterIndex.delete(key, shouldLog);
-        clusterIndex.insert(new ClusterIndexEntry(key, rowData),shouldLog);
-    }
-    public void deleteRecord(Value<?> key,boolean shouldLog) {
-        clusterIndex.delete(key,shouldLog);
+        clusterIndex.insert(new ClusterIndexEntry(key, rowData), shouldLog);
     }
 
-    public Iterator<RowData> scan(){
+    public void deleteRecord(Value<?> key, boolean shouldLog) {
+        clusterIndex.delete(key, shouldLog);
+    }
+
+    public Iterator<RowData> scan() {
         return clusterIndex.scanAll();
     }
 }

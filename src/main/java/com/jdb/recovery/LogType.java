@@ -9,8 +9,12 @@ public enum LogType {
     ABORT,
     BEGIN,
 
-    NEW_PAGE,
+    ALLOC_PAGE,
     FREE_PAGE,
+
+    CREATE_FILE,
+    DELETE_FILE,
+
 
     COMPENSATION,
     END,

@@ -18,15 +18,15 @@ public class TestUtil {
 
         List<Value> values = new ArrayList<>();
 
-        values.add(Value.ofInt(i));
-        values.add(Value.ofString("hehe"));
-        values.add(Value.ofInt(r.nextInt()));
+        values.add(Value.of(i));
+        values.add(Value.of("hehe"));
+        values.add(Value.of(r.nextInt()));
 
         int size = 0;
         for (Value val : values) {
             size += val.getBytes();
         }
-        return new RowData(values, size);
+        return new RowData(values);
     }
 
     public static Schema recordSchema() {
