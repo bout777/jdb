@@ -3,6 +3,7 @@ package com.jdb.storage;
 import com.jdb.Engine;
 import com.jdb.common.PageHelper;
 import com.jdb.common.Value;
+import com.jdb.exception.DuplicateInsertException;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
@@ -70,7 +71,11 @@ public class Disk {
             var rowData = iter.next();
             int fid = (int) rowData.values.get(0).getValue(Integer.class);
             String fileName = (String) rowData.values.get(1).getValue(String.class);
-            putFileMap(fid, fileName);
+            try {
+                putFileMap(fid, fileName);
+            } catch (DuplicateInsertException e) {
+
+            }
             nextFid = fid+1;
         }
     }
@@ -156,8 +161,8 @@ public class Disk {
     }
 
     public void putFileMap(int fid, String fileName){
-//        if (files.containsKey(fid))
-//            throw new RuntimeException("file already exists");
+        if (files.containsKey(fid))
+            throw new DuplicateInsertException("file already exists");
         var file = new JBFile(dbDir + "/" + fileName);
         files.put(fid, file);
         nextPage.put(fid, PageHelper.concatPid(fid,(int)file.length() / PAGE_SIZE));
