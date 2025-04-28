@@ -87,8 +87,48 @@ public class DummyRecoverManager extends RecoveryManager {
     }
 
     @Override
+    public long logPageAlloc(long xid, long pid) {
+        return 0L;
+    }
+
+    @Override
+    public long logDataPageInit(long xid, long pid) {
+        return 0L;
+    }
+
+    @Override
+    public long logIndexPageInit() {
+        return 0L;
+    }
+
+    @Override
+    public long logPageLink(long xid, long pid, long beforeNextPid, long afterNextPid) {
+        return 0L;
+    }
+
+    @Override
+    public long logCreateFile(long xid, int fid, String fileName) {
+        return 0L;
+    }
+
+    @Override
+    public void restart() {
+
+    }
+
+    @Override
+    public int getNextLsn() {
+        return 0;
+    }
+
+    @Override
+    public void init() {
+
+    }
+
+    @Override
     public synchronized void checkpoint() {
-        super.checkpoint();
+
     }
 
 }

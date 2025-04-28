@@ -14,7 +14,11 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 
 import static org.junit.Assert.assertEquals;
@@ -37,9 +41,19 @@ public class EngineRecoveryTest {
     }
 
     @After
-    public void close() {
+    public void close() throws IOException {
         engine.close();
-        testDir.deleteOnExit();
+        var p = Path.of(TestUtil.TEST_DIR);
+        Files.walk(p)
+                .filter(path -> !path.equals(p))
+                .sorted(Comparator.reverseOrder())
+                .forEach(file -> {
+                    try {
+                        Files.delete(file);
+                    } catch (IOException e) {
+                        throw new RuntimeException("删除失败: " + file, e);
+                    }
+                });
     }
 
     @Test
@@ -82,7 +96,7 @@ public class EngineRecoveryTest {
         }
         engine.beginTransaction();
         Schema schema = TestUtil.recordSchema();
-        engine.createTable("student", schema);
+        Table table = engine.createTable("student", schema);
         engine.commit();
 
         var runner = new DeterministicRunner(2);
@@ -149,9 +163,10 @@ public class EngineRecoveryTest {
         // 模拟程序崩溃
         engine = new Engine(fileName);
 
-        Table student_tb = engine.getTableManager().getTable("student");
-        var iter = student_tb.scan();
-        while (iter.hasNext()) System.out.println(iter.next());
+//        Table student_tb = engine.getTableManager().getTable("student");
+//        var iter = student_tb.scan();
+//        while (iter.hasNext()) System.out.println(iter.next());
+
 
     }
 

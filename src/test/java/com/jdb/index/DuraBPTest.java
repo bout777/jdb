@@ -4,8 +4,11 @@ import com.jdb.DummyBufferPool;
 import com.jdb.DummyRecoverManager;
 import com.jdb.TestUtil;
 import com.jdb.common.Value;
+import com.jdb.recovery.logs.LogRecord;
 import com.jdb.table.RowData;
+import com.jdb.table.Table;
 import com.jdb.transaction.TransactionContext;
+import com.jdb.version.DeterministicRunner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,11 +26,11 @@ public class DuraBPTest {
 
     @Before
     public void init() {
+        TransactionContext.setTransactionContext(new TransactionContext(1));
         var mata = new IndexMetaData("table1",TestUtil.recordSchema().get(0), "index1", TestUtil.recordSchema(), 0);
         var bp = new DummyBufferPool();
         bpTree = new BPTree(mata,bp, new DummyRecoverManager());
         bpTree.init();
-        TransactionContext.setTransactionContext(new TransactionContext(1));
     }
 
     @After
@@ -105,6 +108,32 @@ public class DuraBPTest {
             fail("并非删除: " + res);
         } catch (NoSuchElementException e) {
         }
+    }
+
+    @Test
+    public void testDelete() {
+        var expected = new ArrayList<RowData>();
+        for (int i = 0; i < 2000; i++) {
+            expected.add(TestUtil.generateRecord(i));
+        }
+        var runner = new DeterministicRunner(2);
+        runner.run(0, () -> {
+            TransactionContext.setTransactionContext(new TransactionContext(2));
+            for (int i = 1000; i < 2000; i++) {
+                bpTree.insert(new ClusterIndexEntry(Value.of(i), expected.get(i)), true);
+            }
+        });
+        runner.run(1, () -> {
+            TransactionContext.setTransactionContext(new TransactionContext(3));
+            for (int i = 0; i < 1000; i++) {
+                bpTree.insert(new ClusterIndexEntry(Value.of(i), expected.get(i)), true);
+            }
+        });
+
+        for (int i = 0; i < 2000; i++) {
+            assertEquals(expected.get(i), bpTree.searchEqual(Value.of(i)).getValue());
+        }
+
     }
 
     @Test
