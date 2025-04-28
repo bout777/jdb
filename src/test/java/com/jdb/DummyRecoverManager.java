@@ -3,7 +3,6 @@ package com.jdb;
 import com.jdb.recovery.LogManager;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.recovery.logs.LogRecord;
-import com.jdb.storage.BufferPool;
 import com.jdb.table.PagePointer;
 
 public class DummyRecoverManager extends RecoveryManager {
@@ -33,18 +32,21 @@ public class DummyRecoverManager extends RecoveryManager {
     }
 
     @Override
-    public void logTrxBegin(long xid) {
+    public long logTrxBegin(long xid) {
 
+        return xid;
     }
 
     @Override
-    public void logUpdate(long xid, int pid, short offset, byte[] oldData, byte[] newData) {
+    public long logUpdate(long xid, int pid, short offset, byte[] oldData, byte[] newData) {
 
+        return xid;
     }
 
     @Override
-    public void logUndoCLR(LogRecord origin) {
+    public long logUndoCLR(LogRecord origin) {
 
+        return 0;
     }
 
     @Override
@@ -58,13 +60,15 @@ public class DummyRecoverManager extends RecoveryManager {
     }
 
     @Override
-    public void logCommit(long xid) {
+    public long logCommit(long xid) {
 
+        return 0L;
     }
 
     @Override
-    public void logAbort(long xid) {
+    public long logAbort(long xid) {
 
+        return 0L;
     }
 
     @Override

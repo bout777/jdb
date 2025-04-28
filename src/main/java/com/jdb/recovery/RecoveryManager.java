@@ -71,19 +71,20 @@ public class RecoveryManager {
     }
 
     //====== 追加日志 ======//
-    public void logTrxBegin(long xid) {
+    public long logTrxBegin(long xid) {
         LogRecord log = new BeginLog(xid);
         long lsn = logManager.append(log);
         transactionsTable.put(xid, lsn);
+        return lsn;
     }
 
-    public void logUpdate(long xid, int pid, short offset, byte[] oldData, byte[] newData) {
+    public long  logUpdate(long xid, int pid, short offset, byte[] oldData, byte[] newData) {
         LogRecord log = new UpdateLog(xid, pid, offset, offset,oldData, newData);
-        logManager.append(log);
+      return  logManager.append(log);
     }
 
-    public void logUndoCLR(LogRecord origin) {
-        logManager.append(new CompensationLog(origin));
+    public long logUndoCLR(LogRecord origin) {
+      return  logManager.append(new CompensationLog(origin));
     }
 
     public synchronized long logInsert(long xid, PagePointer ptr, byte[] image) {
@@ -109,30 +110,66 @@ public class RecoveryManager {
 
         long prevLsn = transactionsTable.get(xid);
         LogRecord log = new DeleteLog(xid, prevLsn, ptr,image);
-
         long lsn = logManager.append(log);
-
         transactionsTable.put(xid, lsn);
-
         dirtyPage(ptr.pid, lsn);
         return lsn;
     }
 
-    public void logCommit(long xid) {
+    public long logCommit(long xid) {
         LogRecord log = new CommitLog(xid);
         long lsn = logManager.append(log);
         logManager.flush2lsn(lsn);
         transactionsTable.remove(xid);
+        return lsn;
     }
-    public void logAbort(long xid) {
+    public long logAbort(long xid) {
         long lastLsn = transactionsTable.remove(xid);
         LogRecord log = new AbortLog(xid,lastLsn);
+        return logManager.append(log);
+    }
+
+    public long logPageAlloc(long xid,long pid){
+        long lastLsn = transactionsTable.get(xid);
+        LogRecord log = new AllocPageLog(xid,lastLsn,pid);
         long lsn = logManager.append(log);
+        transactionsTable.put(xid, lsn);
+        dirtyPage(pid, lsn);
+        return lsn;
     }
 
-    public void logPageAlloc(long pid){
-
+    public long logDataPageInit(long xid,long pid){
+        long lastLsn = transactionsTable.get(xid);
+        LogRecord log = new DataPageInitLog(xid,lastLsn,pid);
+        long lsn = logManager.append(log);
+        transactionsTable.put(xid, lsn);
+        dirtyPage(pid, lsn);
+        return lsn;
     }
+
+    public long logIndexPageInit(){
+        throw new UnsupportedOperationException();
+    }
+
+    public long logPageLink(long xid,long pid,long beforeNextPid,long afterNextPid){
+        long lastLsn = transactionsTable.get(xid);
+        var log = new PageLinkLog(xid,lastLsn,pid,beforeNextPid,afterNextPid);
+        long lsn = logManager.append(log);
+        transactionsTable.put(xid, lsn);
+        dirtyPage(pid, lsn);
+        return lsn;
+    }
+
+    public long logCreateFile(long xid, int fid,String fileName) {
+        long lastLsn = transactionsTable.get(xid);
+        LogRecord log = new CreateFileLog(xid, lastLsn, fid, fileName);
+        long lsn = logManager.append(log);
+        transactionsTable.put(xid,lsn);
+        return lsn;
+    }
+
+
+    //====== 事务 api ======//
 
     public void rollback(long xid) {
         rollback2lsn(xid,NULL_LSN);
@@ -160,10 +197,10 @@ public class RecoveryManager {
 
         while (curLsn > lsn) {
             var log = logManager.getLogRecord(curLsn);
-            if (log instanceof CompensationLog clr) {
-                curLsn = clr.getUndoNextLsn();
-                continue;
-            }
+//            if (log instanceof CompensationLog clr) {
+//                curLsn = clr.getUndoNextLsn();
+//                continue;
+//            }
             
             curLsn = log.getPrevLsn();
             log.undo(engine);
@@ -208,14 +245,14 @@ public class RecoveryManager {
          *  在扫描过程中，如果有update记录的页不在脏页表里，添加该页到脏页表*/
         MasterLog masterLog = logManager.getMasterLog();
         long lastCheckpointLsn = masterLog.getLastCheckpointLsn();
-        if(lastCheckpointLsn == NULL_LSN)
-            return lastCheckpointLsn;
         var logIter = logManager.scanFrom(lastCheckpointLsn);
-        var checkpointLog = (CheckpointLog) logIter.next();
-
-        this.dirtyPagesTable = checkpointLog.getDirtyPageTable();
-        this.transactionsTable = checkpointLog.getActiveTransactionTable();
-
+        if(!logIter.hasNext())
+            return NULL_LSN;
+        if(lastCheckpointLsn!=NULL_LSN) {
+            var checkpointLog = (CheckpointLog) logIter.next();
+            this.dirtyPagesTable = checkpointLog.getDirtyPageTable();
+            this.transactionsTable = checkpointLog.getActiveTransactionTable();
+        }
         while (logIter.hasNext()) {
             var log = logIter.next();
             if (log.getXid() != NULL_XID) {
@@ -243,9 +280,17 @@ public class RecoveryManager {
         var logIter = logManager.scanFrom(redoLsn);
         while (logIter.hasNext()) {
             var log = logIter.next();
-            var recLsn = dirtyPagesTable.get(log.getPageId());
-            if (recLsn == null || log.getLsn() < recLsn)
+
+            // 如果是allocPage 总是redo
+            if(log.getType()==LogType.ALLOC_PAGE||log.getType()==LogType.CREATE_FILE){
+                log.redo(engine);
                 continue;
+            }
+
+            var recLsn = dirtyPagesTable.get(log.getPageId());
+            if (recLsn == null || log.getLsn() < recLsn) {
+                continue;
+            }
 
             Page page = bufferPool.getPage(log.getPageId());
             if (log.getLsn() <= page.getLsn())

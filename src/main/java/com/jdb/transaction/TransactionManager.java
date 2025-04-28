@@ -53,7 +53,7 @@ public class TransactionManager {
             versionManager.commit(writeSet);
         }
 
-        //todo 调用recover写日志
+        // 调用recover写日志
         recoveryManager.logCommit(TransactionContext.getTransaction().getXid());
 
         //事后清理

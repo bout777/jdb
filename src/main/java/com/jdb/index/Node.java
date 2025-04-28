@@ -5,6 +5,7 @@ import com.jdb.common.Value;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
+import com.jdb.storage.PageType;
 import com.jdb.table.DataPage;
 import com.jdb.table.IndexPage;
 import com.jdb.table.RowData;
@@ -33,8 +34,8 @@ public abstract class Node {
         Page page = bp.getPage(pid);
         byte[] data = page.getData();
         return switch (data[0]) {
-            case 0x01 -> new InnerNode(metaData, pid, page,bp,rm);
-            case 0x02 -> new LeafNode(metaData, pid, page,bp,rm);
+            case PageType.DATA_PAGE -> new InnerNode(metaData, pid, page,bp,rm);
+            case PageType.INDEX_PAGE -> new LeafNode(metaData, pid, page,bp,rm);
             default -> throw new UnsupportedOperationException("unknown page type");
         };
     }

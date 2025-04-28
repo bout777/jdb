@@ -28,13 +28,13 @@ import static com.jdb.common.Constants.*;
  * */
 public class DataPage {
 
-    private static final int PAGE_TYPE_OFFSET = 0;
-    private static final int LSN_OFFSET = Byte.BYTES;
-    private static final int PAGE_ID_OFFSET = LSN_OFFSET + Long.BYTES;
-    private static final int NEXT_PAGE_ID_OFFSET = PAGE_ID_OFFSET + Long.BYTES;
-    private static final int LOWER_OFFSET = NEXT_PAGE_ID_OFFSET + Long.BYTES;
-    private static final int UPPER_OFFSET = LOWER_OFFSET + Integer.BYTES;
-    private static final int HEADER_SIZE = UPPER_OFFSET + Integer.BYTES;
+    public static final int PAGE_TYPE_OFFSET = 0;
+    public static final int LSN_OFFSET = Byte.BYTES;
+    public static final int PAGE_ID_OFFSET = LSN_OFFSET + Long.BYTES;
+    public static final int NEXT_PAGE_ID_OFFSET = PAGE_ID_OFFSET + Long.BYTES;
+    public static final int LOWER_OFFSET = NEXT_PAGE_ID_OFFSET + Long.BYTES;
+    public static final int UPPER_OFFSET = LOWER_OFFSET + Integer.BYTES;
+    public static final int HEADER_SIZE = UPPER_OFFSET + Integer.BYTES;
 
     private Table table;
     private final ByteBuffer buffer;
@@ -53,7 +53,15 @@ public class DataPage {
     }
 
     public void init() {
-        setNextPageId(NULL_PAGE_ID);
+        //log
+        long xid = TransactionContext.getTransaction().getXid();
+        recoveryManager.logDataPageInit(xid, page.pid);
+        //set byte
+        doInit();
+    }
+
+    public void doInit() {
+        setNextPageId(NULL_PAGE_ID,false);
         setLower(HEADER_SIZE);
         setUpper(PAGE_SIZE);
         byte b = 2;
@@ -72,7 +80,11 @@ public class DataPage {
         return buffer.getLong(NEXT_PAGE_ID_OFFSET);
     }
 
-    public void setNextPageId(long nextPageId) {
+    public void setNextPageId(long nextPageId, boolean shouldLog) {
+        if(shouldLog){
+            long xid = TransactionContext.getTransaction().getXid();
+            recoveryManager.logPageLink(xid, page.pid, getNextPageId(), nextPageId);
+        }
         buffer.putLong(NEXT_PAGE_ID_OFFSET, nextPageId);
     }
 
@@ -291,27 +303,26 @@ public class DataPage {
      * 在测试代码中保证按照主键的升序插入*/
     public DataPage split() {
         int fid = (int) (getPageId() >> Integer.SIZE);
-        Page newPage = bufferPool.newPage(fid);
+        Page newPage = bufferPool.newPage(fid, true);
         //创建一个当前页的镜像页
         Page image = new Page(Arrays.copyOf(this.page.getData(), this.page.getData().length));
         DataPage imageDataPage = new DataPage(image, bufferPool, recoveryManager, schema);
 
         //初始化当前页和新页
-//        this.init();
         DataPage newDataPage = new DataPage(newPage, bufferPool, recoveryManager, schema);
-        newDataPage.init();
-        newDataPage.setNextPageId(this.getNextPageId());
-        this.init();
-        this.setNextPageId(newDataPage.getPageId());
+        newDataPage.doInit();
+        newDataPage.setNextPageId(this.getNextPageId(),true);
+        this.doInit();
+        this.setNextPageId(newDataPage.getPageId(),true);
 
         //读取镜像页的数据，分别插入当前页和新页
         int recordCount = imageDataPage.getRecordCount();
         var iter = imageDataPage.scanFrom(0);
         for (int i = 0; i < recordCount / 2; i++) {
-            this.insertRecord(iter.next(), true, false);
+            this.insertRecord(iter.next(), false, false);
         }
         for (int i = recordCount / 2; i < recordCount; i++) {
-            newDataPage.insertRecord(iter.next(), true, false);
+            newDataPage.insertRecord(iter.next(), false, false);
         }
         return newDataPage;
     }

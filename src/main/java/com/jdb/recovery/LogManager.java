@@ -20,6 +20,7 @@ import static com.jdb.common.Constants.*;
  * */
 public class LogManager {
     private Engine engine;
+    public static int inCount = 0;
 
     private static final long MASTER_LOG_PAGE_ID = PageHelper.concatPid(LOG_FILE_ID, 0);
     private BufferPool bufferPool;
@@ -30,8 +31,6 @@ public class LogManager {
 
     public LogManager(BufferPool bp) {
         bufferPool = bp;
-
-
     }
 
     public LogManager(Engine engine) {
@@ -44,7 +43,7 @@ public class LogManager {
 
     public void init() {
         //init master
-        bufferPool.newPage(LOG_FILE_ID);
+        bufferPool.newPage(LOG_FILE_ID, false);
         rewriteMasterLog(new MasterLog(NULL_LSN));
     }
 
@@ -66,14 +65,16 @@ public class LogManager {
 
     public synchronized long append(LogRecord log) {
         if (logTail == null || logTail.getFreeSpace() < log.getSize()) {
-            logTail = new LogPage(bufferPool.newPage(LOG_FILE_ID));
+            logTail = new LogPage(bufferPool.newPage(LOG_FILE_ID, false));
             // todo 更新nextpid？
             logTail.init();
-            unflushedLogTail.add(logTail.getPageNo());
         }
+        if(unflushedLogTail.isEmpty()|| logTail.getPageNo()!=unflushedLogTail.getLast())
+            unflushedLogTail.addLast(logTail.getPageNo());
         int offset = logTail.append(log);
         long lsn = makeLSN(logTail.getPageId(), offset);
         log.setLsn(lsn);
+ //       System.out.printf("incount: %d input page: %d,off: %d,log: %s \n,",++inCount, lsn>>32&Integer.MAX_VALUE,getLSNOffset(lsn), log.getPrevLsn());
         return lsn;
     }
 
@@ -94,6 +95,7 @@ public class LogManager {
         LogPage logPage = new LogPage(bufferPool.getPage(getLSNPage(lsn)));
         var log = logPage.getLogRecord(getLSNOffset(lsn));
         log.setLsn(lsn);
+//        System.out.printf("out page: %d,off: %d,log: %s \n,", lsn>>32&Integer.MAX_VALUE,getLSNOffset(lsn), log.getPrevLsn());
         return log;
     }
 
@@ -133,10 +135,26 @@ public class LogManager {
 
         LogIterator() {
             this.pid = MASTER_LOG_PAGE_ID + 1;
-            Page page = bufferPool.getPage(pid);
+            Page page;
+            try {
+                page = bufferPool.getPage(pid);
+            } catch (NoSuchElementException e) {
+                return;
+            }
             pid++;
             LogPage logPage = new LogPage(page);
             internalIter = logPage.scan();
+            while (!internalIter.hasNext()) {
+                try {
+                    page = bufferPool.getPage(this.pid);
+                    logPage = new LogPage(page);
+                    internalIter = logPage.scan();
+                    this.pid++;
+                } catch (NoSuchElementException e) {
+                    internalIter = null;
+                    break;
+                }
+            }
         }
 
         @Override
@@ -156,7 +174,8 @@ public class LogManager {
                     LogPage logPage = new LogPage(page);
                     internalIter = logPage.scan();
                     this.pid++;
-                } catch (RuntimeException e) {
+                    //todo ->
+                } catch (NoSuchElementException e) {
                     internalIter = null;
                     break;
                 }
@@ -250,6 +269,7 @@ public class LogManager {
                 long lsn = makeLSN(getPageId(), offset);
                 log.setLsn(lsn);
                 offset += log.getSize();
+            //    System.out.printf("iter out page: %d,off: %d,log: %s \n,", lsn>>32&Integer.MAX_VALUE,getLSNOffset(lsn), log.getPrevLsn());
                 return log;
             }
         }

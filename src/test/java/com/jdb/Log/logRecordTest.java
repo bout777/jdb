@@ -1,9 +1,6 @@
 package com.jdb.Log;
 
-import com.jdb.recovery.logs.LogRecord;
-import com.jdb.recovery.logs.InsertLog;
-import com.jdb.recovery.logs.MasterLog;
-import com.jdb.recovery.logs.UpdateLog;
+import com.jdb.recovery.logs.*;
 import com.jdb.storage.BufferPool;
 import com.jdb.table.DataPage;
 import com.jdb.table.PagePointer;
@@ -47,6 +44,15 @@ public class logRecordTest {
         ByteBuffer buffer = ByteBuffer.allocate(100);
         expected.serialize(buffer, 0);
         LogRecord log = LogRecord.deserialize(buffer, 0);
+        assertEquals(expected, log);
+    }
+
+    @Test
+    public void testAllocPageLog() {
+        var buf =  ByteBuffer.allocate(200);
+        AllocPageLog expected = new AllocPageLog(114514L, 0, 0);
+        expected.serialize(buf, 0);
+        LogRecord log = LogRecord.deserialize(buf, 0);
         assertEquals(expected, log);
     }
 

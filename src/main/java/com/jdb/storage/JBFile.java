@@ -15,11 +15,12 @@ public class JBFile implements AutoCloseable{
     private int fid;
     Lock rlock = rwLock.readLock();
     Lock wlock = rwLock.writeLock();
-
+    private String name;
 
     JBFile(String fileName) {
         try {
             this.file = new RandomAccessFile(fileName, "rwd");
+            this.name = fileName;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -27,7 +28,7 @@ public class JBFile implements AutoCloseable{
 
     public void read(int pno, byte[] data) throws IOException {
         int pos = pno * PAGE_SIZE;
-        if (pos > file.length()) {
+        if (pos >= file.length()) {
             throw new NoSuchElementException("pno out of range");
         }
         file.seek(pos);
@@ -36,6 +37,8 @@ public class JBFile implements AutoCloseable{
 
     public void write(int pno, byte[] data) throws IOException {
         int pos = pno * PAGE_SIZE;
+//        System.out.println(+"write: "+);
+        System.out.println(name+" write: "+pos);
         file.seek(pos);
         file.write(data);
     }

@@ -1,5 +1,6 @@
 package com.jdb.index;
 
+import com.jdb.common.PageHelper;
 import com.jdb.common.Value;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
@@ -30,14 +31,14 @@ public class BPTree implements Index {
     }
 
     public void init() {
-        Page page = bufferPool.newPage(metaData.fid);
+        Page page = bufferPool.newPage(metaData.fid, true);
         DataPage dataPage = new DataPage(page, bufferPool, recoveryManager,metaData.tableSchema);
         dataPage.init();
         root = new LeafNode(metaData, dataPage.getPageId(), page, bufferPool,recoveryManager);
     }
 
     public void load(){
-        root = Node.load(metaData, root.pid, bufferPool,recoveryManager);
+        root = Node.load(metaData, PageHelper.concatPid(metaData.fid, 0), bufferPool,recoveryManager);
     }
 
     @Override
@@ -57,7 +58,7 @@ public class BPTree implements Index {
             //分裂根节点
 
             //新建一个索引页
-            Page newpage = bufferPool.newPage(metaData.fid);
+            Page newpage = bufferPool.newPage(metaData.fid, true);
             IndexPage nipage = new IndexPage(newpage.pid, newpage,bufferPool);
             nipage.init();
 
@@ -79,6 +80,7 @@ public class BPTree implements Index {
 
     @Override
     public void delete(Value<?> key, boolean shouldLog) {
+//        System.out.println("on delete: "+key);
         root.delete(key,shouldLog);
     }
 

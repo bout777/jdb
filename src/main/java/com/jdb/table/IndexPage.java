@@ -156,7 +156,7 @@ public class IndexPage {
 
     public IndexPage split() {
         int fid = PageHelper.getPno(page.pid);
-        Page newPage = bufferPool.newPage(fid);
+        Page newPage = bufferPool.newPage(fid, true);
         IndexPage newIndexPage = new IndexPage(newPage.pid, newPage,bufferPool);
         newIndexPage.init();
 

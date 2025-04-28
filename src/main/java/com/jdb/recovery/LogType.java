@@ -11,6 +11,9 @@ public enum LogType {
 
     ALLOC_PAGE,
     FREE_PAGE,
+    DATA_PAGE_INIT,
+    INDEX_PAGE_INIT,
+    PAGE_LINK,
 
     CREATE_FILE,
     DELETE_FILE,
@@ -19,8 +22,7 @@ public enum LogType {
     COMPENSATION,
     END,
     MASTER,
-    CHECKPOINT,
-    NULL;
+    CHECKPOINT;
 
     private static LogType[] values = LogType.values();
 

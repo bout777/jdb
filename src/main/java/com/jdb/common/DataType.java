@@ -5,5 +5,6 @@ public enum DataType {
     INTEGER,    // 1
     STRING,     // 2
     BOOLEAN,    // 3
-    FLOAT       // 4
+    FLOAT,
+    BYTE_ARRAY// 4
 }

@@ -111,6 +111,7 @@ public class TableManager {
 
 
     public String getTableName(int fid) {
+
         var iter = tableMeta.scan();
         while (iter.hasNext()) {
             var rowData = iter.next();
@@ -122,15 +123,51 @@ public class TableManager {
     }
 
     public Table getTable(String name) {
-        return tables.get(name);
+        Table table = tables.get(name);
+        if(table==null){
+            var iter = tableMeta.scan();
+            while (iter.hasNext()) {
+                var rowData = iter.next();
+                String tbName = (String) rowData.values.get(0).getValue(String.class);
+                if (tbName.equals(name)) {
+                    int fid = (int) rowData.values.get(1).getValue(Integer.class);
+                    Schema schema = Schema.fromString((String) rowData.values.get(2).getValue(String.class));
+                    table= Table.loadFromDisk(name, fid, schema, bufferPool, recoveryManager,versionManager);
+                }
+            }
+        }
+        if(table==null)
+            throw new NoSuchElementException("table no exist");
+
+        tables.put(name,table);
+        return table;
     }
 
     public Table getTable(int fid) {
-        String name = getTableName(fid);
-        return tables.get(name);
+        return switch (fid) {
+            case TABLE_META_DATA_FILE_ID -> tableMeta;
+            case INDEX_META_DATA_FILE_ID -> indexMeta;
+            case FILE_META_DATA_FILE_ID -> fileMeta;
+            default -> getTableFromMeta(fid);
+        };
     }
 
-    public void create(String tableName, Schema schema) {
+    private Table getTableFromMeta(int fid) {
+        var iter = tableMeta.scan();
+        while (iter.hasNext()) {
+            var rowData = iter.next();
+            int tbFid = (int) rowData.values.get(1).getValue(Integer.class);
+            if (tbFid==fid) {
+                String  tbName = (String) rowData.values.get(0).getValue(String.class);
+                Schema schema = Schema.fromString((String) rowData.values.get(2).getValue(String.class));
+                return Table.loadFromDisk(tbName, fid, schema, bufferPool, recoveryManager,versionManager);
+            }
+        }
+        throw new NoSuchElementException("table no exist");
+    }
+
+    public Table create(String tableName, Schema schema) {
+        //todo 先检查表是否已存在
         int fid = disk.addFile(tableName + TABLE_FILE_SUFFIX);
         Table table = Table.createInMemory(tableName, fid, schema, bufferPool, recoveryManager,versionManager);
         tables.put(tableName, table);
@@ -138,6 +175,8 @@ public class TableManager {
         //meta写记录
         var row = new RowData(Value.of(tableName), Value.of(fid), Value.of(schema.toString()));
         tableMeta.insertRecord(row, true, true);
+
+        return table;
     }
 
     public void drop(String tableName) {

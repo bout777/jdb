@@ -35,6 +35,15 @@ public abstract class LogRecord {
             case ABORT -> AbortLog.deserializePayload(buffer, offset);
             case DELETE -> DeleteLog.deserializePayload(buffer, offset);
             case COMPENSATION -> CompensationLog.deserializePayload(buffer, offset);
+
+            case ALLOC_PAGE -> AllocPageLog.deserializePayload(buffer, offset);
+            case CREATE_FILE -> CreateFileLog.deserializePayload(buffer, offset);
+            case DATA_PAGE_INIT -> DataPageInitLog.deserializePayload(buffer, offset);
+//            case FREE_PAGE -> FreePageLog.deserializePayload(buffer, offset);
+//            case INDEX_PAGE_INIT -> IndexPageInitLog.deserializePayload(buffer, offset);
+//            case PAGE_LINK -> PageLinkLog.deserializePayload(buffer, offset);
+//            case DELETE_FILE -> DeleteFileLog.deserializePayload(buffer, offset);
+//            case END -> EndLog.deserializePayload(buffer, offset);
             default -> throw new UnsupportedOperationException("bad log type");
         };
     }
@@ -55,17 +64,17 @@ public abstract class LogRecord {
 
     protected abstract int serializePayload(ByteBuffer buffer, int offset);
     
-    protected int serializeHeader(ByteBuffer buffer, int offset) {
+    private int serializeHeader(ByteBuffer buffer, int offset) {
         buffer.put(offset, (byte) type.getValue());
         offset += Byte.BYTES;
         return offset;
     }
 
-    public int getSize(){
+    public final int getSize(){
         return HEADER_SIZE + getPayloadSize();
     };
 
-    public int serialize(ByteBuffer buffer, int offset) {
+    public final int serialize(ByteBuffer buffer, int offset) {
         offset = serializeHeader(buffer, offset);
         offset = serializePayload(buffer, offset);
         return offset;
@@ -73,13 +82,10 @@ public abstract class LogRecord {
 
 
     // 为了测试写成默认方法，后续要改成子类重载
-    public byte[] toBytes() {
-        return new byte[0];
-    }
 
     public abstract LogType getType();
 
     public void redo(Engine engine){
-    };
+    }
     public void undo(Engine engine){};
 }

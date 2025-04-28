@@ -23,7 +23,7 @@ public class DummyBufferPool extends BufferPool {
     }
 
     @Override
-    public Page newPage(int fid) {
+    public Page newPage(int fid, boolean shouldLog) {
         long pid = nextPages.getOrDefault(fid, PageHelper.concatPid(fid, 0));
         Page page = new Page(pid);
         pages.put(pid, page);

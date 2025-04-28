@@ -108,6 +108,25 @@ public class DuraBPTest {
     }
 
     @Test
+    public void testBulkDelete() {
+        for (int i = 1000; i <2000 ; i++) {
+            RowData rowData = TestUtil.generateRecord(i);
+            IndexEntry e = new ClusterIndexEntry(Value.of(i), rowData);
+            bpTree.insert(e, true);
+        }
+
+        for (int i = 0;i<1000; i++) {
+            RowData rowData = TestUtil.generateRecord(i);
+            IndexEntry e = new ClusterIndexEntry(Value.of(i), rowData);
+            bpTree.insert(e, true);
+        }
+        for (int i = 1999;i>=1000; i--) {
+           bpTree.delete(Value.of(i), true);
+        }
+
+    }
+
+    @Test
     public void testScanAll(){
         for (int i = 2000; i >= 0 ; i--) {
             RowData rowData = TestUtil.generateRecord(i);

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Random;
 
 public class TestUtil {
+    public static final String TEST_DIR = "D:\\ideaProject\\jdb\\testdb";
     private static Random r = new Random();
 
     public static RowData generateRecord(int i) {

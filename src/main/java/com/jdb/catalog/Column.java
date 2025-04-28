@@ -5,13 +5,10 @@ import com.jdb.common.DataType;
 public class Column {
     DataType type;
     String name;
-    int Bytes;
-    int length;
 
     public Column(DataType type, String name) {
         this.type = type;
         this.name = name;
-        this.Bytes = Bytes;
     }
 
     public String getName() {
@@ -21,4 +18,21 @@ public class Column {
     public DataType getType() {
         return type;
     }
+
+    @Override
+    public String toString(){
+        return "Column{" +
+                "type=" + type +
+                ", name='" + name + '\'' +
+                '}';
+    }
+
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Column that= (Column) o;
+        return type == that.type &&
+                name.equals(that.name);
+    }
+
 }

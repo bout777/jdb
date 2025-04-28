@@ -65,7 +65,7 @@ public class EngineTest {
 
         row =(RowData) table.getClusterIndex().searchEqual(rowData.getPrimaryKey()).getValue();
         assertEquals(rowData,row);
-        System.out.println(row);
+  //      System.out.println(row);
     }
 
     @Test

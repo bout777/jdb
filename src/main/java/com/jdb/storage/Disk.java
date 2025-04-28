@@ -6,6 +6,7 @@ import com.jdb.common.Value;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
+import com.jdb.transaction.TransactionContext;
 
 import java.io.IOException;
 import java.util.*;
@@ -94,6 +95,8 @@ public class Disk {
 
     private void readPage(int fid, int pno, byte[] data) {
         JBFile file = files.get(fid);
+        if(file==null)
+            throw new NoSuchElementException(fid+"file no existed");
         try {
             file.rlock.lock();
             file.read(pno, data);
@@ -112,6 +115,8 @@ public class Disk {
 
     private void writePage(int fid, int pno, byte[] data) {
         JBFile file = files.get(fid);
+        if(file==null)
+            throw new NoSuchElementException(fid+"file no existed");
         try {
             file.wlock.lock();
             file.write(pno, data);
@@ -124,7 +129,7 @@ public class Disk {
 
     public Page allocPage(int fid) {
         long pid = getNextPageIdAndIncrease(fid);
-        recoveryManager.logPageAlloc(pid);
+
         return new Page(pid);
     }
 
@@ -138,14 +143,19 @@ public class Disk {
 
 
     //======file api======//
+    public boolean fileExist(int fid) {
+        return files.containsKey(fid);
+    }
 
     public int addFile(String fileName){
         int fid = putFileTable(fileName);
         putFileMap(fid, fileName);
+        long xid = TransactionContext.getTransaction().getXid();
+        recoveryManager.logCreateFile(xid, fid, fileName);
         return fid;
     }
 
-    private void putFileMap(int fid, String fileName){
+    public void putFileMap(int fid, String fileName){
 //        if (files.containsKey(fid))
 //            throw new RuntimeException("file already exists");
         var file = new JBFile(dbDir + "/" + fileName);
@@ -167,10 +177,13 @@ public class Disk {
 
     public void close() {
         for (JBFile file : files.values()) {
+            file.wlock.lock();
             try {
                 file.close();
             } catch (Exception e) {
                 throw new RuntimeException(e);
+            }finally {
+                file.wlock.unlock();
             }
         }
         files.clear();

@@ -10,6 +10,7 @@ import com.jdb.storage.Disk;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
 import com.jdb.table.TableManager;
+import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 import com.jdb.version.VersionManager;
 
@@ -73,29 +74,55 @@ public class Engine {
         dependencyInjection();
 
         //读or创建一些必须的文件
+        /*
+        * 如果文件不存在
+        * 则向磁盘写入
+        * 如果存在则读取到file对象中
+        * 日志文件，索引表文件，文件表文件，表信息表文件
+        * 不会产生日志*/
         disk.init();
 
+
+        /*
+        * 向缓冲池申请第一张日志页
+        * 写入第一页主日志*/
+        if(!initialized)
+            logManager.init();
+
+        /*
+        * 启动初始化事务
+        * 由于tableMan的init方法是新建三张表
+        * 会产生日志，所以要关联事务
+        * 如果已经初始化，会执行恢复，也要关联事务
+        * 所以就在这里先启动一个
+        * todo 已分配事务id持久化
+        * */
+        transactionManager.begin();
         if (!initialized) {
             //创建系统表
+            /*
+            * 新建三张表
+            * 文件表，索引表，表信息表*/
             tableManager.init();
-            //写masterLog
-            logManager.init();
+
+            /*
+            * 所有页刷盘
+            * */
+            bufferPool.flush();
         } else {
-            //从磁盘中读系统表
+            //从磁盘中读文件表，索引表，表信息表
             tableManager.load();
         }
+        //执行崩溃恢复
+        if(initialized) {
+            recoveryManager.restart();
+        }
+        //提交
+        transactionManager.commit();
         //注入文件表
         disk.setFileTable(tableManager.getFileMeta());
         //从文件表中读文件列表
         disk.load();
-
-        //启动恢复事务
-        transactionManager.begin();
-        //执行崩溃恢复
-        recoveryManager.restart();
-        //提交
-        transactionManager.commit();
-
     }
 
 
@@ -200,8 +227,8 @@ public class Engine {
         table.deleteRecord(key, true);
     }
 
-    public void createTable(String tableName, Schema schema) {
-        tableManager.create(tableName, schema);
+    public Table createTable(String tableName, Schema schema) {
+         return tableManager.create(tableName, schema);
     }
 
     public void dropTable(String tableName) {

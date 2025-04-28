@@ -28,6 +28,10 @@ public class Page {
         return buffer.getLong(Byte.BYTES);
     }
 
+    public void setLsn(long lsn){
+        buffer.putLong(Byte.BYTES,lsn);
+    }
+
     public boolean isDirty() {
         return this.isDirty;
     }
