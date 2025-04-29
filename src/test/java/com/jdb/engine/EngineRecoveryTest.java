@@ -3,6 +3,7 @@ package com.jdb.engine;
 import com.jdb.Engine;
 import com.jdb.TestUtil;
 import com.jdb.catalog.Schema;
+import com.jdb.recovery.LogType;
 import com.jdb.recovery.logs.LogRecord;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
@@ -107,7 +108,6 @@ public class EngineRecoveryTest {
                 engine.insert("student", expected.get(i));
             }
         });
-        Iterator<LogRecord> logiter = engine.getLogManager().scan();
         runner.run(1, () -> {
             Table student_table = engine.getTableManager().getTable("student");
             engine.beginTransaction();
@@ -123,6 +123,7 @@ public class EngineRecoveryTest {
         runner.run(1, () -> {
             engine.commit();
         });
+
         Table student_table = engine.getTableManager().getTable("student");
 
         var iter = student_table.scan();

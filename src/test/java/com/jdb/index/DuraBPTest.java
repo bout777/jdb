@@ -130,10 +130,18 @@ public class DuraBPTest {
             }
         });
 
-        for (int i = 0; i < 2000; i++) {
+        for (int i = 1999; i >= 1000; i--) {
+            bpTree.delete(Value.of(i), true);
+        }
+        for (int i = 0; i < 1000; i++) {
             assertEquals(expected.get(i), bpTree.searchEqual(Value.of(i)).getValue());
         }
 
+        var iter = bpTree.scanAll();
+        for(int i = 0;i<1000;i++)
+            assertEquals(expected.get(i), iter.next());
+
+        assertFalse(iter.hasNext());
     }
 
     @Test
