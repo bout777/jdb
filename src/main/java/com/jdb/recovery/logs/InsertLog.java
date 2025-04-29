@@ -103,6 +103,7 @@ public class InsertLog extends LogRecord {
         var table = engine.getTableManager().getTable(PageHelper.getFid(ptr.pid));
         Schema schema = table.getSchema();
         var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
+//        System.out.println("on delete: "+rowData);
         table.deleteRecord(rowData.getPrimaryKey(), true);
     }
 

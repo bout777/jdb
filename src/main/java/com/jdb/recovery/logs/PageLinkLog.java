@@ -2,11 +2,14 @@ package com.jdb.recovery.logs;
 
 import com.jdb.Engine;
 import com.jdb.recovery.LogType;
+import com.jdb.storage.Page;
+import com.jdb.table.DataPage;
+import com.jdb.table.PagePointer;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-public class PageLinkLog extends LogRecord{
+public class PageLinkLog extends LogRecord {
     long xid;
     long prevLsn;
     long pid;
@@ -21,9 +24,27 @@ public class PageLinkLog extends LogRecord{
         this.beforeNextPid = beforeNextPid;
         this.afterNextPid = afterNextPid;
     }
+
+    @Override
+    public long getPageId() {
+        return pid;
+    }
+
+    @Override
+    public long getXid() {
+        return xid;
+    }
+
+    @Override
+    public long getPrevLsn() {
+        return prevLsn;
+    }
+
+
+
     @Override
     protected int getPayloadSize() {
-        return Long.BYTES*5;
+        return Long.BYTES * 5;
     }
 
     @Override
@@ -37,17 +58,35 @@ public class PageLinkLog extends LogRecord{
         return buffer.position();
     }
 
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset);
+        long xid = buffer.getLong();
+        long prevLsn = buffer.getLong();
+        long pid = buffer.getLong();
+        long beforeNextPid = buffer.getLong();
+        long afterNextPid = buffer.getLong();
+        return new PageLinkLog(xid, prevLsn, pid, beforeNextPid, afterNextPid);
+    }
+
     @Override
     public LogType getType() {
         return LogType.PAGE_LINK;
     }
+
     @Override
     public void redo(Engine engine) {
-
+        var bp = engine.getBufferPool();
+        Page page = bp.getPage(pid);
+        var bf = page.getBuffer();
+        bf.putLong(DataPage.NEXT_PAGE_ID_OFFSET, afterNextPid);
     }
+
     @Override
     public void undo(Engine engine) {
-
+//        var bp = engine.getBufferPool();
+//        Page page = bp.getPage(pid);
+//        var bf = page.getBuffer();
+//        bf.putLong(DataPage.NEXT_PAGE_ID_OFFSET, beforeNextPid);
     }
 
     @Override

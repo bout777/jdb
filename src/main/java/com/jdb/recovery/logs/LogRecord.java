@@ -41,7 +41,7 @@ public abstract class LogRecord {
             case DATA_PAGE_INIT -> DataPageInitLog.deserializePayload(buffer, offset);
 //            case FREE_PAGE -> FreePageLog.deserializePayload(buffer, offset);
 //            case INDEX_PAGE_INIT -> IndexPageInitLog.deserializePayload(buffer, offset);
-//            case PAGE_LINK -> PageLinkLog.deserializePayload(buffer, offset);
+            case PAGE_LINK -> PageLinkLog.deserializePayload(buffer, offset);
 //            case DELETE_FILE -> DeleteFileLog.deserializePayload(buffer, offset);
 //            case END -> EndLog.deserializePayload(buffer, offset);
             default -> throw new UnsupportedOperationException("bad log type");

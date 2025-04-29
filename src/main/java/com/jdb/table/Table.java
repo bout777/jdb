@@ -57,6 +57,7 @@ public class Table {
     }
 
     public static Table loadFromDisk(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm,VersionManager vm){
+
         var table = new Table(name, fid, schema, bp, rm,vm);
         table.getClusterIndex().load();
         return table;

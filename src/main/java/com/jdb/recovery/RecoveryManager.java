@@ -197,12 +197,11 @@ public class RecoveryManager {
 
         while (curLsn > lsn) {
             var log = logManager.getLogRecord(curLsn);
-//            if (log instanceof CompensationLog clr) {
-//                curLsn = clr.getUndoNextLsn();
-//                continue;
-//            }
+
             
             curLsn = log.getPrevLsn();
+//            if(log.getType()!=LogType.INSERT)
+//                System.out.println("on undo of log: "+log);
             log.undo(engine);
             //试试就逝世
         }

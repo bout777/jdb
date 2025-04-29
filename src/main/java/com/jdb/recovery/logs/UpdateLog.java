@@ -15,7 +15,7 @@ public class UpdateLog extends LogRecord {
     private static final int RID_OFFSET = 1;
     private static final int XID_OFFSET = RID_OFFSET + PagePointer.SIZE;
     private static final int PREV_LSN_OFFSET = XID_OFFSET + Integer.BYTES;
-    private static final int HEADER_SIZE = Byte.BYTES + Long.BYTES + Integer.BYTES + Long.BYTES + Short.BYTES + Short.BYTES;
+    private static final int HEADER_SIZE = Long.BYTES + Integer.BYTES + Long.BYTES + Short.BYTES + Short.BYTES;
     private long xid;
     private int pid;
     private long prevLsn;
@@ -93,6 +93,7 @@ public class UpdateLog extends LogRecord {
     @Override
     public void redo(Engine engine) {
         var bp = engine.getBufferPool();
+        //todo setLsn
         Page page = bp.getPage(pid);
         ByteBuffer buffer = page.getBuffer();
         buffer.put(offset, newData);
@@ -100,9 +101,10 @@ public class UpdateLog extends LogRecord {
 
     @Override
     public void undo(Engine engine) {
-//        Page page = BufferPool.getInstance().getPage(pid);
-//        ByteBuffer buffer = page.getBuffer();
-//        buffer.put(offset, oldData);
+        var bp = engine.getBufferPool();
+        Page page = bp.getPage(pid);
+        ByteBuffer buffer = page.getBuffer();
+        buffer.put(offset, oldData);
     }
 
     @Override

@@ -21,6 +21,7 @@ public class JBFile implements AutoCloseable{
         try {
             this.file = new RandomAccessFile(fileName, "rwd");
             this.name = fileName;
+//            System.out.println("file"+name+" op");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -38,7 +39,7 @@ public class JBFile implements AutoCloseable{
     public void write(int pno, byte[] data) throws IOException {
         int pos = pno * PAGE_SIZE;
 //        System.out.println(+"write: "+);
-        System.out.println(name+" write: "+pos);
+//        System.out.println(name+" write: "+pos);
         file.seek(pos);
         file.write(data);
     }
@@ -54,6 +55,7 @@ public class JBFile implements AutoCloseable{
 
     @Override
     public void close() throws Exception {
+//        System.out.println("file"+name+" close");
         file.close();
     }
 }

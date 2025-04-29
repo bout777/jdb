@@ -26,7 +26,6 @@ public class IndexPage {
 
     private final ByteBuffer bf;
     private Page page;
-    private String tableName = "test";
     private BufferPool bufferPool;
 
 
