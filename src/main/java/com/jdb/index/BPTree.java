@@ -32,13 +32,23 @@ public class BPTree implements Index {
 
     public void init() {
         Page page = bufferPool.newPage(metaData.fid, true);
+        MasterPage masterPage = new MasterPage(page);
+
+        page = bufferPool.newPage(metaData.fid, true);
         DataPage dataPage = new DataPage(page, bufferPool, recoveryManager,metaData.tableSchema);
         dataPage.init();
+
+        masterPage.setRootPageId(page.pid);
+        bufferPool.flushPage(masterPage.getPageId());
+
         root = new LeafNode(metaData, dataPage.getPageId(), page, bufferPool,recoveryManager);
     }
 
     public void load(){
-        root = Node.load(metaData, PageHelper.concatPid(metaData.fid, 0), bufferPool,recoveryManager);
+        var masterPage = new MasterPage(bufferPool.getPage(PageHelper.concatPid(metaData.fid,0)));
+        //fixme 根节点的页号可能会变化,不一定是0
+        long rootPid = masterPage.getRootPageId();
+        root = Node.load(metaData, rootPid, bufferPool,recoveryManager);
     }
 
     @Override
@@ -75,6 +85,10 @@ public class BPTree implements Index {
 
             //更新root
             root = newRoot;
+
+            var masterPage = new MasterPage(bufferPool.getPage(PageHelper.concatPid(metaData.fid,0)));
+            masterPage.setRootPageId(root.pid);
+            bufferPool.flushPage(masterPage.getPageId());
         }
     }
 
