@@ -25,7 +25,8 @@ public abstract class LogRecord {
             return null;
         }
         offset += Byte.BYTES;
-        return switch (LogType.fromInt(type)) {
+        var logType = LogType.fromInt(type);
+        return switch (logType) {
             case UPDATE -> UpdateLog.deserializePayload(buffer, offset);
             case MASTER -> MasterLog.deserializePayload(buffer, offset);
             case INSERT -> InsertLog.deserializePayload(buffer, offset);
@@ -40,11 +41,14 @@ public abstract class LogRecord {
             case CREATE_FILE -> CreateFileLog.deserializePayload(buffer, offset);
             case DATA_PAGE_INIT -> DataPageInitLog.deserializePayload(buffer, offset);
 //            case FREE_PAGE -> FreePageLog.deserializePayload(buffer, offset);
-//            case INDEX_PAGE_INIT -> IndexPageInitLog.deserializePayload(buffer, offset);
+            case INDEX_PAGE_INIT -> IndexPageInitLog.deserializePayload(buffer, offset);
+            case INDEX_PAGE_INSERT -> IndexEntryInsertLog.deserializePayload(buffer, offset);
             case PAGE_LINK -> PageLinkLog.deserializePayload(buffer, offset);
 //            case DELETE_FILE -> DeleteFileLog.deserializePayload(buffer, offset);
 //            case END -> EndLog.deserializePayload(buffer, offset);
-            default -> throw new UnsupportedOperationException("bad log type");
+
+            case MASTER_PAGE_UPDATE -> MasterPageUpdateLog.deserializePayload(buffer, offset);
+            default -> throw new UnsupportedOperationException("bad log type of "+LogType.fromInt(type));
         };
     }
 

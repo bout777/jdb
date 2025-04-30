@@ -32,20 +32,19 @@ public class BPTree implements Index {
 
     public void init() {
         Page page = bufferPool.newPage(metaData.fid, true);
-        MasterPage masterPage = new MasterPage(page);
+        MasterPage masterPage = new MasterPage(page,recoveryManager);
 
         page = bufferPool.newPage(metaData.fid, true);
         DataPage dataPage = new DataPage(page, bufferPool, recoveryManager,metaData.tableSchema);
         dataPage.init();
-
+        //fixme 这样搞不能满足原子性,要整合到日志里
         masterPage.setRootPageId(page.pid);
-        bufferPool.flushPage(masterPage.getPageId());
 
         root = new LeafNode(metaData, dataPage.getPageId(), page, bufferPool,recoveryManager);
     }
 
     public void load(){
-        var masterPage = new MasterPage(bufferPool.getPage(PageHelper.concatPid(metaData.fid,0)));
+        var masterPage = new MasterPage(bufferPool.getPage(PageHelper.concatPid(metaData.fid,0)),recoveryManager);
         //fixme 根节点的页号可能会变化,不一定是0
         long rootPid = masterPage.getRootPageId();
         root = Node.load(metaData, rootPid, bufferPool,recoveryManager);
@@ -69,7 +68,7 @@ public class BPTree implements Index {
 
             //新建一个索引页
             Page newpage = bufferPool.newPage(metaData.fid, true);
-            IndexPage nipage = new IndexPage(newpage.pid, newpage,bufferPool);
+            IndexPage nipage = new IndexPage(newpage.pid, newpage,bufferPool, recoveryManager);
             nipage.init();
 
             //新建内部节点，作为新的root
@@ -86,9 +85,9 @@ public class BPTree implements Index {
             //更新root
             root = newRoot;
 
-            var masterPage = new MasterPage(bufferPool.getPage(PageHelper.concatPid(metaData.fid,0)));
+            var masterPage = new MasterPage(bufferPool.getPage(PageHelper.concatPid(metaData.fid,0)),recoveryManager);
             masterPage.setRootPageId(root.pid);
-            bufferPool.flushPage(masterPage.getPageId());
+//            bufferPool.flushPage(masterPage.getPageId());
         }
     }
 

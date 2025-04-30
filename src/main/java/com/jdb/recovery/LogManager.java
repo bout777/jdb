@@ -64,6 +64,7 @@ public class LogManager {
     }
 
     public synchronized long append(LogRecord log) {
+//        System.out.println(log);
         if (logTail == null || logTail.getFreeSpace() < log.getSize()) {
             logTail = new LogPage(bufferPool.newPage(LOG_FILE_ID, false));
             // todo 更新nextpid？
@@ -74,7 +75,7 @@ public class LogManager {
         int offset = logTail.append(log);
         long lsn = makeLSN(logTail.getPageId(), offset);
         log.setLsn(lsn);
- //       System.out.printf("incount: %d input page: %d,off: %d,log: %s \n,",++inCount, lsn>>32&Integer.MAX_VALUE,getLSNOffset(lsn), log.getPrevLsn());
+//        System.out.printf("incount: %d input page: %d,off: %d,log: %s \n,",++inCount, lsn>>32&Integer.MAX_VALUE,getLSNOffset(lsn), log.getPrevLsn());
         return lsn;
     }
 

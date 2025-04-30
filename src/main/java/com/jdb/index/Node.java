@@ -34,8 +34,8 @@ public abstract class Node {
         Page page = bp.getPage(pid);
         byte[] data = page.getData();
         return switch (data[0]) {
-            case PageType.DATA_PAGE -> new InnerNode(metaData, pid, page,bp,rm);
-            case PageType.INDEX_PAGE -> new LeafNode(metaData, pid, page,bp,rm);
+            case PageType.INDEX_PAGE -> new InnerNode(metaData, pid, page,bp,rm);
+            case PageType.DATA_PAGE -> new LeafNode(metaData, pid, page,bp,rm);
             default -> throw new UnsupportedOperationException("unknown page type");
         };
     }
@@ -66,7 +66,7 @@ class InnerNode extends Node {
         this.fid = PageHelper.getFid(pid);
         this.metaData = metaData;
 
-        indexPage = new IndexPage(pid, page,bufferPool);
+        indexPage = new IndexPage(pid, page,bufferPool, recoveryManager);
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.jdb.table;
 
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.Page;
+import com.jdb.transaction.TransactionContext;
 
 import java.nio.ByteBuffer;
 
@@ -11,8 +12,9 @@ public class MasterPage {
     private ByteBuffer buffer;
     private RecoveryManager recoveryManager;
 
-    public MasterPage(Page page){
+    public MasterPage(Page page,RecoveryManager rm){
         this.page = page;
+        this.recoveryManager = rm;
         buffer = page.getBuffer();
     }
 
@@ -21,6 +23,8 @@ public class MasterPage {
     }
 
     public void setRootPageId(long rootPageId){
+        long xid = TransactionContext.getTransaction().getXid();
+        recoveryManager.logMasterPageUpdate(xid, page.pid, getRootPageId(), rootPageId);
         buffer.putLong(ROOT_OFFSET, rootPageId);
     }
 

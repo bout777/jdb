@@ -11,13 +11,15 @@ public enum LogType {
 
     ALLOC_PAGE,
     FREE_PAGE,
+    PAGE_LINK,
+
     DATA_PAGE_INIT,
     INDEX_PAGE_INIT,
-    PAGE_LINK,
+    INDEX_PAGE_INSERT,
+    MASTER_PAGE_UPDATE,
 
     CREATE_FILE,
     DELETE_FILE,
-
 
     COMPENSATION,
     END,

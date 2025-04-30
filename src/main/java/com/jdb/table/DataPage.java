@@ -6,6 +6,7 @@ import com.jdb.exception.DuplicateInsertException;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
+import com.jdb.storage.PageType;
 import com.jdb.transaction.TransactionContext;
 
 import java.nio.ByteBuffer;
@@ -64,8 +65,7 @@ public class DataPage {
         setNextPageId(NULL_PAGE_ID,false);
         setLower(HEADER_SIZE);
         setUpper(PAGE_SIZE);
-        byte b = 2;
-        buffer.put(0, b);
+        buffer.put(0, PageType.DATA_PAGE);
     }
 
 //    public long getLsn() {
@@ -310,19 +310,20 @@ public class DataPage {
 
         //初始化当前页和新页
         DataPage newDataPage = new DataPage(newPage, bufferPool, recoveryManager, schema);
-        newDataPage.doInit();
+        newDataPage.init();
         newDataPage.setNextPageId(this.getNextPageId(),true);
-        this.doInit();
+        this.init();
         this.setNextPageId(newDataPage.getPageId(),true);
 
         //读取镜像页的数据，分别插入当前页和新页
         int recordCount = imageDataPage.getRecordCount();
         var iter = imageDataPage.scanFrom(0);
+        //fixme 如果shuoldLog为ture,过不了回滚测试,如果为false,过不了崩溃恢复测试
         for (int i = 0; i < recordCount / 2; i++) {
-            this.insertRecord(iter.next(), false, false);
+            this.insertRecord(iter.next(), true, false);
         }
         for (int i = recordCount / 2; i < recordCount; i++) {
-            newDataPage.insertRecord(iter.next(), false, false);
+            newDataPage.insertRecord(iter.next(), true, false);
         }
         return newDataPage;
     }

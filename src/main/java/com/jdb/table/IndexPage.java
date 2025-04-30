@@ -5,8 +5,11 @@ import com.jdb.common.PageHelper;
 import com.jdb.common.Value;
 import com.jdb.index.IndexEntry;
 import com.jdb.index.SecondaryIndexEntry;
+import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Page;
+import com.jdb.storage.PageType;
+import com.jdb.transaction.TransactionContext;
 
 import java.nio.ByteBuffer;
 
@@ -14,7 +17,7 @@ import static com.jdb.common.Constants.NULL_PAGE_ID;
 
 public class IndexPage {
     //[type] [lsn] [pid] [nextPid] [entryCount] [entry]...
-    private static final int PAGE_TYPE_OFFSET = 0;
+    public static final int PAGE_TYPE_OFFSET = 0;
     private static final int LSN_OFFSET = Byte.BYTES;
     private static final int PAGE_ID_OFFSET = LSN_OFFSET + Long.BYTES;
     private static final int NEXT_PAGE_ID_OFFSET = PAGE_ID_OFFSET + Long.BYTES;
@@ -25,20 +28,29 @@ public class IndexPage {
     private static final int CHILD_SIZE = Integer.BYTES;
 
     private final ByteBuffer bf;
+    private final RecoveryManager recoveryManager;
     private Page page;
     private BufferPool bufferPool;
 
 
-    public IndexPage(long pid, Page page,BufferPool bp) {
+    public IndexPage(long pid, Page page, BufferPool bp, RecoveryManager rm) {
         this.page = page;
         this.bf = ByteBuffer.wrap(page.getData());
         this.bufferPool = bp;
+        this.recoveryManager = rm;
         setPageId(pid);
     }
 
     public void init() {
+        long xid = TransactionContext.getTransaction().getXid();
+        long lsn = recoveryManager.logIndexPageInit(xid, page.pid);
+        page.setLsn(lsn);
+        doInit();
+    }
+
+    public void doInit() {
         setNextPageId(NULL_PAGE_ID);
-        bf.put(PAGE_TYPE_OFFSET, (byte) 1);
+        bf.put(PAGE_TYPE_OFFSET, PageType.INDEX_PAGE);
     }
 
     public long getPageId() {
@@ -156,7 +168,7 @@ public class IndexPage {
     public IndexPage split() {
         int fid = PageHelper.getPno(page.pid);
         Page newPage = bufferPool.newPage(fid, true);
-        IndexPage newIndexPage = new IndexPage(newPage.pid, newPage,bufferPool);
+        IndexPage newIndexPage = new IndexPage(newPage.pid, newPage, bufferPool, recoveryManager);
         newIndexPage.init();
 
         newIndexPage.setNextPageId(this.getNextPageId());
@@ -166,9 +178,8 @@ public class IndexPage {
     }
 
 
-
     public Value<?> getFloorKey() {
-        return Value.deserialize(bf, HEADER_SIZE+CHILD_SIZE, DataType.INTEGER);
+        return Value.deserialize(bf, HEADER_SIZE + CHILD_SIZE, DataType.INTEGER);
     }
 
     //    private IndexEntry deserializeEntry(int offset){

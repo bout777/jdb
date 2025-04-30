@@ -158,9 +158,14 @@ public class TableManager {
             var rowData = iter.next();
             int tbFid = (int) rowData.values.get(1).getValue(Integer.class);
             if (tbFid==fid) {
-                String  tbName = (String) rowData.values.get(0).getValue(String.class);
+                String tbName = (String) rowData.values.get(0).getValue(String.class);
+                if(tables.containsKey(tbName)){
+                    return tables.get(tbName);
+                }
                 Schema schema = Schema.fromString((String) rowData.values.get(2).getValue(String.class));
-                return Table.loadFromDisk(tbName, fid, schema, bufferPool, recoveryManager,versionManager);
+                var table= Table.loadFromDisk(tbName, fid, schema, bufferPool, recoveryManager,versionManager);
+                tables.put(tbName, table);
+                return table;
             }
         }
         throw new NoSuchElementException("table no exist");

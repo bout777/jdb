@@ -26,6 +26,7 @@ public class Disk {
 //        }
 //        return disk;
 //    }
+    public int ioCount = 0;
 
     private Engine engine;
 
@@ -91,6 +92,7 @@ public class Disk {
 
     //======page api======//
     public Page readPage(long pid) {
+        ioCount++;
         Page page = new Page(pid);
         int fid = PageHelper.getFid(pid);
         int pno = PageHelper.getPno(pid);
@@ -99,6 +101,7 @@ public class Disk {
     }
 
     private void readPage(int fid, int pno, byte[] data) {
+
         JBFile file = files.get(fid);
         if(file==null)
             throw new NoSuchElementException(fid+"file no existed");
@@ -113,6 +116,7 @@ public class Disk {
     }
 
     public void writePage(Page page) {
+        ioCount++;
         int fid = PageHelper.getFid(page.pid);
         int pno = PageHelper.getPno(page.pid);
         writePage(fid, pno, page.getData());
@@ -133,8 +137,8 @@ public class Disk {
     }
 
     public Page allocPage(int fid) {
+        ioCount++;
         long pid = getNextPageIdAndIncrease(fid);
-
         return new Page(pid);
     }
 
@@ -153,6 +157,7 @@ public class Disk {
     }
 
     public int addFile(String fileName){
+        ioCount++;
         int fid = putFileTable(fileName);
         putFileMap(fid, fileName);
         long xid = TransactionContext.getTransaction().getXid();

@@ -20,7 +20,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -36,7 +35,8 @@ public class EngineRecoveryTest {
 
     @Before
     public void init() throws Exception {
-//        File testDir = folder.newFolder(TEST_PATH);
+        var p = Path.of(TestUtil.TEST_DIR);
+        cleanfile();
         fileName = testDir.getAbsolutePath();
         engine = new Engine(fileName);
     }
@@ -44,17 +44,25 @@ public class EngineRecoveryTest {
     @After
     public void close() throws IOException {
         engine.close();
-        var p = Path.of(TestUtil.TEST_DIR);
-        Files.walk(p)
-                .filter(path -> !path.equals(p))
-                .sorted(Comparator.reverseOrder())
-                .forEach(file -> {
-                    try {
-                        Files.delete(file);
-                    } catch (IOException e) {
-                        throw new RuntimeException("删除失败: " + file, e);
-                    }
-                });
+        cleanfile();
+    }
+
+    void cleanfile() {
+        try {
+            var p = Path.of(TestUtil.TEST_DIR);
+            Files.walk(p)
+                    .filter(path -> !path.equals(p))
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(file -> {
+                        try {
+                            Files.delete(file);
+                        } catch (IOException e) {
+                            throw new RuntimeException("删除失败: " + file, e);
+                        }
+                    });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
@@ -137,7 +145,7 @@ public class EngineRecoveryTest {
     }
 
     @Test
-    public void testCrashRecovery() {
+    public void testSimpleCrashRecovery() {
 
 
         var expected = new ArrayList<RowData>();
@@ -157,18 +165,55 @@ public class EngineRecoveryTest {
 //            System.out.println(log);
 //        }
         engine.beginTransaction();
-        table.insertRecord(TestUtil.generateRecord(1), true, true);
+        var row  =TestUtil.generateRecord(1);
+        table.insertRecord(row, true, true);
         engine.commit();
         engine.close();
 
         // 模拟程序崩溃
         engine = new Engine(fileName);
 
-//        Table student_tb = engine.getTableManager().getTable("student");
-//        var iter = student_tb.scan();
+        Table student_tb = engine.getTableManager().getTable("student");
+        var iter = student_tb.scan();
+        assertEquals(iter.next(), row);
+    }
+
+    @Test
+    public void testCrashRecWithSpilt() {
+        var expected = new ArrayList<RowData>();
+        for (int i = 0; i < 1000; i++) {
+            expected.add(TestUtil.generateRecord(i));
+        }
+        engine.beginTransaction();
+        Schema schema = TestUtil.recordSchema();
+        engine.createTable("student", schema);
+        engine.commit();
+        Table table = engine.getTableManager().getTable("student");//
+        assert table != null;
+
+        var logiter = engine.getLogManager().scan();
+        engine.beginTransaction();
+        for (var row : expected) {
+//            engine.insert("student",row);
+            table.insertRecord(row, true, true);
+        }
+        engine.commit();
+//        while (logiter.hasNext()) {
+//            LogRecord log = logiter.next();
+//            if(log.getType() != LogType.INSERT)
+//            System.out.println(log);
+//        }
+        engine.close();
+
+        // 模拟程序崩溃
+        engine = new Engine(fileName);
+        Table student_tb = engine.getTableManager().getTable("student");
+        student_tb.getClusterIndex();
+        var iter = student_tb.scan();
 //        while (iter.hasNext()) System.out.println(iter.next());
-
-
+        for (var row : expected) {
+            assertEquals(row, iter.next());
+        }
     }
 
 

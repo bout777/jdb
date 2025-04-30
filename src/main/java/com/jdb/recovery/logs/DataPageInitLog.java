@@ -3,6 +3,7 @@ package com.jdb.recovery.logs;
 import com.jdb.Engine;
 import com.jdb.recovery.LogType;
 import com.jdb.storage.Page;
+import com.jdb.storage.PageType;
 import com.jdb.table.DataPage;
 
 import java.nio.ByteBuffer;
@@ -73,7 +74,7 @@ public class DataPageInitLog extends LogRecord {
         buffer.putLong(DataPage.NEXT_PAGE_ID_OFFSET, NULL_PAGE_ID);
         buffer.putInt(DataPage.LOWER_OFFSET, DataPage.HEADER_SIZE);
         buffer.putInt(DataPage.UPPER_OFFSET, PAGE_SIZE);
-        buffer.put(DataPage.PAGE_TYPE_OFFSET, (byte) 2);
+        buffer.put(DataPage.PAGE_TYPE_OFFSET, PageType.DATA_PAGE);
     }
 
     @Override

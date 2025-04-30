@@ -10,8 +10,10 @@ import com.jdb.table.DataPage;
 import com.jdb.table.PagePointer;
 import com.jdb.table.RowData;
 
+import java.awt.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 
 public class InsertLog extends LogRecord {
     long xid;
@@ -93,6 +95,7 @@ public class InsertLog extends LogRecord {
         var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
         Page page = bp.getPage(ptr.pid);
         DataPage dataPage = new DataPage(page, bp, rm, schema);
+//        System.out.println("on redo: "+rowData);
         dataPage.insertRecord(rowData, false,false);
     }
 
@@ -104,7 +107,11 @@ public class InsertLog extends LogRecord {
         Schema schema = table.getSchema();
         var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
 //        System.out.println("on delete: "+rowData);
-        table.deleteRecord(rowData.getPrimaryKey(), true);
+        try {
+            table.deleteRecord(rowData.getPrimaryKey(), true);
+        } catch (NoSuchElementException e){
+
+        }
     }
 
     @Override
