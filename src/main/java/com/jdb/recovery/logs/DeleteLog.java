@@ -89,7 +89,7 @@ public class DeleteLog extends LogRecord {
         var bp = engine.getBufferPool();
         var rm = engine.getRecoveryManager();
         int fid = PageHelper.getFid(ptr.pid);
-        var schema = engine.getTableManager().getTable(fid).getSchema();
+        var schema = engine.getTableManager().getTableSchema(fid);
         Page page = bp.getPage(ptr.pid);
         DataPage dataPage = new DataPage(page, bp, rm, schema);
         dataPage.deleteRecord(ptr.sid);

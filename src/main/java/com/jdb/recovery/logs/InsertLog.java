@@ -91,7 +91,7 @@ public class InsertLog extends LogRecord {
         var rm = engine.getRecoveryManager();
 
         int fid = PageHelper.getFid(ptr.pid);
-        var schema = engine.getTableManager().getTable(fid).getSchema();
+        var schema = engine.getTableManager().getTableSchema(fid);
         var rowData = RowData.deserialize(ByteBuffer.wrap(image), 0, schema);
         Page page = bp.getPage(ptr.pid);
         DataPage dataPage = new DataPage(page, bp, rm, schema);

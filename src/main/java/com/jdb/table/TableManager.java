@@ -170,6 +170,28 @@ public class TableManager {
         }
         throw new NoSuchElementException("table no exist");
     }
+    //从tableMeta中查schema,避免过早创建table
+
+    public Schema getTableSchema(int fid) {
+        return switch (fid) {
+            case TABLE_META_DATA_FILE_ID -> TableMataSchema();
+            case INDEX_META_DATA_FILE_ID -> IndexMataSchema();
+            case FILE_META_DATA_FILE_ID -> fileMataSchema();
+            default -> getTableSchemaFromMeta(fid);
+        };
+    }
+    private Schema getTableSchemaFromMeta(int fid){
+        var iter = tableMeta.scan();
+        while (iter.hasNext()) {
+            var rowData = iter.next();
+            int tbFid = (int) rowData.values.get(1).getValue(Integer.class);
+            if (tbFid==fid) {
+                Schema schema = Schema.fromString((String) rowData.values.get(2).getValue(String.class));
+                return schema;
+            }
+        }
+        throw new NoSuchElementException("table no exist");
+    }
 
     public Table create(String tableName, Schema schema) {
         //todo 先检查表是否已存在
