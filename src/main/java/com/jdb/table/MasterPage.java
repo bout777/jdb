@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 
 public class MasterPage {
     private Page page;
-    public static final int ROOT_OFFSET = 0;
+    public static final int ROOT_OFFSET = 20;
     private ByteBuffer buffer;
     private RecoveryManager recoveryManager;
 
