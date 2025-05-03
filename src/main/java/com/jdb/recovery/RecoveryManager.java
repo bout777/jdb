@@ -81,7 +81,11 @@ public class RecoveryManager {
         return lsn;
     }
 
-    public long logUpdate(long xid, int pid, short offset, byte[] oldData, byte[] newData) {
+    public long logUpdate(long xid,
+                          int pid,
+                          short offset,
+                          byte[] oldData,
+                          byte[] newData) {
         LogRecord log = new UpdateLog(xid, pid, offset, offset, oldData, newData);
         return logManager.append(log);
     }
@@ -170,7 +174,23 @@ public class RecoveryManager {
         return lsn;
     }
 
-    public long logPageLink(long xid, long pid, long beforeNextPid, long afterNextPid) {
+    public long logGeneralPageUpdate(long xid,
+                                     long pid,
+                                     short offset,
+                                     byte[] before,
+                                     byte[] after) {
+        long lastLsn = transactionsTable.get(xid);
+        LogRecord log = new UpdateLog(xid, pid, lastLsn, offset, before, after);
+        long lsn = logManager.append(log);
+        transactionsTable.put(xid, lsn);
+        dirtyPage(pid, lsn);
+        return lsn;
+    }
+
+    public long logPageLink(long xid,
+                            long pid,
+                            long beforeNextPid,
+                            long afterNextPid) {
         long lastLsn = transactionsTable.get(xid);
         var log = new PageLinkLog(xid, lastLsn, pid, beforeNextPid, afterNextPid);
         long lsn = logManager.append(log);
@@ -179,7 +199,10 @@ public class RecoveryManager {
         return lsn;
     }
 
-    public long logMasterPageUpdate(long xid, long pid, long beforeRootPageId, long afterRootPageId) {
+    public long logMasterPageUpdate(long xid,
+                                    long pid,
+                                    long beforeRootPageId,
+                                    long afterRootPageId) {
         long lastLsn = transactionsTable.get(xid);
         var log = new MasterPageUpdateLog(xid, lastLsn, pid, beforeRootPageId, afterRootPageId);
         long lsn = logManager.append(log);
@@ -286,7 +309,9 @@ public class RecoveryManager {
             if (log.getXid() != NULL_XID) {
                 long xid = log.getXid();
                 transactionsTable.putIfAbsent(xid, log.getLsn());
-                transactionsTable.computeIfPresent(xid, (k, v) -> Math.max(v, log.getLsn()));
+                transactionsTable.computeIfPresent(
+                        xid, (k, v) -> Math.max(v, log.getLsn())
+                );
             }
             if (log.getPageId() != NULL_PAGE_ID) {
                 dirtyPage(log.getPageId(), log.getLsn());
@@ -324,6 +349,8 @@ public class RecoveryManager {
             if (log.getLsn() <= page.getLsn())
                 continue;
 
+            if (log.getType() != LogType.INSERT)
+                System.out.println(log.getLsn() + " on redo: " + log);
             log.redo(engine);
         }
     }

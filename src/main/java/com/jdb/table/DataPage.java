@@ -56,13 +56,14 @@ public class DataPage {
     public void init() {
         //log
         long xid = TransactionContext.getTransaction().getXid();
-        recoveryManager.logDataPageInit(xid, page.pid);
+        long lsn = recoveryManager.logDataPageInit(xid, page.pid);
+        page.setLsn(lsn);
         //set byte
         doInit();
     }
 
     public void doInit() {
-        setNextPageId(NULL_PAGE_ID,false);
+        setNextPageId(NULL_PAGE_ID, false);
         setLower(HEADER_SIZE);
         setUpper(PAGE_SIZE);
         buffer.put(0, PageType.DATA_PAGE);
@@ -81,9 +82,10 @@ public class DataPage {
     }
 
     public void setNextPageId(long nextPageId, boolean shouldLog) {
-        if(shouldLog){
+        if (shouldLog) {
             long xid = TransactionContext.getTransaction().getXid();
-            recoveryManager.logPageLink(xid, page.pid, getNextPageId(), nextPageId);
+            long lsn = recoveryManager.logPageLink(xid, page.pid, getNextPageId(), nextPageId);
+            setPageLsn(lsn);
         }
         buffer.putLong(NEXT_PAGE_ID_OFFSET, nextPageId);
     }
@@ -152,7 +154,7 @@ public class DataPage {
             int lower = getLower();
             //写入slot
             Slot slot = new Slot(upper, rowData.size());
-            int sid = insertSlot(slot,rowData.getPrimaryKey());
+            int sid = insertSlot(slot, rowData.getPrimaryKey());
 
             //更新lower,upper
             setUpper(upper);
@@ -193,8 +195,9 @@ public class DataPage {
                 byte[] image = Arrays.copyOfRange(buffer.array(), slot.offset, slot.offset + slot.size);
                 long xid = TransactionContext.getTransaction().getXid();
                 long lsn = recoveryManager.logDelete(xid, ptr, image);
-                setPageLsn(lsn);
+                page.setLsn(lsn);
             }
+
             //删除
             deleteRecord(sid);
         } finally {
@@ -270,7 +273,7 @@ public class DataPage {
         }
     }
 
-    private int insertSlot(Slot slot,Value<?> key) {
+    private int insertSlot(Slot slot, Value<?> key) {
         int low = binarySearch(key);
         if (low >= 0)
             throw new DuplicateInsertException("try to insert a existed slot");
@@ -311,9 +314,9 @@ public class DataPage {
         //初始化当前页和新页
         DataPage newDataPage = new DataPage(newPage, bufferPool, recoveryManager, schema);
         newDataPage.init();
-        newDataPage.setNextPageId(this.getNextPageId(),true);
+        newDataPage.setNextPageId(this.getNextPageId(), true);
         this.init();
-        this.setNextPageId(newDataPage.getPageId(),true);
+        this.setNextPageId(newDataPage.getPageId(), true);
 
         //读取镜像页的数据，分别插入当前页和新页
         int recordCount = imageDataPage.getRecordCount();

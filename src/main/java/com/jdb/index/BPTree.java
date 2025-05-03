@@ -68,7 +68,7 @@ public class BPTree implements Index {
 
             //新建一个索引页
             Page newpage = bufferPool.newPage(metaData.fid, true);
-            IndexPage nipage = new IndexPage(newpage.pid, newpage,bufferPool, recoveryManager);
+            IndexPage nipage = new IndexPage(newpage,bufferPool, recoveryManager);
             nipage.init();
 
             //新建内部节点，作为新的root
@@ -79,7 +79,7 @@ public class BPTree implements Index {
 
             //写入到新节点中 (*´∀`)~♥
             nipage.addChild(0, root.pid);
-            nipage.insert(c2.getFloorKey(), newNode);
+            nipage.insert(c2.getFloorKey(), newNode, true);
 
 
             //更新root

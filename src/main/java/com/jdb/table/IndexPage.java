@@ -12,6 +12,7 @@ import com.jdb.storage.PageType;
 import com.jdb.transaction.TransactionContext;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import static com.jdb.common.Constants.NULL_PAGE_ID;
 
@@ -33,12 +34,12 @@ public class IndexPage {
     private BufferPool bufferPool;
 
 
-    public IndexPage(long pid, Page page, BufferPool bp, RecoveryManager rm) {
+    public IndexPage(Page page, BufferPool bp, RecoveryManager rm) {
         this.page = page;
         this.bf = ByteBuffer.wrap(page.getData());
         this.bufferPool = bp;
         this.recoveryManager = rm;
-        setPageId(pid);
+        setPageId(page.pid);
     }
 
     public void init() {
@@ -112,7 +113,7 @@ public class IndexPage {
 //        throw new UnsupportedOperationException("wrong entry type");
 //    }
 
-    public long insert(Value<?> key, long pid) {
+    public long insert(Value<?> key, long pid, boolean shouldLog) {
         this.page.acquireWriteLock();
         //找到插入位置
         int idx = binarySearch(key) + 1;
@@ -128,18 +129,58 @@ public class IndexPage {
         bf.putInt(offset, pno);
 
         setKeyCount(getKeyCount() + 1);
+
+        if (shouldLog) {
+            long xid = TransactionContext.getTransaction().getXid();
+            long lsn = recoveryManager.logIndexInsert(xid, page.pid, key, pid);
+            page.setLsn(lsn);
+        }
+
         this.page.releaseWriteLock();
         //todo 添加分裂逻辑
         return -1L;
     }
 
     public void addChild(int cno, long pid) {
-        this.page.acquireWriteLock();
-        int offset = HEADER_SIZE + KEY_SIZE * cno + CHILD_SIZE * cno;
+//        this.page.acquireWriteLock();
+//        int offset = HEADER_SIZE + KEY_SIZE * cno + CHILD_SIZE * cno;
 //        System.arraycopy(bf.array(), offset, bf.array(), offset + CHILD_SIZE, CHILD_SIZE * (cno + 1));
-        int pno = PageHelper.getPno(pid);
-        bf.putInt(offset, pno);
-        this.page.releaseWriteLock();
+//        int pno = PageHelper.getPno(pid);
+//        bf.putInt(offset, pno);
+//        this.page.releaseWriteLock();
+        this.page.acquireWriteLock();
+        try {
+            int offset = HEADER_SIZE + KEY_SIZE * cno + CHILD_SIZE * cno;
+            // Capture the 4 bytes before change
+            byte[] before = new byte[CHILD_SIZE];
+            System.arraycopy(bf.array(), offset, before, 0, CHILD_SIZE);
+
+            // Shift existing child entries to make room
+            System.arraycopy(
+                    bf.array(),
+                    offset,
+                    bf.array(),
+                    offset + CHILD_SIZE,
+                    CHILD_SIZE * (cno + 1)
+            );
+
+            // Compute the page number to insert
+            int pno = PageHelper.getPno(pid);
+            // Write the new child pointer
+            bf.putInt(offset, pno);
+
+            // Prepare the after-image of the 4 bytes
+            byte[] after = ByteBuffer.allocate(CHILD_SIZE)
+                    .order(ByteOrder.BIG_ENDIAN)
+                    .putInt(pno)
+                    .array();
+
+            // Log the update
+            long xid = TransactionContext.getTransaction().getXid();
+            recoveryManager.logGeneralPageUpdate(xid, page.pid, (short) offset, before, after);
+        } finally {
+            this.page.releaseWriteLock();
+        }
     }
 
     public int getChild(int cno) {
@@ -168,7 +209,7 @@ public class IndexPage {
     public IndexPage split() {
         int fid = PageHelper.getPno(page.pid);
         Page newPage = bufferPool.newPage(fid, true);
-        IndexPage newIndexPage = new IndexPage(newPage.pid, newPage, bufferPool, recoveryManager);
+        IndexPage newIndexPage = new IndexPage(newPage, bufferPool, recoveryManager);
         newIndexPage.init();
 
         newIndexPage.setNextPageId(this.getNextPageId());

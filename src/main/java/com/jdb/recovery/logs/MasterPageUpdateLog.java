@@ -74,6 +74,7 @@ public class MasterPageUpdateLog extends LogRecord {
 
     @Override
     public void redo(Engine engine) {
+//        System.out.println("on redo: "+this);
         var bp = engine.getBufferPool();
         var bf = bp.getPage(pid).getBuffer();
         bf.putLong(MasterPage.ROOT_OFFSET, afterRootPageId);

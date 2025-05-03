@@ -66,7 +66,7 @@ class InnerNode extends Node {
         this.fid = PageHelper.getFid(pid);
         this.metaData = metaData;
 
-        indexPage = new IndexPage(pid, page,bufferPool, recoveryManager);
+        indexPage = new IndexPage(page,bufferPool, recoveryManager);
     }
 
     @Override
@@ -89,7 +89,7 @@ class InnerNode extends Node {
             return NULL_PAGE_ID;
         }
         Node newChild = Node.load(metaData, newChildPid,bufferPool,recoveryManager);
-        indexPage.insert(newChild.getFloorKey(), newChildPid);
+        indexPage.insert(newChild.getFloorKey(), newChildPid, true);
         //无需分裂
         return NULL_PAGE_ID;
     }

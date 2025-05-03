@@ -15,15 +15,15 @@ public class UpdateLog extends LogRecord {
     private static final int RID_OFFSET = 1;
     private static final int XID_OFFSET = RID_OFFSET + PagePointer.SIZE;
     private static final int PREV_LSN_OFFSET = XID_OFFSET + Integer.BYTES;
-    private static final int HEADER_SIZE = Long.BYTES + Integer.BYTES + Long.BYTES + Short.BYTES + Short.BYTES;
+    private static final int HEADER_SIZE = Long.BYTES + Long.BYTES + Long.BYTES + Short.BYTES + Short.BYTES;
     private long xid;
-    private int pid;
+    private long pid;
     private long prevLsn;
     private short offset;
     private byte[] oldData;
     private byte[] newData;
 
-    public UpdateLog(long xid, int pid, long prevLsn, short offset, byte[] oldData, byte[] newData) {
+    public UpdateLog(long xid, long pid, long prevLsn, short offset, byte[] oldData, byte[] newData) {
         super(LogType.UPDATE);
         this.xid = xid;
         this.pid = pid;
@@ -37,7 +37,7 @@ public class UpdateLog extends LogRecord {
     public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
         buffer.position(offset);
         long xid = buffer.getLong();
-        int pid = buffer.getInt();
+        long pid = buffer.getLong();
         long prevLsn = buffer.getLong();
         short pageOffset = buffer.getShort();
         short len = buffer.getShort();
@@ -56,7 +56,7 @@ public class UpdateLog extends LogRecord {
     protected int serializePayload(ByteBuffer buffer, int offset) {
         buffer.position(offset)
                 .putLong(xid)
-                .putInt(pid)
+                .putLong(pid)
                 .putLong(prevLsn)
                 .putShort(this.offset)
                 .putShort((short) oldData.length)
@@ -101,10 +101,10 @@ public class UpdateLog extends LogRecord {
 
     @Override
     public void undo(Engine engine) {
-        var bp = engine.getBufferPool();
-        Page page = bp.getPage(pid);
-        ByteBuffer buffer = page.getBuffer();
-        buffer.put(offset, oldData);
+//        var bp = engine.getBufferPool();
+//        Page page = bp.getPage(pid);
+//        ByteBuffer buffer = page.getBuffer();
+//        buffer.put(offset, oldData);
     }
 
     @Override
