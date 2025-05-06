@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 public class Engine {
 
@@ -211,8 +213,30 @@ public class Engine {
         transactionManager.abort();
     }
 
+    public Iterator<RowData> scan(String tableName, String columnName) {
+        Table table = tableManager.getTable(tableName);
+        //todo  暂时只智齿主键扫描
+        var iter = table.scan();
+        return iter;
+    }
+
+    public Iterator<RowData> lookup(String tableName, String columnName, Value key) {
+        Table table = tableManager.getTable(tableName);
+        return null;
+    }
+
+//    public Iterator<RowData> scanFrom(String tableName, String columnName, Value key) {
+//
+//    }
+
+
     public void insert(String tableName, RowData rowData) {
-        var table = tableManager.getTable(tableName);
+        Table table = null;
+        try {
+            table = tableManager.getTable(tableName);
+        } catch (NoSuchElementException e) {
+            throw new DatabaseException(e.getMessage());
+        }
         table.insertRecord(rowData, true, true);
     }
 
@@ -221,7 +245,7 @@ public class Engine {
         table.updateRecord(key, rowData, true);
     }
 
-    public void delete(String tableName, Value key) {
+    public void delete(String tableName, Value<?> key) {
         var table = tableManager.getTable(tableName);
         table.deleteRecord(key, true);
     }
