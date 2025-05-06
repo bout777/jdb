@@ -27,6 +27,10 @@ public class Schema {
         return this;
     }
 
+    public Schema add(DataType type, String name) {
+        return add(new Column(type, name));
+    }
+
     public Column get(int i) {
         return columns.get(i);
     }
@@ -36,6 +40,11 @@ public class Schema {
             throw new IllegalArgumentException("column not found");
         }
         return columnsMap.get(name);
+    }
+
+    public int getColumnIndex(String name) {
+        Column column = columnsMap.get(name);
+        return columns.indexOf(column);
     }
 
 
