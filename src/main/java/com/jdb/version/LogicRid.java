@@ -1,6 +1,6 @@
 package com.jdb.version;
 
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 
 import java.util.Objects;
 

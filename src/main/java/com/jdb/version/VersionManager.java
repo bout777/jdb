@@ -1,7 +1,7 @@
 package com.jdb.version;
 
 import com.jdb.Engine;
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 import com.jdb.exception.WriteConflictException;
 import com.jdb.table.RowData;
 import com.jdb.transaction.TransactionContext;

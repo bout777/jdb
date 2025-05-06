@@ -1,7 +1,7 @@
 //package com.jdb.version;
 //
 //import com.jdb.TestUtil;
-//import com.jdb.common.Value;
+//import com.jdb.common.value.Value;
 //import com.jdb.index.ClusterIndexEntry;
 //import com.jdb.index.Index;
 //import com.jdb.index.IndexEntry;

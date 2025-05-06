@@ -1,7 +1,7 @@
 package com.jdb;
 
 import com.jdb.catalog.Schema;
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 import com.jdb.exception.DatabaseException;
 import com.jdb.recovery.LogManager;
 import com.jdb.recovery.RecoveryManager;
@@ -10,7 +10,6 @@ import com.jdb.storage.Disk;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
 import com.jdb.table.TableManager;
-import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 import com.jdb.version.VersionManager;
 

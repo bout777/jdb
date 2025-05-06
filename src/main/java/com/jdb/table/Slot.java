@@ -1,9 +1,6 @@
 package com.jdb.table;
 
-import com.jdb.common.Value;
-
 import java.nio.ByteBuffer;
-import java.util.function.Function;
 
 public class Slot {
     //两个int，占用

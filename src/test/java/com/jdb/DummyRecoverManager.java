@@ -1,6 +1,6 @@
 package com.jdb;
 
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 import com.jdb.recovery.LogManager;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.recovery.logs.LogRecord;
@@ -139,6 +139,11 @@ public class DummyRecoverManager extends RecoveryManager {
 
     @Override
     public long logIndexInsert(long xid, long pid, Value<?> key, long entryPid) {
+        return 0;
+    }
+
+    @Override
+    public long logGeneralPageUpdate(long xid, long pid, short offset, byte[] before, byte[] after) {
         return 0;
     }
 }

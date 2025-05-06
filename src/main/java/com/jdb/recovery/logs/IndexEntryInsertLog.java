@@ -2,7 +2,7 @@ package com.jdb.recovery.logs;
 
 import com.jdb.Engine;
 import com.jdb.common.DataType;
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 import com.jdb.recovery.LogType;
 import com.jdb.table.IndexPage;
 

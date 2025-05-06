@@ -2,7 +2,7 @@ package com.jdb.table;
 
 import com.jdb.common.DataType;
 import com.jdb.common.PageHelper;
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 import com.jdb.index.IndexEntry;
 import com.jdb.index.SecondaryIndexEntry;
 import com.jdb.recovery.RecoveryManager;

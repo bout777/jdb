@@ -1,7 +1,7 @@
 package com.jdb.table;
 
 import com.jdb.catalog.Schema;
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

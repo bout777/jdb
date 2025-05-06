@@ -1,6 +1,6 @@
 package com.jdb.index;
 
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 import com.jdb.table.PagePointer;
 
 public class SecondaryIndexEntry extends IndexEntry {

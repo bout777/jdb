@@ -1,9 +1,7 @@
 package com.jdb.table;
 
-import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
-import com.jdb.common.DataType;
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 import com.jdb.index.*;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
@@ -78,6 +76,23 @@ public class Table {
         Page page = bufferPool.getPage(ptr.pid);
         return RowData.deserialize(page.getBuffer(), ptr.sid, meta.schema);
     }
+//    public Iterator<RowData> searchEqual(String colName, Value<?> key){
+//        if(colName.equals(meta.schema.columns().get(0).getName())){
+//            return clusterIndex.searchEqual(key);
+//        }
+//    }
+//    static class IndexIterator implements Iterator<RowData> {
+//
+//        @Override
+//        public boolean hasNext() {
+//            return false;
+//        }
+//
+//        @Override
+//        public RowData next() {
+//            return null;
+//        }
+//    }
 
     public RowData getRowData(Value<?> key) {
         var vm = versionManager;

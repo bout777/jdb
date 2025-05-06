@@ -2,7 +2,7 @@ package com.jdb.storage;
 
 import com.jdb.Engine;
 import com.jdb.common.PageHelper;
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 import com.jdb.exception.DuplicateInsertException;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.table.RowData;
