@@ -73,6 +73,32 @@ public class Schema {
         }
         return schema;
     }
+
+    public Schema concat(Schema other) {
+        Schema merged = new Schema();
+
+        // 添加当前Schema的所有列
+        for (Column col : this.columns) {
+            String colName = col.getName();
+            if (merged.columnsMap.containsKey(colName)) {
+                throw new IllegalArgumentException("Duplicate column name in current schema: " + colName);
+            }
+            merged.add(col);
+        }
+
+        // 添加另一个Schema的所有列
+        for (Column col : other.columns) {
+            String colName = col.getName();
+            if (merged.columnsMap.containsKey(colName)) {
+                throw new IllegalArgumentException("Duplicate column name in other schema: " + colName);
+            }
+            merged.add(col);
+        }
+
+        return merged;
+    }
+
+
     @Override
     public String toString() {
         return "Schema{" +
@@ -86,4 +112,6 @@ public class Schema {
         Schema that = (Schema) o;
         return columns.equals(that.columns);
     }
+
+
 }
