@@ -2,6 +2,7 @@ package com.jdb.query;
 
 import com.jdb.Engine;
 import com.jdb.TestUtil;
+import com.jdb.common.DataType;
 import com.jdb.common.PredicateOperator;
 import com.jdb.common.value.Value;
 import com.jdb.table.RowData;
@@ -78,13 +79,40 @@ public class BasicQueryTest {
         assertFalse(iter.hasNext());
         select = new SelectOperator(op, "id", PredicateOperator.EQUALS, Value.of(5));
         iter = select.iterator();
-        assertEquals(iter.next(),expected.get(5));
+        assertEquals(iter.next(), expected.get(5));
         assertFalse(iter.hasNext());
     }
 
-    public void testProject(){
+    @Test
+    public void testProject() {
+        var expected = new ArrayList<RowData>();
+        for (int i = 0; i < 10; i++) {
+            expected.add(TestUtil.generateRecord(i));
+        }
+        engine.beginTransaction();
+        for (int i = 0; i < 10; i++) {
+            engine.insert("student", expected.get(i));
+        }
+        engine.commit();
 
+        var op = new SeqScanOperator("student", engine);
+        op.setSchema(TestUtil.recordSchema());
+
+
+        var cols = new ArrayList<String>();
+        cols.add("name");
+        cols.add("age");
+        var project = new ProjectOperator(op, cols);
+
+        var iter = project.iterator();
+        while (iter.hasNext()) {
+            var row = iter.next();
+            assertEquals(row.get(0),Value.of("hehe"));
+            assertEquals(row.get(1).getType(), DataType.INTEGER);
+        }
     }
+
+
 
 
 }
