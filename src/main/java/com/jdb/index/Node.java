@@ -8,6 +8,7 @@ import com.jdb.storage.Page;
 import com.jdb.storage.PageType;
 import com.jdb.table.DataPage;
 import com.jdb.table.IndexPage;
+import com.jdb.table.PagePointer;
 import com.jdb.table.RowData;
 
 import java.util.List;
@@ -25,7 +26,7 @@ public abstract class Node {
     BufferPool bufferPool;
     RecoveryManager recoveryManager;
 
-    Node(BufferPool bufferPool,RecoveryManager rm) {
+    Node(BufferPool bufferPool, RecoveryManager rm) {
         this.bufferPool = bufferPool;
         this.recoveryManager = rm;
     }
@@ -34,8 +35,8 @@ public abstract class Node {
         Page page = bp.getPage(pid);
         byte[] data = page.getData();
         return switch (data[0]) {
-            case PageType.INDEX_PAGE -> new InnerNode(metaData, pid, page,bp,rm);
-            case PageType.DATA_PAGE -> new LeafNode(metaData, pid, page,bp,rm);
+            case PageType.INDEX_PAGE -> new InnerNode(metaData, pid, page, bp, rm);
+            case PageType.DATA_PAGE -> new LeafNode(metaData, pid, page, bp, rm);
             default -> throw new UnsupportedOperationException("unknown page type");
         };
     }
@@ -60,13 +61,13 @@ class InnerNode extends Node {
     IndexPage indexPage;
 
     public InnerNode(IndexMetaData metaData, long pid, Page page, BufferPool bp, RecoveryManager rm) {
-        super(bp,rm);
+        super(bp, rm);
         this.page = page;
         this.pid = pid;
         this.fid = PageHelper.getFid(pid);
         this.metaData = metaData;
 
-        indexPage = new IndexPage(page,bufferPool, recoveryManager);
+        indexPage = new IndexPage(page, bufferPool, recoveryManager);
     }
 
     @Override
@@ -83,12 +84,12 @@ class InnerNode extends Node {
         int cno = indexPage.binarySearch(entry.getKey()) + 1;
         int pno = indexPage.getChild(cno);
         long pid = PageHelper.concatPid(this.fid, pno);
-        Node child = Node.load(metaData, pid,bufferPool,recoveryManager);
+        Node child = Node.load(metaData, pid, bufferPool, recoveryManager);
         long newChildPid = child.insert(entry, shouldLog);
         if (newChildPid == NULL_PAGE_ID) {
             return NULL_PAGE_ID;
         }
-        Node newChild = Node.load(metaData, newChildPid,bufferPool,recoveryManager);
+        Node newChild = Node.load(metaData, newChildPid, bufferPool, recoveryManager);
         indexPage.insert(newChild.getFloorKey(), newChildPid, true);
         //无需分裂
         return NULL_PAGE_ID;
@@ -99,7 +100,7 @@ class InnerNode extends Node {
         int cno = indexPage.binarySearch(key) + 1;
         int pno = indexPage.getChild(cno);
         long pid = PageHelper.concatPid(this.fid, pno);
-        Node child = Node.load(metaData, pid,bufferPool,recoveryManager);
+        Node child = Node.load(metaData, pid, bufferPool, recoveryManager);
         //todo 页合并
         return child.delete(key, shouldLog);
     }
@@ -133,7 +134,7 @@ class InnerNode extends Node {
 //        return newNode;
 //    }
 
-//    private int findChild(Value<?> key) {
+    //    private int findChild(Value<?> key) {
 //        int i = Collections.binarySearch(keys, key);
 //        if (i >= 0) {
 //            return i;
@@ -145,7 +146,7 @@ class InnerNode extends Node {
     public DataPage getFirstLeafPage() {
         int pno = indexPage.getChild(0);
         long pid = PageHelper.concatPid(this.fid, pno);
-        Node child = Node.load(metaData, pid, bufferPool,recoveryManager);
+        Node child = Node.load(metaData, pid, bufferPool, recoveryManager);
         return child.getFirstLeafPage();
     }
 }
@@ -156,32 +157,33 @@ class LeafNode extends Node {
     private DataPage dataPage;
 
 
-    LeafNode(IndexMetaData metaData, long pid, Page page, BufferPool bp,RecoveryManager rm) {
-        super(bp,rm);
+    LeafNode(IndexMetaData metaData, long pid, Page page, BufferPool bp, RecoveryManager rm) {
+        super(bp, rm);
         this.metaData = metaData;
         this.page = page;
         this.pid = pid;
-        dataPage = new DataPage(page,bp, rm,metaData.tableSchema);
+        dataPage = new DataPage(page, bp, rm, metaData.tableSchema);
     }
 
     @Override
     public IndexEntry search(Value<?> key) {
         int idx = dataPage.binarySearch(key);
-        if(idx<0)
+        if (idx < 0)
             throw new NoSuchElementException("404 not found");
         RowData r = dataPage.getRecord(idx);
-        return new ClusterIndexEntry(r.getPrimaryKey(),r);
+        var ptr = new PagePointer(dataPage.getPageId(), idx);
+        return new ClusterIndexEntry(r.getPrimaryKey(), r, ptr);
     }
 
     @Override
     public long insert(IndexEntry entry, boolean shouldLog) {
         if (entry instanceof ClusterIndexEntry) {
-            DataPage dataPage = new DataPage(page,bufferPool,recoveryManager,metaData.tableSchema);
+            DataPage dataPage = new DataPage(page, bufferPool, recoveryManager, metaData.tableSchema);
             RowData rowData = ((ClusterIndexEntry) entry).getRecord();
             if (dataPage.getFreeSpace() < rowData.size() + SLOT_SIZE) {
                 //空间不足，页分裂
                 DataPage newDataPage = dataPage.split();
-                if (rowData.getPrimaryKey().compareTo(newDataPage.getRecord(0).getPrimaryKey())<0) {
+                if (rowData.getPrimaryKey().compareTo(newDataPage.getRecord(0).getPrimaryKey()) < 0) {
                     dataPage.insertRecord(rowData, true, true);
                 } else {
                     newDataPage.insertRecord(rowData, true, true);
@@ -246,7 +248,7 @@ class LeafNode extends Node {
     }
 
     @Override
-    public DataPage getFirstLeafPage(){
+    public DataPage getFirstLeafPage() {
         return dataPage;
     }
 
