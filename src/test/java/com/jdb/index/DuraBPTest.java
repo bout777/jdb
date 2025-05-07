@@ -179,6 +179,25 @@ public class DuraBPTest {
         assertFalse(iterator.hasNext());
     }
 
+    @Test
+    public void testScanFrom(){
+        for (int i = 2000; i >= 0 ; i--) {
+            RowData rowData = TestUtil.generateRecord(i);
+            IndexEntry e = new ClusterIndexEntry(Value.of(i), rowData);
+            bpTree.insert(e, true);
+        }
+
+        var iterator = bpTree.scanFrom(Value.of(1000));
+
+        for (int i = 1000; i <= 2000; i++) {
+            RowData next = iterator.next();
+            assertEquals(Value.of(i), next.getPrimaryKey());
+        }
+
+        assertFalse(iterator.hasNext());
+
+    }
+
 
 
 

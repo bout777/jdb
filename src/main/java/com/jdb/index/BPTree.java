@@ -20,7 +20,7 @@ public class BPTree implements Index {
     private Node root;
     private IndexMetaData metaData;
 
-    public BPTree(IndexMetaData metaData,BufferPool bp,RecoveryManager rm) {
+    public BPTree(IndexMetaData metaData, BufferPool bp, RecoveryManager rm) {
         this.bufferPool = bp;
         this.metaData = metaData;
         this.recoveryManager = rm;
@@ -32,22 +32,22 @@ public class BPTree implements Index {
 
     public void init() {
         Page page = bufferPool.newPage(metaData.fid, true);
-        MasterPage masterPage = new MasterPage(page,recoveryManager);
+        MasterPage masterPage = new MasterPage(page, recoveryManager);
 
         page = bufferPool.newPage(metaData.fid, true);
-        DataPage dataPage = new DataPage(page, bufferPool, recoveryManager,metaData.tableSchema);
+        DataPage dataPage = new DataPage(page, bufferPool, recoveryManager, metaData.tableSchema);
         dataPage.init();
         //fixme 这样搞不能满足原子性,要整合到日志里
         masterPage.setRootPageId(page.pid);
 
-        root = new LeafNode(metaData, dataPage.getPageId(), page, bufferPool,recoveryManager);
+        root = new LeafNode(metaData, dataPage.getPageId(), page, bufferPool, recoveryManager);
     }
 
-    public void load(){
-        var masterPage = new MasterPage(bufferPool.getPage(PageHelper.concatPid(metaData.fid,0)),recoveryManager);
+    public void load() {
+        var masterPage = new MasterPage(bufferPool.getPage(PageHelper.concatPid(metaData.fid, 0)), recoveryManager);
         //fixme 根节点的页号可能会变化,不一定是0
         long rootPid = masterPage.getRootPageId();
-        root = Node.load(metaData, rootPid, bufferPool,recoveryManager);
+        root = Node.load(metaData, rootPid, bufferPool, recoveryManager);
     }
 
     @Override
@@ -62,20 +62,20 @@ public class BPTree implements Index {
 
     @Override
     public void insert(IndexEntry entry, boolean shouldLog) {
-        long newNode = root.insert(entry,shouldLog);
+        long newNode = root.insert(entry, shouldLog);
         if (newNode != NULL_PAGE_ID) {
             //分裂根节点
 
             //新建一个索引页
             Page newpage = bufferPool.newPage(metaData.fid, true);
-            IndexPage nipage = new IndexPage(newpage,bufferPool, recoveryManager);
+            IndexPage nipage = new IndexPage(newpage, bufferPool, recoveryManager);
             nipage.init();
 
             //新建内部节点，作为新的root
-            InnerNode newRoot = new InnerNode(metaData, newpage.pid, newpage,bufferPool,recoveryManager);
+            InnerNode newRoot = new InnerNode(metaData, newpage.pid, newpage, bufferPool, recoveryManager);
 
             //撸出新节点的两个儿子
-            Node c2 = Node.load(metaData, newNode,bufferPool,recoveryManager);
+            Node c2 = Node.load(metaData, newNode, bufferPool, recoveryManager);
 
             //写入到新节点中 (*´∀`)~♥
             nipage.addChild(0, root.pid);
@@ -85,7 +85,8 @@ public class BPTree implements Index {
             //更新root
             root = newRoot;
 
-            var masterPage = new MasterPage(bufferPool.getPage(PageHelper.concatPid(metaData.fid,0)),recoveryManager);
+            var page = bufferPool.getPage(PageHelper.concatPid(metaData.fid, 0));
+            var masterPage = new MasterPage(page, recoveryManager);
             masterPage.setRootPageId(root.pid);
 //            bufferPool.flushPage(masterPage.getPageId());
         }
@@ -94,38 +95,59 @@ public class BPTree implements Index {
     @Override
     public void delete(Value<?> key, boolean shouldLog) {
 //        System.out.println("on delete: "+key);
-        root.delete(key,shouldLog);
+        root.delete(key, shouldLog);
     }
 
     public Iterator<RowData> scanAll() {
-        return new RowDataIterator();
+        return new RowDataIterator(root.getFirstLeafPage(), 0);
+    }
+
+    public Iterator<RowData> scanFrom(Value<?> key) {
+        var IndexEntry = searchEqual(key);
+        var ptr = IndexEntry.getPointer();
+        return new RowDataIterator(ptr.pid, ptr.sid);
     }
 
     private class RowDataIterator implements Iterator<RowData> {
         private DataPage dataPage;
         private Iterator<RowData> internalIterator;
-        RowDataIterator(){
-            this.dataPage = root.getFirstLeafPage();
-            this.internalIterator = dataPage.scanFrom(0);
 
+        RowDataIterator(long pid, int sid) {
+            this.dataPage = new DataPage(
+                    bufferPool.getPage(pid),
+                    bufferPool,
+                    recoveryManager,
+                    metaData.tableSchema);
+            this.internalIterator = dataPage.scanFrom(sid);
         }
+
+        RowDataIterator(DataPage dataPage, int sid) {
+            this.dataPage = dataPage;
+            this.internalIterator = dataPage.scanFrom(sid);
+        }
+
+
         @Override
         public boolean hasNext() {
-            return internalIterator!=null&&internalIterator.hasNext();
+            return internalIterator != null && internalIterator.hasNext();
         }
 
         @Override
         public RowData next() {
-            if(!hasNext())
+            if (!hasNext())
                 throw new NoSuchElementException();
             RowData rowData = internalIterator.next();
-            while (!internalIterator.hasNext()){
+            while (!internalIterator.hasNext()) {
                 long pid = dataPage.getNextPageId();
-                if (pid == NULL_PAGE_ID){
+                if (pid == NULL_PAGE_ID) {
                     internalIterator = null;
                     break;
-                }else{
-                    dataPage = new DataPage(bufferPool.getPage(pid),bufferPool,recoveryManager,metaData.tableSchema);
+                } else {
+                    dataPage = new DataPage(
+                            bufferPool.getPage(pid),
+                            bufferPool,
+                            recoveryManager,
+                            metaData.tableSchema);
                     internalIterator = dataPage.scanFrom(0);
                 }
             }
