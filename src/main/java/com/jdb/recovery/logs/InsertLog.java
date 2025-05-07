@@ -3,14 +3,12 @@ package com.jdb.recovery.logs;
 import com.jdb.Engine;
 import com.jdb.catalog.Schema;
 import com.jdb.common.PageHelper;
-import com.jdb.common.Value;
 import com.jdb.recovery.LogType;
 import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
 import com.jdb.table.PagePointer;
 import com.jdb.table.RowData;
 
-import java.awt.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.NoSuchElementException;

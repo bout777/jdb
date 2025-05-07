@@ -3,7 +3,7 @@ package com.jdb.engine;
 import com.jdb.Engine;
 import com.jdb.TestUtil;
 import com.jdb.catalog.Schema;
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
 import org.junit.After;

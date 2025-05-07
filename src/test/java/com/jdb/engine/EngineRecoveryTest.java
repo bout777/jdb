@@ -35,8 +35,7 @@ public class EngineRecoveryTest {
 
     @Before
     public void init() throws Exception {
-        var p = Path.of(TestUtil.TEST_DIR);
-        cleanfile();
+        cleanfile(TestUtil.TEST_DIR);
         fileName = testDir.getAbsolutePath();
         engine = new Engine(fileName);
     }
@@ -44,12 +43,12 @@ public class EngineRecoveryTest {
     @After
     public void close() throws IOException {
         engine.close();
-        cleanfile();
+        cleanfile(TestUtil.TEST_DIR);
     }
 
-    void cleanfile() {
+    void cleanfile(String _path) {
         try {
-            var p = Path.of(TestUtil.TEST_DIR);
+            var p = Path.of(_path);
             Files.walk(p)
                     .filter(path -> !path.equals(p))
                     .sorted(Comparator.reverseOrder())
@@ -198,11 +197,11 @@ public class EngineRecoveryTest {
             table.insertRecord(row, true, true);
         }
         engine.commit();
-//        while (logiter.hasNext()) {
-//            LogRecord log = logiter.next();
-//            if(log.getType() != LogType.INSERT)
-//            System.out.println(log);
-//        }
+        while (logiter.hasNext()) {
+            LogRecord log = logiter.next();
+            if(log.getType() != LogType.INSERT)
+                System.out.println("lsn: "+log.getLsn()+" "+log);
+        }
         engine.close();
 
         // 模拟程序崩溃

@@ -1,7 +1,7 @@
 //package com.jdb.Table;
 //
 //import com.jdb.TestUtil;
-//import com.jdb.common.Value;
+//import com.jdb.common.value.Value;
 //import com.jdb.table.RowData;
 //import com.jdb.table.Table;
 //import com.jdb.transaction.TransactionManager;

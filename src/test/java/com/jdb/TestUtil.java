@@ -3,11 +3,14 @@ package com.jdb;
 import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
 import com.jdb.common.DataType;
-import com.jdb.common.Value;
+import com.jdb.common.value.Value;
 import com.jdb.table.RowData;
-import com.jdb.table.Table;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -40,4 +43,22 @@ public class TestUtil {
 //    public static Table getTable() {
 //        return Table.getTestTable();
 //    }
+
+    public static void cleanfile(String _path) {
+        try {
+            var p = Path.of(_path);
+            Files.walk(p)
+                    .filter(path -> !path.equals(p))
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(file -> {
+                        try {
+                            Files.delete(file);
+                        } catch (IOException e) {
+                            throw new RuntimeException("删除失败: " + file, e);
+                        }
+                    });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

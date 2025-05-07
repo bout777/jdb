@@ -1,28 +1,15 @@
 package com.jdb.recover;
 
 import com.jdb.DummyBufferPool;
-import com.jdb.TestUtil;
-import com.jdb.common.PageHelper;
-import com.jdb.common.Value;
 import com.jdb.recovery.LogManager;
 import com.jdb.recovery.LogType;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.recovery.logs.BeginLog;
 import com.jdb.recovery.logs.CommitLog;
-import com.jdb.recovery.logs.LogRecord;
 import com.jdb.storage.BufferPool;
 import com.jdb.table.PagePointer;
-import com.jdb.table.Table;
-import com.jdb.transaction.TransactionContext;
-import com.jdb.transaction.TransactionManager;
 import org.junit.Before;
 import org.junit.Test;
-import com.jdb.version.DeterministicRunner;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
 
 import static org.junit.Assert.*;
 
