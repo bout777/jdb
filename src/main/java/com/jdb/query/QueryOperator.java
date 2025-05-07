@@ -27,7 +27,7 @@ public abstract class QueryOperator {
     protected QueryOperator(OperatorType type,QueryOperator source){
         this.type = type;
         this.source = source;
-        outSchema = source.getSchema();
+        outSchema = computeSchema();
     }
     public Schema getSchema() {
         return outSchema;
@@ -36,4 +36,6 @@ public abstract class QueryOperator {
     public void setSchema(Schema schema) {
         outSchema = schema;
     }
+
+    public abstract Schema computeSchema();
 }

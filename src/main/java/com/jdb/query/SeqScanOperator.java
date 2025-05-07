@@ -1,6 +1,7 @@
 package com.jdb.query;
 
 import com.jdb.Engine;
+import com.jdb.catalog.Schema;
 import com.jdb.table.RowData;
 import com.jdb.table.Table;
 
@@ -12,6 +13,11 @@ public class SeqScanOperator extends QueryOperator{
     @Override
     public Iterator<RowData> iterator() {
         return table.scan();
+    }
+
+    @Override
+    public Schema computeSchema() {
+        return getSchema();
     }
 
     public SeqScanOperator(String tableName, Engine engine){

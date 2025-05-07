@@ -15,6 +15,11 @@ public class SelectOperator extends QueryOperator{
     Value value;
 
     @Override
+    public Schema computeSchema() {
+        return this.source.getSchema();
+    }
+
+    @Override
     public Iterator<RowData> iterator() {
         class SelectOperatorIterator implements Iterator<RowData>{
             private Iterator<RowData> sourceIter;
