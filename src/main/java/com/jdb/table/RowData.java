@@ -53,6 +53,17 @@ public class RowData {
         return new RowData(values, size);
     }
 
+    public Value get(int index) {
+        return values.get(index);
+    }
+
+    public RowData concat(RowData rowData) {
+        List<Value> values = new ArrayList<>();
+        values.addAll(this.values);
+        values.addAll(rowData.values);
+        return new RowData(values, size + rowData.size);
+    }
+
     public int size() {
         return size;
     }
