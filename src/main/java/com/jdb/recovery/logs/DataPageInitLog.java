@@ -24,6 +24,14 @@ public class DataPageInitLog extends LogRecord {
         this.pid = pid;
     }
 
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset);
+        long xid = buffer.getLong();
+        long prevLsn = buffer.getLong();
+        long pid = buffer.getLong();
+        return new DataPageInitLog(xid, prevLsn, pid);
+    }
+
     @Override
     protected int getPayloadSize() {
         return Long.BYTES * 3;
@@ -36,14 +44,6 @@ public class DataPageInitLog extends LogRecord {
                 .putLong(prevLsn)
                 .putLong(pid);
         return buffer.position();
-    }
-
-    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
-        buffer.position(offset);
-        long xid = buffer.getLong();
-        long prevLsn = buffer.getLong();
-        long pid = buffer.getLong();
-        return new DataPageInitLog(xid, prevLsn, pid);
     }
 
     @Override

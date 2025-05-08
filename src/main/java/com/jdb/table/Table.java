@@ -26,21 +26,13 @@ public class Table {
 //        return instance;
 //    }
 
-    private record TableMeta(int fid, String name, Schema schema) {
-    }
-
     TableMeta meta;
     BufferPool bufferPool;
     RecoveryManager recoveryManager;
     VersionManager versionManager;
     BPTree clusterIndex;
     Map<String, Index> secIndices;
-
-    public Schema getSchema() {
-        return meta.schema;
-    }
-
-    public Table(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm,VersionManager vm) {
+    public Table(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm, VersionManager vm) {
         this.meta = new TableMeta(fid, name, schema);
         this.bufferPool = bp;
         this.recoveryManager = rm;
@@ -48,24 +40,27 @@ public class Table {
         IndexMetaData clusterIdxMeta = new IndexMetaData(getTableName(), schema.columns().get(0), getTableName(), schema, fid);
         clusterIndex = new BPTree(clusterIdxMeta, bp, rm);
     }
-    public static Table createInMemory(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm,VersionManager vm){
-        var table = new Table(name, fid, schema, bp, rm,vm);
+
+    public static Table createInMemory(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm, VersionManager vm) {
+        var table = new Table(name, fid, schema, bp, rm, vm);
         table.getClusterIndex().init();
         return table;
     }
 
-    public static Table loadFromDisk(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm,VersionManager vm){
+    public static Table loadFromDisk(String name, int fid, Schema schema, BufferPool bp, RecoveryManager rm, VersionManager vm) {
 
-        var table = new Table(name, fid, schema, bp, rm,vm);
+        var table = new Table(name, fid, schema, bp, rm, vm);
         table.getClusterIndex().load();
         return table;
     }
 
+    public Schema getSchema() {
+        return meta.schema;
+    }
 
     public BPTree getClusterIndex() {
         return clusterIndex;
     }
-
 
     public String getTableName() {
         return meta.name;
@@ -75,6 +70,18 @@ public class Table {
     public RowData getRowData(PagePointer ptr) {
         Page page = bufferPool.getPage(ptr.pid);
         return RowData.deserialize(page.getBuffer(), ptr.sid, meta.schema);
+    }
+
+    public RowData getRowData(Value<?> key) {
+        var vm = versionManager;
+        var result = vm.read(meta.name, key);
+        if (result.getVisibility() == ReadResult.Visibility.VISIBLE) {
+            return result.getRowData();
+        } else if (result.getVisibility() == ReadResult.Visibility.INVISIBLE) {
+            return null;
+        }
+        IndexEntry entry = clusterIndex.searchEqual(key);
+        return ((ClusterIndexEntry) entry).getRecord();
     }
 //    public Iterator<RowData> searchEqual(String colName, Value<?> key){
 //        if(colName.equals(meta.schema.columns().get(0).getName())){
@@ -94,20 +101,6 @@ public class Table {
 //        }
 //    }
 
-    public RowData getRowData(Value<?> key) {
-        var vm = versionManager;
-        var result = vm.read(meta.name, key);
-        if (result.getVisibility() == ReadResult.Visibility.VISIBLE) {
-            return result.getRowData();
-        } else if (result.getVisibility() == ReadResult.Visibility.INVISIBLE) {
-            return null;
-        }
-        IndexEntry entry = clusterIndex.searchEqual(key);
-        return ((ClusterIndexEntry) entry).getRecord();
-    }
-
-    //需要改成走索引插入
-
     public void insertRecord(RowData rowData, boolean shouldLog, boolean shouldPushVersion) {
         if (shouldPushVersion) {
             var vm = versionManager;
@@ -117,6 +110,8 @@ public class Table {
         var entry = new ClusterIndexEntry(rowData.getPrimaryKey(), rowData);
         clusterIndex.insert(entry, shouldLog);
     }
+
+    //需要改成走索引插入
 
     public void updateRecord(Value<?> key, RowData rowData, boolean shouldLog) {
         var vm = versionManager;
@@ -133,5 +128,8 @@ public class Table {
 
     public Iterator<RowData> scan() {
         return clusterIndex.scanAll();
+    }
+
+    private record TableMeta(int fid, String name, Schema schema) {
     }
 }

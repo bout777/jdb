@@ -5,7 +5,6 @@ import com.jdb.catalog.Column;
 import com.jdb.catalog.Schema;
 import com.jdb.common.DataType;
 import com.jdb.common.value.Value;
-import com.jdb.exception.DatabaseException;
 import com.jdb.recovery.RecoveryManager;
 import com.jdb.storage.BufferPool;
 import com.jdb.storage.Disk;
@@ -32,9 +31,27 @@ public class TableManager {
     Table tableMeta;
     Table indexMeta;
     Table fileMeta;
+    Map<String, Table> tables = new HashMap<>();
+    BufferPool bufferPool;
+    RecoveryManager recoveryManager;
+    Disk disk;
+    VersionManager versionManager;
+
 
     public TableManager(Engine engine) {
         this.engine = engine;
+    }
+
+    public TableManager(BufferPool bp, Disk disk, RecoveryManager rm, boolean initialized) {
+        this.bufferPool = bp;
+        this.disk = disk;
+        this.recoveryManager = rm;
+
+        if (!initialized) {
+            init();
+        } else {
+            load();
+        }
     }
 
     public void injectDependency() {
@@ -56,36 +73,16 @@ public class TableManager {
         return fileMeta;
     }
 
-
-    Map<String, Table> tables = new HashMap<>();
-
-    BufferPool bufferPool;
-    RecoveryManager recoveryManager;
-    Disk disk;
-    VersionManager versionManager;
-
-    public TableManager(BufferPool bp, Disk disk, RecoveryManager rm, boolean initialized) {
-        this.bufferPool = bp;
-        this.disk = disk;
-        this.recoveryManager = rm;
-
-        if (!initialized) {
-            init();
-        } else {
-            load();
-        }
-    }
-
     public void init() {
-        tableMeta = Table.createInMemory(TABLE_META_DATA_FILE_NAME, TABLE_META_DATA_FILE_ID, TableMataSchema(), bufferPool, recoveryManager,versionManager);
-        indexMeta = Table.createInMemory(INDEX_META_DATA_FILE_NAME, INDEX_META_DATA_FILE_ID, IndexMataSchema(),bufferPool, recoveryManager,versionManager);
-        fileMeta = Table.createInMemory(FILE_META_DATA_FILE_NAME, FILE_META_DATA_FILE_ID, fileMataSchema(),bufferPool, recoveryManager,versionManager);
+        tableMeta = Table.createInMemory(TABLE_META_DATA_FILE_NAME, TABLE_META_DATA_FILE_ID, TableMataSchema(), bufferPool, recoveryManager, versionManager);
+        indexMeta = Table.createInMemory(INDEX_META_DATA_FILE_NAME, INDEX_META_DATA_FILE_ID, IndexMataSchema(), bufferPool, recoveryManager, versionManager);
+        fileMeta = Table.createInMemory(FILE_META_DATA_FILE_NAME, FILE_META_DATA_FILE_ID, fileMataSchema(), bufferPool, recoveryManager, versionManager);
     }
 
     public void load() {
-        tableMeta = Table.loadFromDisk(TABLE_META_DATA_FILE_NAME, TABLE_META_DATA_FILE_ID, TableMataSchema(),bufferPool, recoveryManager,versionManager);
-        indexMeta = Table.loadFromDisk(INDEX_META_DATA_FILE_NAME, INDEX_META_DATA_FILE_ID, IndexMataSchema(),bufferPool, recoveryManager,versionManager);
-        fileMeta = Table.loadFromDisk(FILE_META_DATA_FILE_NAME, FILE_META_DATA_FILE_ID, fileMataSchema(),bufferPool, recoveryManager,versionManager);
+        tableMeta = Table.loadFromDisk(TABLE_META_DATA_FILE_NAME, TABLE_META_DATA_FILE_ID, TableMataSchema(), bufferPool, recoveryManager, versionManager);
+        indexMeta = Table.loadFromDisk(INDEX_META_DATA_FILE_NAME, INDEX_META_DATA_FILE_ID, IndexMataSchema(), bufferPool, recoveryManager, versionManager);
+        fileMeta = Table.loadFromDisk(FILE_META_DATA_FILE_NAME, FILE_META_DATA_FILE_ID, fileMataSchema(), bufferPool, recoveryManager, versionManager);
     }
 
     private Schema TableMataSchema() {
@@ -110,7 +107,6 @@ public class TableManager {
     }
 
 
-
     public String getTableName(int fid) {
 
         var iter = tableMeta.scan();
@@ -125,7 +121,7 @@ public class TableManager {
 
     public Table getTable(String name) {
         Table table = tables.get(name);
-        if(table==null){
+        if (table == null) {
             var iter = tableMeta.scan();
             while (iter.hasNext()) {
                 var rowData = iter.next();
@@ -133,14 +129,14 @@ public class TableManager {
                 if (tbName.equals(name)) {
                     int fid = (int) rowData.values.get(1).getValue(Integer.class);
                     Schema schema = Schema.fromString((String) rowData.values.get(2).getValue(String.class));
-                    table= Table.loadFromDisk(name, fid, schema, bufferPool, recoveryManager,versionManager);
+                    table = Table.loadFromDisk(name, fid, schema, bufferPool, recoveryManager, versionManager);
                 }
             }
         }
-        if(table==null)
+        if (table == null)
             throw new NoSuchElementException("table no exist");
 
-        tables.put(name,table);
+        tables.put(name, table);
         return table;
     }
 
@@ -158,13 +154,13 @@ public class TableManager {
         while (iter.hasNext()) {
             var rowData = iter.next();
             int tbFid = (int) rowData.values.get(1).getValue(Integer.class);
-            if (tbFid==fid) {
+            if (tbFid == fid) {
                 String tbName = (String) rowData.values.get(0).getValue(String.class);
-                if(tables.containsKey(tbName)){
+                if (tables.containsKey(tbName)) {
                     return tables.get(tbName);
                 }
                 Schema schema = Schema.fromString((String) rowData.values.get(2).getValue(String.class));
-                var table= Table.loadFromDisk(tbName, fid, schema, bufferPool, recoveryManager,versionManager);
+                var table = Table.loadFromDisk(tbName, fid, schema, bufferPool, recoveryManager, versionManager);
                 tables.put(tbName, table);
                 return table;
             }
@@ -181,12 +177,13 @@ public class TableManager {
             default -> getTableSchemaFromMeta(fid);
         };
     }
-    private Schema getTableSchemaFromMeta(int fid){
+
+    private Schema getTableSchemaFromMeta(int fid) {
         var iter = tableMeta.scan();
         while (iter.hasNext()) {
             var rowData = iter.next();
             int tbFid = (int) rowData.values.get(1).getValue(Integer.class);
-            if (tbFid==fid) {
+            if (tbFid == fid) {
                 Schema schema = Schema.fromString((String) rowData.values.get(2).getValue(String.class));
                 return schema;
             }
@@ -197,7 +194,7 @@ public class TableManager {
     public Table create(String tableName, Schema schema) {
         //todo 先检查表是否已存在
         int fid = disk.addFile(tableName + TABLE_FILE_SUFFIX);
-        Table table = Table.createInMemory(tableName, fid, schema, bufferPool, recoveryManager,versionManager);
+        Table table = Table.createInMemory(tableName, fid, schema, bufferPool, recoveryManager, versionManager);
         tables.put(tableName, table);
 
         //meta写记录

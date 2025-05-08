@@ -18,7 +18,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class BasicQueryTest {
-    String dir = TestUtil.TEST_DIR + "\\query";
+    String dir = TestUtil.TEST_DIR;
     File testDir = new File(dir);
     Engine engine;
 
@@ -107,12 +107,10 @@ public class BasicQueryTest {
         var iter = project.iterator();
         while (iter.hasNext()) {
             var row = iter.next();
-            assertEquals(row.get(0),Value.of("hehe"));
+            assertEquals(row.get(0), Value.of("hehe"));
             assertEquals(row.get(1).getType(), DataType.INTEGER);
         }
     }
-
-
 
 
 }

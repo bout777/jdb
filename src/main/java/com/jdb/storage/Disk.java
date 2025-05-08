@@ -15,6 +15,10 @@ import java.util.*;
 import static com.jdb.common.Constants.*;
 
 public class Disk {
+    // fid->jbfile
+    private final Map<Integer, JBFile> files = new HashMap<>();
+    // fid->nextPageId
+    private final Map<Integer, Long> nextPage = new HashMap<>();
     //懒加载单例，测试用
 //    private static Disk disk;
 //
@@ -27,29 +31,18 @@ public class Disk {
 //        return disk;
 //    }
     public int ioCount = 0;
-
     private Engine engine;
-
     private Table fileTable;
-
     private int nextFid = 100;
-
     private String dbDir;
-
     private RecoveryManager recoveryManager;
-
-    // fid->jbfile
-    private final Map<Integer, JBFile> files = new HashMap<>();
-
-    // fid->nextPageId
-    private final Map<Integer, Long> nextPage = new HashMap<>();
 
     //======init method======//
     public Disk(String dbDir) {
         this.dbDir = dbDir;
     }
 
-    public Disk(Engine engine){
+    public Disk(Engine engine) {
         this.engine = engine;
     }
 
@@ -77,17 +70,16 @@ public class Disk {
             } catch (DuplicateInsertException e) {
 
             }
-            nextFid = fid+1;
+            nextFid = fid + 1;
         }
     }
 
     public void init() {
         putFileMap(LOG_FILE_ID, LOG_FILE_NAME);
-        putFileMap(FILE_META_DATA_FILE_ID,FILE_META_DATA_FILE_NAME+TABLE_FILE_SUFFIX);
-        putFileMap(TABLE_META_DATA_FILE_ID,TABLE_META_DATA_FILE_NAME+TABLE_FILE_SUFFIX);
-        putFileMap(INDEX_META_DATA_FILE_ID,INDEX_META_DATA_FILE_NAME+TABLE_FILE_SUFFIX);
+        putFileMap(FILE_META_DATA_FILE_ID, FILE_META_DATA_FILE_NAME + TABLE_FILE_SUFFIX);
+        putFileMap(TABLE_META_DATA_FILE_ID, TABLE_META_DATA_FILE_NAME + TABLE_FILE_SUFFIX);
+        putFileMap(INDEX_META_DATA_FILE_ID, INDEX_META_DATA_FILE_NAME + TABLE_FILE_SUFFIX);
     }
-
 
 
     //======page api======//
@@ -103,8 +95,8 @@ public class Disk {
     private void readPage(int fid, int pno, byte[] data) {
 
         JBFile file = files.get(fid);
-        if(file==null)
-            throw new NoSuchElementException(fid+"file no existed");
+        if (file == null)
+            throw new NoSuchElementException(fid + "file no existed");
         try {
             file.rlock.lock();
             file.read(pno, data);
@@ -124,8 +116,8 @@ public class Disk {
 
     private void writePage(int fid, int pno, byte[] data) {
         JBFile file = files.get(fid);
-        if(file==null)
-            throw new NoSuchElementException(fid+"file no existed");
+        if (file == null)
+            throw new NoSuchElementException(fid + "file no existed");
         try {
             file.wlock.lock();
             file.write(pno, data);
@@ -143,7 +135,7 @@ public class Disk {
     }
 
     private long getNextPageIdAndIncrease(int fid) {
-        if(!nextPage.containsKey(fid))
+        if (!nextPage.containsKey(fid))
             throw new NoSuchElementException("file no existed");
         long pid = nextPage.get(fid);
         nextPage.put(fid, pid + 1);
@@ -156,7 +148,7 @@ public class Disk {
         return files.containsKey(fid);
     }
 
-    public int addFile(String fileName){
+    public int addFile(String fileName) {
         ioCount++;
         int fid = putFileTable(fileName);
         putFileMap(fid, fileName);
@@ -165,15 +157,15 @@ public class Disk {
         return fid;
     }
 
-    public void putFileMap(int fid, String fileName){
+    public void putFileMap(int fid, String fileName) {
         if (files.containsKey(fid))
             throw new DuplicateInsertException("file already exists");
         var file = new JBFile(dbDir + "/" + fileName);
         files.put(fid, file);
-        nextPage.put(fid, PageHelper.concatPid(fid,(int)file.length() / PAGE_SIZE));
+        nextPage.put(fid, PageHelper.concatPid(fid, (int) file.length() / PAGE_SIZE));
     }
 
-    private int putFileTable(String fileName){
+    private int putFileTable(String fileName) {
         int fid = nextFid++;
 
         List<Value> values = new ArrayList<>();
@@ -192,7 +184,7 @@ public class Disk {
                 file.close();
             } catch (Exception e) {
                 throw new RuntimeException(e);
-            }finally {
+            } finally {
                 file.wlock.unlock();
             }
         }

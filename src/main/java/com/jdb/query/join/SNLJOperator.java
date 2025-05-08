@@ -29,7 +29,7 @@ public class SNLJOperator extends JoinOperator {
     @Override
     public Iterator<RowData> iterator() {
         class SNLJOperatorIterator implements Iterator<RowData> {
-            private Iterator<RowData> leftIter;
+            private final Iterator<RowData> leftIter;
             private Iterator<RowData> rightIter;
             private RowData left;
             private RowData next;
@@ -55,7 +55,7 @@ public class SNLJOperator extends JoinOperator {
                         left = leftIter.next();
                         rightIter = getRightSource().iterator();
                     } else {
-                        left  = null;
+                        left = null;
                         return false;
                     }
                 }

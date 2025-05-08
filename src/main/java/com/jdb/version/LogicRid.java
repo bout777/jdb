@@ -7,6 +7,7 @@ import java.util.Objects;
 public class LogicRid {
     private final String tableName;
     private final Value<?> primaryKey;
+
     LogicRid(String tableName, Value<?> primaryKey) {
         this.tableName = tableName;
         this.primaryKey = primaryKey;
@@ -19,6 +20,7 @@ public class LogicRid {
             return this.tableName.equals(that.tableName) && this.primaryKey == that.primaryKey;
         return false;
     }
+
     @Override
     public int hashCode() {
         return Objects.hash(tableName, primaryKey);

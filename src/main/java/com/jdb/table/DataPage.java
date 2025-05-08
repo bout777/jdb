@@ -36,13 +36,12 @@ public class DataPage {
     public static final int LOWER_OFFSET = NEXT_PAGE_ID_OFFSET + Long.BYTES;
     public static final int UPPER_OFFSET = LOWER_OFFSET + Integer.BYTES;
     public static final int HEADER_SIZE = UPPER_OFFSET + Integer.BYTES;
-
-    private Table table;
     private final ByteBuffer buffer;
     private final Page page;
     private final BufferPool bufferPool;
     private final RecoveryManager recoveryManager;
     private final Schema schema;
+    private Table table;
 
     public DataPage(Page page, BufferPool bp, RecoveryManager rm, Schema schema) {
         buffer = page.getBuffer();
@@ -352,6 +351,8 @@ public class DataPage {
         return new InternalRecordIterator(slotId);
     }
 
+    public void optimize() {
+    }
 
     class InternalRecordIterator implements Iterator<RowData> {
         int slotId;
@@ -371,9 +372,6 @@ public class DataPage {
                 throw new NoSuchElementException();
             return getRecord(slotId++);
         }
-    }
-
-    public void optimize() {
     }
 
 }

@@ -13,7 +13,8 @@ public class ClusterIndexEntry extends IndexEntry {
         this.key = key;
         this.rowData = rowData;
     }
-    public ClusterIndexEntry(Value<?> key, RowData rowData,  PagePointer ptr) {
+
+    public ClusterIndexEntry(Value<?> key, RowData rowData, PagePointer ptr) {
         this.key = key;
         this.rowData = rowData;
         this.ptr = ptr;

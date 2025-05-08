@@ -2,52 +2,19 @@ package com.jdb.catalog;
 
 import com.jdb.common.DataType;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class Schema {
 
-    private List<Column> columns;
-    private HashMap<String, Column> columnsMap;
+    private final List<Column> columns;
+    private final HashMap<String, Column> columnsMap;
 
     public Schema() {
         columns = new ArrayList<>();
         columnsMap = new HashMap<>();
     }
-
-    public List<Column> columns() {
-        return this.columns;
-    }
-
-    public Schema add(Column column) {
-        columns.add(column);
-        columnsMap.put(column.getName(), column);
-        return this;
-    }
-
-    public Schema add(DataType type, String name) {
-        return add(new Column(type, name));
-    }
-
-    public Column get(int i) {
-        return columns.get(i);
-    }
-
-    public Column get(String name) {
-        if(!columnsMap.containsKey(name)){
-            throw new IllegalArgumentException("column not found");
-        }
-        return columnsMap.get(name);
-    }
-
-    public int getColumnIndex(String name) {
-        Column column = columnsMap.get(name);
-        return columns.indexOf(column);
-    }
-
-
 
     public static Schema fromString(String str) {
         Schema schema = new Schema();
@@ -74,6 +41,37 @@ public class Schema {
         return schema;
     }
 
+    public List<Column> columns() {
+        return this.columns;
+    }
+
+    public Schema add(Column column) {
+        columns.add(column);
+        columnsMap.put(column.getName(), column);
+        return this;
+    }
+
+    public Schema add(DataType type, String name) {
+        return add(new Column(type, name));
+    }
+
+    public Column get(int i) {
+        return columns.get(i);
+    }
+
+    public Column get(String name) {
+        if (!columnsMap.containsKey(name)) {
+            String msg = String.format("column %s not exist", name);
+            throw new IllegalArgumentException(msg);
+        }
+        return columnsMap.get(name);
+    }
+
+    public int getColumnIndex(String name) {
+        Column column = columnsMap.get(name);
+        return columns.indexOf(column);
+    }
+
     public Schema concat(Schema other) {
         Schema merged = new Schema();
 
@@ -96,6 +94,14 @@ public class Schema {
         }
 
         return merged;
+    }
+
+    public List<String> getColumnNames() {
+        List<String> columnNames = new ArrayList<>();
+        for (Column column : columns) {
+            columnNames.add(column.getName());
+        }
+        return columnNames;
     }
 
 

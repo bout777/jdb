@@ -18,10 +18,10 @@ import static com.jdb.common.Constants.NULL_PAGE_ID;
 import static com.jdb.common.Constants.SLOT_SIZE;
 
 public abstract class Node {
-    protected IndexMetaData metaData;
     static final int ORDER = 4;
     public long pid;
     public int fid;
+    protected IndexMetaData metaData;
     Page page;
     BufferPool bufferPool;
     RecoveryManager recoveryManager;
@@ -154,7 +154,7 @@ class InnerNode extends Node {
 class LeafNode extends Node {
     private List<IndexEntry> entries;
     private LeafNode nextLeaf;
-    private DataPage dataPage;
+    private final DataPage dataPage;
 
 
     LeafNode(IndexMetaData metaData, long pid, Page page, BufferPool bp, RecoveryManager rm) {

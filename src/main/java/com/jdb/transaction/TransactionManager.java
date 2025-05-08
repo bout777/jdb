@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TransactionManager {
+    //预分配的xid，递增
+    private static final AtomicLong trxStartStamp = new AtomicLong(1);
     //懒加载方法，测试用
 //    private static TransactionManager instance ;
 //    public synchronized static TransactionManager getInstance() {
@@ -16,9 +18,6 @@ public class TransactionManager {
 //        return instance;
 //    }
     private Engine engine;
-
-    //预分配的xid，递增
-    private static AtomicLong trxStartStamp = new AtomicLong(1);
     private RecoveryManager recoveryManager;
     private VersionManager versionManager;
     private Map<Integer, Transaction> activeTransactions;
@@ -26,13 +25,17 @@ public class TransactionManager {
 //    private Map<Long, Set<LogicRid>> writeSetMap;
     //返回xid
 
-    public TransactionManager(RecoveryManager rm, VersionManager vm){
+    public TransactionManager(RecoveryManager rm, VersionManager vm) {
         recoveryManager = rm;
         versionManager = vm;
     }
 
     public TransactionManager(Engine engine) {
         this.engine = engine;
+    }
+
+    public static long getCurrentTrxStamp() {
+        return trxStartStamp.get();
     }
 
     public void injectDependency() {
@@ -60,11 +63,6 @@ public class TransactionManager {
         TransactionContext.unsetTransaction();
     }
 
-    public static long getCurrentTrxStamp() {
-        return trxStartStamp.get();
-    }
-
-
     /**
      * 逻辑故障下的事务回滚
      * 从事务信息中取出最新的已经写入的lsn
@@ -73,7 +71,7 @@ public class TransactionManager {
      * 追加redo-only日志
      * 当读取到该事务的begin日志时停止回滚
      *
-     * @param xid
+     *
      */
     public void abort() {
         long xid = TransactionContext.getTransaction().getXid();

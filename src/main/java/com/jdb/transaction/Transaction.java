@@ -55,7 +55,7 @@ public class Transaction {
          * 数据库发生崩溃时(eg. power off)
          * 当时未提交的事务在重启后都需要在恢复过程中回滚
          */
-        RECOVERY_ABORTING;
+        RECOVERY_ABORTING
 
     }
 }

@@ -12,9 +12,10 @@ import static com.jdb.common.Constants.NULL_PAGE_ID;
  * 日志类
  */
 public abstract class LogRecord {
+    protected static final int HEADER_SIZE = Byte.BYTES;
     protected long lsn;
     protected LogType type;
-    protected static final int HEADER_SIZE = Byte.BYTES;
+
     protected LogRecord(LogType type) {
         this.type = type;
     }
@@ -48,35 +49,45 @@ public abstract class LogRecord {
 //            case END -> EndLog.deserializePayload(buffer, offset);
 
             case MASTER_PAGE_UPDATE -> MasterPageUpdateLog.deserializePayload(buffer, offset);
-            default -> throw new UnsupportedOperationException("bad log type of "+LogType.fromInt(type));
+            default -> throw new UnsupportedOperationException("bad log type of " + LogType.fromInt(type));
         };
     }
 
-    public long getPrevLsn(){return NULL_LSN;} ;
+    public long getPrevLsn() {
+        return NULL_LSN;
+    }
 
-    public  long getPageId(){return NULL_PAGE_ID;}
+    public long getPageId() {
+        return NULL_PAGE_ID;
+    }
 
-    public long getLsn(){return lsn;}
+    public long getLsn() {
+        return lsn;
+    }
 
-    public void setLsn(long lsn){this.lsn = lsn;}
+    public void setLsn(long lsn) {
+        this.lsn = lsn;
+    }
 
-    public long getXid(){return -1L;}
+    public long getXid() {
+        return -1L;
+    }
 
 //    public void setXid(long xid){};
 
     protected abstract int getPayloadSize();
 
     protected abstract int serializePayload(ByteBuffer buffer, int offset);
-    
+
     private int serializeHeader(ByteBuffer buffer, int offset) {
         buffer.put(offset, (byte) type.getValue());
         offset += Byte.BYTES;
         return offset;
     }
 
-    public final int getSize(){
+    public final int getSize() {
         return HEADER_SIZE + getPayloadSize();
-    };
+    }
 
     public final int serialize(ByteBuffer buffer, int offset) {
         offset = serializeHeader(buffer, offset);
@@ -89,7 +100,10 @@ public abstract class LogRecord {
 
     public abstract LogType getType();
 
-    public void redo(Engine engine){
+    public void redo(Engine engine) {
     }
-    public void undo(Engine engine){};
+
+    public void undo(Engine engine) {
+    }
+
 }

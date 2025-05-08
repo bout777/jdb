@@ -5,7 +5,7 @@ import com.jdb.recovery.LogType;
 
 import java.nio.ByteBuffer;
 
-public class CreateFileLog extends LogRecord{
+public class CreateFileLog extends LogRecord {
     long xid;
     long prevLsn;
     int fid;
@@ -22,6 +22,16 @@ public class CreateFileLog extends LogRecord{
         this.len = (short) this.filePath.length;
     }
 
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset);
+        long xid = buffer.getLong();
+        long prevLsn = buffer.getLong();
+        int fid = buffer.getInt();
+        short len = buffer.getShort();
+        byte[] bytes = new byte[len];
+        buffer.get(bytes);
+        return new CreateFileLog(xid, prevLsn, fid, new String(bytes));
+    }
 
     @Override
     public long getXid() {
@@ -35,7 +45,7 @@ public class CreateFileLog extends LogRecord{
 
     @Override
     protected int getPayloadSize() {
-        return Long.BYTES*2+Integer.BYTES+Short.BYTES+filePath.length;
+        return Long.BYTES * 2 + Integer.BYTES + Short.BYTES + filePath.length;
     }
 
     @Override
@@ -44,22 +54,10 @@ public class CreateFileLog extends LogRecord{
                 .putLong(xid)
                 .putLong(prevLsn)
                 .putInt(fid)
-                .putShort((short)filePath.length)
+                .putShort((short) filePath.length)
                 .put(filePath);
         return buffer.position();
     }
-
-    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
-        buffer.position(offset);
-        long xid = buffer.getLong();
-        long prevLsn = buffer.getLong();
-        int fid = buffer.getInt();
-        short len = buffer.getShort();
-        byte[] bytes = new byte[len];
-        buffer.get(bytes);
-        return new CreateFileLog(xid, prevLsn, fid, new String(bytes));
-    }
-
 
     @Override
     public LogType getType() {
@@ -68,8 +66,8 @@ public class CreateFileLog extends LogRecord{
 
     @Override
     public void redo(Engine engine) {
-        if(!engine.getDisk().fileExist(fid))
-            engine.getDisk().putFileMap(fid,new String(filePath));
+        if (!engine.getDisk().fileExist(fid))
+            engine.getDisk().putFileMap(fid, new String(filePath));
     }
 
     @Override

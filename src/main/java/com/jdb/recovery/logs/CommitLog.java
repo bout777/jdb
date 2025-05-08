@@ -18,7 +18,6 @@ public class CommitLog extends LogRecord {
     }
 
 
-
     @Override
     public long getXid() {
         return xid;
@@ -27,7 +26,7 @@ public class CommitLog extends LogRecord {
 
     @Override
     protected int getPayloadSize() {
-        return Long.BYTES ;
+        return Long.BYTES;
     }
 
     @Override

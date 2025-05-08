@@ -4,7 +4,6 @@ import com.jdb.Engine;
 import com.jdb.catalog.Schema;
 import com.jdb.common.value.Value;
 import com.jdb.exception.DatabaseException;
-import net.sf.jsqlparser.expression.AllValue;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.StringValue;
@@ -15,15 +14,16 @@ import net.sf.jsqlparser.schema.Column;
 
 public class JExpressionVisitor extends ExpressionVisitorAdapter {
 
-    private Expression expression;
-
     Engine engine;
     Schema schema;
+    private Expression expression;
+
     public JExpressionVisitor(Engine engine) {
         this.engine = engine;
     }
+
     //用于单表查询
-    public JExpressionVisitor(Schema schema){
+    public JExpressionVisitor(Schema schema) {
         this.schema = schema;
     }
 
@@ -35,6 +35,7 @@ public class JExpressionVisitor extends ExpressionVisitorAdapter {
     public Expression getExpression() {
         return expression;
     }
+
     @Override
     public void visit(AndExpression expr) {
         expr.getLeftExpression().accept(this);
@@ -127,10 +128,9 @@ public class JExpressionVisitor extends ExpressionVisitorAdapter {
 
     @Override
     public void visit(LongValue value) {
-        int v = (int)value.getValue();
+        int v = (int) value.getValue();
         expression = new Expression.Literal(Value.of(v));
     }
-
 
 
 }

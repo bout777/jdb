@@ -7,7 +7,10 @@ import com.jdb.table.RowData;
 import com.jdb.transaction.TransactionContext;
 import com.jdb.transaction.TransactionManager;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -30,9 +33,9 @@ public class VersionManager {
 //        return instance;
 //    }
 
-    private  Engine engine;
     private final ReadWriteLock rw = new ReentrantReadWriteLock();
-    private Map<LogicRid, VersionEntrySet> versionMap = new HashMap<>();
+    private final Engine engine;
+    private final Map<LogicRid, VersionEntrySet> versionMap = new HashMap<>();
 
     public VersionManager(Engine engine) {
         this.engine = engine;
@@ -80,18 +83,18 @@ public class VersionManager {
             case READ_COMMITTED -> {
                 long curTs = TransactionManager.getCurrentTrxStamp();
                 var entry = entrySet.getVisibleVersion(curTs);
-                if(entry!=null) {
+                if (entry != null) {
                     rowData = entry.getRecord();
                 }
             }
             case SNAPSHOT_ISOLATION -> {
                 var entry = entrySet.getVisibleVersion(xid);
-                if(entry!=null)
+                if (entry != null)
                     rowData = entry.getRecord();
             }
         }
         rw.readLock().unlock();
-        if(rowData ==null)
+        if (rowData == null)
             return ReadResult.invisible();
         else
             return ReadResult.visible(rowData);
@@ -114,7 +117,7 @@ public class VersionManager {
     }
 
     public void cleanup(Set<LogicRid> writeSet) {
-        for (LogicRid ptr : writeSet){
+        for (LogicRid ptr : writeSet) {
             var entries = versionMap.get(ptr);
             entries.pollLastEntry();
         }
@@ -150,7 +153,7 @@ public class VersionManager {
         }
 
         public VersionEntry floor(long endTs) {
-            if(floorEntry(endTs)!=null){
+            if (floorEntry(endTs) != null) {
                 return floorEntry(endTs).getValue();
             }
             return null;
@@ -159,10 +162,10 @@ public class VersionManager {
         public VersionEntry getVisibleVersion(long ts) {
             var latestEntry = lastEntry().getValue();
             long xid = TransactionContext.getTransaction().getXid();
-            if(latestEntry.getStartTs()==xid)
+            if (latestEntry.getStartTs() == xid)
                 return latestEntry;
 
-            if(floorEntry(ts)!=null){
+            if (floorEntry(ts) != null) {
                 return floorEntry(ts).getValue();
             }
             return null;

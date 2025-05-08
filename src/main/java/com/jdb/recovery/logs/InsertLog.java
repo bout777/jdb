@@ -14,12 +14,12 @@ import java.util.Arrays;
 import java.util.NoSuchElementException;
 
 public class InsertLog extends LogRecord {
+    private static final int HEADER_SIZE = Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
     long xid;
     long prevLsn;
     PagePointer ptr;
     int len;
     byte[] image;
-    private static final int HEADER_SIZE = Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
 
     public InsertLog(long xid, long prevLsn, PagePointer ptr, byte[] image) {
         super(LogType.INSERT);
@@ -28,19 +28,6 @@ public class InsertLog extends LogRecord {
         this.ptr = ptr;
         this.len = image.length;
         this.image = image;
-    }
-
-    @Override
-    protected int serializePayload(ByteBuffer buffer, int offset) {
-        buffer.position(offset)
-                .putLong(xid)
-                .putLong(prevLsn)
-                .putLong(ptr.pid)
-                .putInt(ptr.sid)
-                .putInt(len)
-                .put(image);
-
-        return buffer.position();
     }
 
     public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
@@ -55,6 +42,18 @@ public class InsertLog extends LogRecord {
         return new InsertLog(xid, prevLsn, new PagePointer(pid, sid), image);
     }
 
+    @Override
+    protected int serializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset)
+                .putLong(xid)
+                .putLong(prevLsn)
+                .putLong(ptr.pid)
+                .putInt(ptr.sid)
+                .putInt(len)
+                .put(image);
+
+        return buffer.position();
+    }
 
     @Override
     public long getPageId() {
@@ -94,7 +93,7 @@ public class InsertLog extends LogRecord {
         Page page = bp.getPage(ptr.pid);
         DataPage dataPage = new DataPage(page, bp, rm, schema);
 //        System.out.println("on redo: "+rowData);
-        dataPage.insertRecord(rowData, false,false);
+        dataPage.insertRecord(rowData, false, false);
     }
 
     @Override
@@ -107,7 +106,7 @@ public class InsertLog extends LogRecord {
 //        System.out.println("on delete: "+rowData);
         try {
             table.deleteRecord(rowData.getPrimaryKey(), true);
-        } catch (NoSuchElementException e){
+        } catch (NoSuchElementException e) {
 
         }
     }

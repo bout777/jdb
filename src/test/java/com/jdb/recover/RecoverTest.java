@@ -11,21 +11,24 @@ import com.jdb.table.PagePointer;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class RecoverTest {
     RecoveryManager rm;
+
     @Before
     public void init() {
         BufferPool bufferPool = new DummyBufferPool();
         rm = new RecoveryManager(bufferPool);
         rm.setLogManager(new LogManager(bufferPool));
     }
+
     @Test
-    public void testSimpleLog(){
+    public void testSimpleLog() {
         rm.logTrxBegin(1L);
-        rm.logInsert(1L, new PagePointer(1,1), new byte[]{1,2,3,4});
-        rm.logInsert(1L, new PagePointer(2,1), new byte[]{1,2,3,4});
+        rm.logInsert(1L, new PagePointer(1, 1), new byte[]{1, 2, 3, 4});
+        rm.logInsert(1L, new PagePointer(2, 1), new byte[]{1, 2, 3, 4});
         rm.logCommit(1L);
 
         LogManager logManager = rm.getLogManager();
@@ -40,12 +43,12 @@ public class RecoverTest {
     @Test
     public void testCheckpoint() {
         rm.logTrxBegin(1L);
-        rm.logInsert(1L, new PagePointer(1,1), new byte[]{1,2,3,4});
-        rm.logInsert(1L, new PagePointer(2,1), new byte[]{1,2,3,4});
+        rm.logInsert(1L, new PagePointer(1, 1), new byte[]{1, 2, 3, 4});
+        rm.logInsert(1L, new PagePointer(2, 1), new byte[]{1, 2, 3, 4});
 
         rm.logTrxBegin(2L);
-        rm.logInsert(2L, new PagePointer(3,1), new byte[]{1,2,3,4});
-        rm.logInsert(2L, new PagePointer(4,1), new byte[]{1,2,3,4});
+        rm.logInsert(2L, new PagePointer(3, 1), new byte[]{1, 2, 3, 4});
+        rm.logInsert(2L, new PagePointer(4, 1), new byte[]{1, 2, 3, 4});
 
         rm.checkpoint();
 
@@ -64,21 +67,20 @@ public class RecoverTest {
     }
 
     @Test
-    public void testSimpleRecover(){
+    public void testSimpleRecover() {
         rm.logTrxBegin(1L);
-        rm.logInsert(1L, new PagePointer(1,1), new byte[]{1,2,3,4});
-        rm.logInsert(1L, new PagePointer(2,1), new byte[]{1,2,3,4});
+        rm.logInsert(1L, new PagePointer(1, 1), new byte[]{1, 2, 3, 4});
+        rm.logInsert(1L, new PagePointer(2, 1), new byte[]{1, 2, 3, 4});
 
         rm.logTrxBegin(2L);
-        rm.logInsert(2L, new PagePointer(3,1), new byte[]{1,2,3,4});
-        rm.logInsert(2L, new PagePointer(4,1), new byte[]{1,2,3,4});
+        rm.logInsert(2L, new PagePointer(3, 1), new byte[]{1, 2, 3, 4});
+        rm.logInsert(2L, new PagePointer(4, 1), new byte[]{1, 2, 3, 4});
 
         rm.logCommit(1L);
         rm.checkpoint();
 
 
     }
-
 
 
 //    @Test

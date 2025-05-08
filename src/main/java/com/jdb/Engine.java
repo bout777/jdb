@@ -11,6 +11,7 @@ import com.jdb.table.RowData;
 import com.jdb.table.Table;
 import com.jdb.table.TableManager;
 import com.jdb.transaction.TransactionManager;
+import com.jdb.version.ReadResult;
 import com.jdb.version.VersionManager;
 
 import java.io.File;
@@ -43,7 +44,7 @@ public class Engine {
 
     private VersionManager versionManager;
 
-    private String dbDir;
+    private final String dbDir;
 
     public Engine(String path) {
         this.dbDir = path;
@@ -76,46 +77,46 @@ public class Engine {
 
         //读or创建一些必须的文件
         /*
-        * 如果文件不存在
-        * 则向磁盘写入
-        * 如果存在则读取到file对象中
-        * 日志文件，索引表文件，文件表文件，表信息表文件
-        * 不会产生日志*/
+         * 如果文件不存在
+         * 则向磁盘写入
+         * 如果存在则读取到file对象中
+         * 日志文件，索引表文件，文件表文件，表信息表文件
+         * 不会产生日志*/
         disk.init();
 
 
         /*
-        * 向缓冲池申请第一张日志页
-        * 写入第一页主日志*/
-        if(!initialized)
+         * 向缓冲池申请第一张日志页
+         * 写入第一页主日志*/
+        if (!initialized)
             logManager.init();
 
         /*
-        * 启动初始化事务
-        * 由于tableMan的init方法是新建三张表
-        * 会产生日志，所以要关联事务
-        * 如果已经初始化，会执行恢复，也要关联事务
-        * 所以就在这里先启动一个
-        * todo 已分配事务id持久化
-        * */
+         * 启动初始化事务
+         * 由于tableMan的init方法是新建三张表
+         * 会产生日志，所以要关联事务
+         * 如果已经初始化，会执行恢复，也要关联事务
+         * 所以就在这里先启动一个
+         * todo 已分配事务id持久化
+         * */
         transactionManager.begin();
         if (!initialized) {
             //创建系统表
             /*
-            * 新建三张表
-            * 文件表，索引表，表信息表*/
+             * 新建三张表
+             * 文件表，索引表，表信息表*/
             tableManager.init();
 
             /*
-            * 所有页刷盘
-            * */
+             * 所有页刷盘
+             * */
             bufferPool.flush();
         } else {
             //从磁盘中读文件表，索引表，表信息表
             tableManager.load();
         }
         //执行崩溃恢复
-        if(initialized) {
+        if (initialized) {
             recoveryManager.restart();
         }
         //提交
@@ -216,6 +217,13 @@ public class Engine {
     public Iterator<RowData> scan(String tableName, String columnName) {
         Table table = tableManager.getTable(tableName);
         //todo  暂时只智齿主键扫描
+        var source = table.scan();
+        return new VersionFilterIterator(source, tableName);
+    }
+
+    public Iterator<RowData> scanFrom(String tableName, String columnName, Value key) {
+        Table table = tableManager.getTable(tableName);
+        //todo  暂时只智齿主键扫描
         var iter = table.scan();
         return iter;
     }
@@ -225,13 +233,9 @@ public class Engine {
         return null;
     }
 
-//    public Iterator<RowData> scanFrom(String tableName, String columnName, Value key) {
-//
-//    }
-
-
     public void insert(String tableName, RowData rowData) {
         Table table = null;
+        //todo typecheck
         try {
             table = tableManager.getTable(tableName);
         } catch (NoSuchElementException e) {
@@ -251,7 +255,7 @@ public class Engine {
     }
 
     public Table createTable(String tableName, Schema schema) {
-         return tableManager.create(tableName, schema);
+        return tableManager.create(tableName, schema);
     }
 
     public void dropTable(String tableName) {
@@ -267,5 +271,47 @@ public class Engine {
     public void close() {
         bufferPool.close();
         disk.close();
+    }
+
+    class VersionFilterIterator implements Iterator<RowData> {
+        private final Iterator<RowData> sourceIter;
+        private RowData next;
+        private final String tableName;
+
+        public VersionFilterIterator(Iterator<RowData> sourceIter, String tableName) {
+            this.sourceIter = sourceIter;
+            this.tableName = tableName;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (next != null) return true;
+            while (sourceIter.hasNext()) {
+                var rowData = sourceIter.next();
+                rowData = filter(rowData);
+                if (rowData != null) {
+                    next = rowData;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public RowData next() {
+            if (!hasNext()) throw new NoSuchElementException();
+            var row = next;
+            next = null;
+            return row;
+        }
+
+        private RowData filter(RowData rowData) {
+            var result = versionManager.read(tableName, rowData.getPrimaryKey());
+            if (result.getVisibility() == ReadResult.Visibility.VISIBLE) {
+                return result.getRowData();
+            } else if (result.getVisibility() == ReadResult.Visibility.INVISIBLE) {
+                return null;
+            } else return rowData;
+        }
     }
 }

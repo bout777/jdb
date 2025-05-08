@@ -25,9 +25,9 @@ public class DuraBPTest {
     @Before
     public void init() {
         TransactionContext.setTransactionContext(new TransactionContext(1));
-        var mata = new IndexMetaData("table1",TestUtil.recordSchema().get(0), "index1", TestUtil.recordSchema(), 0);
+        var mata = new IndexMetaData("table1", TestUtil.recordSchema().get(0), "index1", TestUtil.recordSchema(), 0);
         var bp = new DummyBufferPool();
-        bpTree = new BPTree(mata,bp, new DummyRecoverManager());
+        bpTree = new BPTree(mata, bp, new DummyRecoverManager());
         bpTree.init();
     }
 
@@ -47,7 +47,7 @@ public class DuraBPTest {
         }
         for (int i = 0; i <= 2000; i++) {
             IndexEntry e = bpTree.searchEqual(Value.of(i));
-            assertEquals(Value.of(i),((RowData)e.getValue()).getPrimaryKey());
+            assertEquals(Value.of(i), ((RowData) e.getValue()).getPrimaryKey());
         }
 
     }
@@ -136,7 +136,7 @@ public class DuraBPTest {
         }
 
         var iter = bpTree.scanAll();
-        for(int i = 0;i<1000;i++)
+        for (int i = 0; i < 1000; i++)
             assertEquals(expected.get(i), iter.next());
 
         assertFalse(iter.hasNext());
@@ -144,26 +144,26 @@ public class DuraBPTest {
 
     @Test
     public void testBulkDelete() {
-        for (int i = 1000; i <2000 ; i++) {
+        for (int i = 1000; i < 2000; i++) {
             RowData rowData = TestUtil.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.of(i), rowData);
             bpTree.insert(e, true);
         }
 
-        for (int i = 0;i<1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             RowData rowData = TestUtil.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.of(i), rowData);
             bpTree.insert(e, true);
         }
-        for (int i = 1999;i>=1000; i--) {
-           bpTree.delete(Value.of(i), true);
+        for (int i = 1999; i >= 1000; i--) {
+            bpTree.delete(Value.of(i), true);
         }
 
     }
 
     @Test
-    public void testScanAll(){
-        for (int i = 2000; i >= 0 ; i--) {
+    public void testScanAll() {
+        for (int i = 2000; i >= 0; i--) {
             RowData rowData = TestUtil.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.of(i), rowData);
             bpTree.insert(e, true);
@@ -180,8 +180,8 @@ public class DuraBPTest {
     }
 
     @Test
-    public void testScanFrom(){
-        for (int i = 2000; i >= 0 ; i--) {
+    public void testScanFrom() {
+        for (int i = 2000; i >= 0; i--) {
             RowData rowData = TestUtil.generateRecord(i);
             IndexEntry e = new ClusterIndexEntry(Value.of(i), rowData);
             bpTree.insert(e, true);
@@ -195,10 +195,7 @@ public class DuraBPTest {
         }
 
         assertFalse(iterator.hasNext());
-
     }
-
-
 
 
 }

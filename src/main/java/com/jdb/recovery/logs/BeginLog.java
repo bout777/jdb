@@ -5,7 +5,8 @@ import com.jdb.recovery.LogType;
 import java.nio.ByteBuffer;
 
 public class BeginLog extends LogRecord {
-long xid;
+    long xid;
+
     public BeginLog(long xid) {
         super(LogType.BEGIN);
         this.xid = xid;
@@ -14,7 +15,7 @@ long xid;
     public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
         return new BeginLog(buffer.getLong(offset));
     }
-    
+
 
     @Override
     public long getXid() {

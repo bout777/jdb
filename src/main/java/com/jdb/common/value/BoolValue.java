@@ -1,7 +1,6 @@
 package com.jdb.common.value;
 
 import com.jdb.common.DataType;
-import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
 
@@ -32,13 +31,15 @@ public class BoolValue extends Value<Boolean> {
         throw new IllegalArgumentException("Unsupported type: " + o.getClass());
     }
 
-    public BoolValue and(BoolValue other){
+    public BoolValue and(BoolValue other) {
         return new BoolValue(value && other.value);
     }
-    public BoolValue or(BoolValue other){
+
+    public BoolValue or(BoolValue other) {
         return new BoolValue(value || other.value);
     }
-    public BoolValue not(){
+
+    public BoolValue not() {
         return new BoolValue(!value);
     }
 }

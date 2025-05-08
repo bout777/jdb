@@ -20,7 +20,7 @@ public class Column {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return "Column{" +
                 "type=" + type +
                 ", name='" + name + '\'' +
@@ -30,7 +30,7 @@ public class Column {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Column that= (Column) o;
+        Column that = (Column) o;
         return type == that.type &&
                 name.equals(that.name);
     }

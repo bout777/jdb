@@ -14,12 +14,12 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class DeleteLog extends LogRecord {
+    private static final int HEADER_SIZE = Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
     long xid;
     long prevLsn;
     PagePointer ptr;
     int len;
     byte[] image;
-    private static final int HEADER_SIZE = Long.BYTES * 2 + PagePointer.SIZE + Integer.BYTES;
 
     public DeleteLog(long xid, long prevLsn, PagePointer ptr, byte[] image) {
         super(LogType.DELETE);
@@ -28,20 +28,6 @@ public class DeleteLog extends LogRecord {
         this.ptr = ptr;
         this.len = image.length;
         this.image = image;
-    }
-
-
-    @Override
-    protected int serializePayload(ByteBuffer buffer, int offset) {
-        buffer.position(offset)
-                .putLong(xid)
-                .putLong(prevLsn)
-                .putLong(ptr.pid)
-                .putInt(ptr.sid)
-                .putInt(len)
-                .put(image);
-
-        return buffer.position();
     }
 
     public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
@@ -54,6 +40,19 @@ public class DeleteLog extends LogRecord {
         byte[] image = new byte[len];
         buffer.get(image);
         return new DeleteLog(xid, prevLsn, new PagePointer(pid, pof), image);
+    }
+
+    @Override
+    protected int serializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset)
+                .putLong(xid)
+                .putLong(prevLsn)
+                .putLong(ptr.pid)
+                .putInt(ptr.sid)
+                .putInt(len)
+                .put(image);
+
+        return buffer.position();
     }
 
     @Override

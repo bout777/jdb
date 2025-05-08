@@ -9,16 +9,25 @@ public class IndexMetaData {
     public String indexName;
     public Schema tableSchema;
     public int fid;
+
+    public IndexMetaData(String tableName, Column keyColumn, String indexName, Schema tableSchema, int fid) {
+        this.tableName = tableName;
+        this.keyColumn = keyColumn;
+        this.indexName = indexName;
+        this.tableSchema = tableSchema;
+        this.fid = fid;
+    }
+
     public String getTableName() {
         return tableName;
     }
 
-    public Schema getTableSchema() {
-        return tableSchema;
-    }
-
     public void setTableName(String tableName) {
         this.tableName = tableName;
+    }
+
+    public Schema getTableSchema() {
+        return tableSchema;
     }
 
     public Column getKeyColumn() {
@@ -35,13 +44,5 @@ public class IndexMetaData {
 
     public void setIndexName(String indexName) {
         this.indexName = indexName;
-    }
-
-    public IndexMetaData(String tableName, Column keyColumn, String indexName, Schema tableSchema, int fid) {
-        this.tableName = tableName;
-        this.keyColumn = keyColumn;
-        this.indexName = indexName;
-        this.tableSchema = tableSchema;
-        this.fid = fid;
     }
 }

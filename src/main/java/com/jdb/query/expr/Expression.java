@@ -17,8 +17,8 @@ public abstract class Expression {
     public abstract String toString();
 
     static class AndExpression extends Expression {
-        private Expression left;
-        private Expression right;
+        private final Expression left;
+        private final Expression right;
 
         public AndExpression(Expression left, Expression right) {
             this.left = left;
@@ -39,8 +39,8 @@ public abstract class Expression {
     }
 
     static class OrExpression extends Expression {
-        private Expression left;
-        private Expression right;
+        private final Expression left;
+        private final Expression right;
 
         public OrExpression(Expression left, Expression right) {
             this.left = left;
@@ -61,7 +61,7 @@ public abstract class Expression {
     }
 
     static class NotExpression extends Expression {
-        private Expression expression;
+        private final Expression expression;
 
         public NotExpression(Expression expression) {
             this.expression = expression;
@@ -80,8 +80,8 @@ public abstract class Expression {
     }
 
     static class GraterThanExpression extends Expression {
-        private Expression left;
-        private Expression right;
+        private final Expression left;
+        private final Expression right;
 
         public GraterThanExpression(Expression left, Expression right) {
             this.left = left;
@@ -102,8 +102,8 @@ public abstract class Expression {
     }
 
     static class GraterThanEqualsExpression extends Expression {
-        private Expression left;
-        private Expression right;
+        private final Expression left;
+        private final Expression right;
 
         public GraterThanEqualsExpression(Expression left, Expression right) {
             this.left = left;
@@ -124,8 +124,8 @@ public abstract class Expression {
     }
 
     static class LessThanExpression extends Expression {
-        private Expression left;
-        private Expression right;
+        private final Expression left;
+        private final Expression right;
 
         public LessThanExpression(Expression left, Expression right) {
             this.left = left;
@@ -146,8 +146,8 @@ public abstract class Expression {
     }
 
     static class LessThanEqualsExpression extends Expression {
-        private Expression left;
-        private Expression right;
+        private final Expression left;
+        private final Expression right;
 
         public LessThanEqualsExpression(Expression left, Expression right) {
             this.left = left;
@@ -168,8 +168,8 @@ public abstract class Expression {
     }
 
     static class EqualsExpression extends Expression {
-        private Expression left;
-        private Expression right;
+        private final Expression left;
+        private final Expression right;
 
         public EqualsExpression(Expression left, Expression right) {
             this.left = left;
@@ -190,8 +190,8 @@ public abstract class Expression {
     }
 
     static class NotEqualsExpression extends Expression {
-        private Expression left;
-        private Expression right;
+        private final Expression left;
+        private final Expression right;
 
         public NotEqualsExpression(Expression left, Expression right) {
             this.left = left;
@@ -212,8 +212,8 @@ public abstract class Expression {
     }
 
     static class Column extends Expression {
-        private String columnName;
-        private int columnIndex;
+        private final String columnName;
+        private final int columnIndex;
 
         public Column(String columnName, int columnIndex) {
             this.columnName = columnName;
@@ -233,10 +233,12 @@ public abstract class Expression {
 
     static class Literal extends Expression {
 
-        private Value value;
+        private final Value value;
+
         public Literal(Value value) {
             this.value = value;
         }
+
         @Override
         public Value evaluate(RowData rowData) {
             return value;

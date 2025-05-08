@@ -20,6 +20,21 @@ public class CheckpointLog extends LogRecord {
         this.attSize = (short) att.size();
     }
 
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset);
+        short dptSize = buffer.getShort();
+        short attSize = buffer.getShort();
+        Map<Long, Long> dpt = new HashMap<>();
+        for (short i = 0; i < dptSize; i++) {
+            dpt.put(buffer.getLong(), buffer.getLong());
+        }
+        Map<Long, Long> att = new HashMap<>();
+        for (short i = 0; i < attSize; i++) {
+            att.put(buffer.getLong(), buffer.getLong());
+        }
+        return new CheckpointLog(dpt, att);
+    }
+
     public Map<Long, Long> getDirtyPageTable() {
         return dpt;
     }
@@ -47,21 +62,6 @@ public class CheckpointLog extends LogRecord {
             buffer.putLong(entry.getKey()).putLong(entry.getValue());
         }
         return buffer.position();
-    }
-
-    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
-        buffer.position(offset);
-        short dptSize = buffer.getShort();
-        short attSize = buffer.getShort();
-        Map<Long, Long> dpt = new HashMap<>();
-        for (short i = 0; i < dptSize; i++) {
-            dpt.put(buffer.getLong(), buffer.getLong());
-        }
-        Map<Long, Long> att = new HashMap<>();
-        for (short i = 0; i < attSize; i++) {
-            att.put(buffer.getLong(), buffer.getLong());
-        }
-        return new CheckpointLog(dpt, att);
     }
 
     @Override

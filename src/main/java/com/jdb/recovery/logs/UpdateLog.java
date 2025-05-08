@@ -16,12 +16,12 @@ public class UpdateLog extends LogRecord {
     private static final int XID_OFFSET = RID_OFFSET + PagePointer.SIZE;
     private static final int PREV_LSN_OFFSET = XID_OFFSET + Integer.BYTES;
     private static final int HEADER_SIZE = Long.BYTES + Long.BYTES + Long.BYTES + Short.BYTES + Short.BYTES;
-    private long xid;
-    private long pid;
-    private long prevLsn;
-    private short offset;
-    private byte[] oldData;
-    private byte[] newData;
+    private final long xid;
+    private final long pid;
+    private final long prevLsn;
+    private final short offset;
+    private final byte[] oldData;
+    private final byte[] newData;
 
     public UpdateLog(long xid, long pid, long prevLsn, short offset, byte[] oldData, byte[] newData) {
         super(LogType.UPDATE);

@@ -7,9 +7,16 @@ import com.jdb.table.Table;
 
 import java.util.Iterator;
 
-public class SeqScanOperator extends QueryOperator{
+public class SeqScanOperator extends QueryOperator {
     Iterator<RowData> iterator;
     Table table;
+
+    public SeqScanOperator(String tableName, Engine engine) {
+        super(OperatorType.SEQ_SCAN);
+        table = engine.getTableManager().getTable(tableName);
+        setSchema(table.getSchema());
+    }
+
     @Override
     public Iterator<RowData> iterator() {
         return table.scan();
@@ -17,11 +24,6 @@ public class SeqScanOperator extends QueryOperator{
 
     @Override
     public Schema computeSchema() {
-        return getSchema();
-    }
-
-    public SeqScanOperator(String tableName, Engine engine){
-        super(OperatorType.SEQ_SCAN);
-        table = engine.getTableManager().getTable(tableName);
+        return table.getSchema();
     }
 }

@@ -10,18 +10,18 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 public class IndexScanOperator extends QueryOperator {
-    private String tableName;
-    private String columnName;
-    private PredicateOperator predicate;
-    private Value value;
-    private Engine engine;
-    private int columnIndex;
+    private final String tableName;
+    private final String columnName;
+    private final PredicateOperator predicate;
+    private final Value value;
+    private final Engine engine;
+    private final int columnIndex;
 
-    protected IndexScanOperator(String tableName,
-                                String columnName,
-                                PredicateOperator predicate,
-                                Value value,
-                                Engine engine) {
+    public IndexScanOperator(String tableName,
+                             String columnName,
+                             PredicateOperator predicate,
+                             Value value,
+                             Engine engine) {
         super(OperatorType.INDEX_SCAN);
         this.tableName = tableName;
         this.columnName = columnName;
@@ -35,7 +35,7 @@ public class IndexScanOperator extends QueryOperator {
     @Override
     public Iterator<RowData> iterator() {
         class IndexScanIterator implements Iterator<RowData> {
-            private Iterator<RowData> sourceIter;
+            private final Iterator<RowData> sourceIter;
             private RowData next;
 
             IndexScanIterator() {

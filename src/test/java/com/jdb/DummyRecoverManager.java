@@ -13,13 +13,13 @@ public class DummyRecoverManager extends RecoveryManager {
     }
 
     @Override
-    public void setLogManager(LogManager logManager) {
-
+    public LogManager getLogManager() {
+        return null;
     }
 
     @Override
-    public LogManager getLogManager() {
-        return null;
+    public void setLogManager(LogManager logManager) {
+
     }
 
     @Override

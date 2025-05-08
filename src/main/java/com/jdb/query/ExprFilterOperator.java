@@ -9,28 +9,29 @@ import com.jdb.table.RowData;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public class ExprFilterOperator extends QueryOperator{
+public class ExprFilterOperator extends QueryOperator {
     Expression expression;
 
-    public ExprFilterOperator(QueryOperator source,Expression expression) {
+    public ExprFilterOperator(QueryOperator source, Expression expression) {
         super(OperatorType.FILTER, source);
         this.expression = expression;
     }
 
     @Override
     public Iterator<RowData> iterator() {
-        class ExprFilterIterator implements Iterator<RowData>{
+        class ExprFilterIterator implements Iterator<RowData> {
             private Iterator<RowData> sourceIter;
             private RowData next;
+
             @Override
             public boolean hasNext() {
-                if (next != null){
+                if (next != null) {
                     return true;
                 }
-                while(sourceIter.hasNext()){
+                while (sourceIter.hasNext()) {
                     var rowData = sourceIter.next();
-                    var b = (BoolValue)expression.evaluate(rowData);
-                    if (b.equals(Value.of(true))){
+                    var b = (BoolValue) expression.evaluate(rowData);
+                    if (b.equals(Value.of(true))) {
                         next = rowData;
                         return true;
                     }
@@ -40,7 +41,7 @@ public class ExprFilterOperator extends QueryOperator{
 
             @Override
             public RowData next() {
-                if(hasNext()){
+                if (hasNext()) {
                     var row = next;
                     next = null;
                     return row;

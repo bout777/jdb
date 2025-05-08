@@ -65,8 +65,7 @@ public class ResourceName {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null) return false;
-        if (!(o instanceof ResourceName)) return false;
-        ResourceName other = (ResourceName) o;
+        if (!(o instanceof ResourceName other)) return false;
         if (other.names.size() != this.names.size()) return false;
         for (int i = 0; i < other.names.size(); i++) {
             if (!this.names.get(i).equals(other.names.get(i))) return false;

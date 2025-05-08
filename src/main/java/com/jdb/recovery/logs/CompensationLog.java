@@ -66,7 +66,7 @@ public class CompensationLog extends LogRecord {
     @Override
     public String toString() {
         return "CompensationLog{" +
-                "origin="+originLog+
+                "origin=" + originLog +
                 '}';
     }
 

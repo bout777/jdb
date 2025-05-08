@@ -8,15 +8,24 @@ import com.jdb.table.IndexPage;
 
 import java.nio.ByteBuffer;
 
-public class IndexPageInitLog  extends LogRecord{
+public class IndexPageInitLog extends LogRecord {
     long xid;
     long prevLsn;
     long pid;
+
     public IndexPageInitLog(long xid, long prevLsn, long pid) {
         super(LogType.INDEX_PAGE_INIT);
         this.xid = xid;
         this.prevLsn = prevLsn;
         this.pid = pid;
+    }
+
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset);
+        long xid = buffer.getLong();
+        long prevLsn = buffer.getLong();
+        long pid = buffer.getLong();
+        return new IndexPageInitLog(xid, prevLsn, pid);
     }
 
     @Override
@@ -33,14 +42,6 @@ public class IndexPageInitLog  extends LogRecord{
         return buffer.position();
     }
 
-    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
-        buffer.position(offset);
-        long xid = buffer.getLong();
-        long prevLsn = buffer.getLong();
-        long pid = buffer.getLong();
-        return new IndexPageInitLog(xid, prevLsn, pid);
-    }
-
     @Override
     public long getPageId() {
         return pid;
@@ -55,16 +56,19 @@ public class IndexPageInitLog  extends LogRecord{
     public long getPrevLsn() {
         return prevLsn;
     }
+
     @Override
     public LogType getType() {
         return LogType.INDEX_PAGE_INIT;
     }
+
     @Override
     public void redo(Engine engine) {
         Page page = engine.getBufferPool().getPage(pid);
         var buffer = page.getBuffer();
         buffer.put(IndexPage.PAGE_TYPE_OFFSET, PageType.INDEX_PAGE);
     }
+
     @Override
     public void undo(Engine engine) {
 

@@ -26,12 +26,11 @@ import static org.junit.Assert.assertFalse;
 
 public class EngineRecoveryTest {
     public static final String TEST_PATH = "testbaserec";
-    private Engine engine;
-    private String fileName;
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
-
     File testDir = new File(TestUtil.TEST_DIR);
+    private Engine engine;
+    private String fileName;
 
     @Before
     public void init() throws Exception {
@@ -164,7 +163,7 @@ public class EngineRecoveryTest {
 //            System.out.println(log);
 //        }
         engine.beginTransaction();
-        var row  =TestUtil.generateRecord(1);
+        var row = TestUtil.generateRecord(1);
         table.insertRecord(row, true, true);
         engine.commit();
         engine.close();
@@ -199,8 +198,8 @@ public class EngineRecoveryTest {
         engine.commit();
         while (logiter.hasNext()) {
             LogRecord log = logiter.next();
-            if(log.getType() != LogType.INSERT)
-                System.out.println("lsn: "+log.getLsn()+" "+log);
+            if (log.getType() != LogType.INSERT)
+                System.out.println("lsn: " + log.getLsn() + " " + log);
         }
         engine.close();
 

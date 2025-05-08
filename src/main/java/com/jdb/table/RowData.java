@@ -12,7 +12,7 @@ public class RowData {
     public int size;
     public List<Value> values;
 
-    public RowData(Value ...values) {
+    public RowData(Value... values) {
         this(Arrays.asList(values));
     }
 
@@ -30,17 +30,6 @@ public class RowData {
         this.size = size;
     }
 
-    public Value<?> getPrimaryKey() {
-        return values.get(0);
-    }
-
-    public int serialize(ByteBuffer buffer, int offset) {
-        for (var value : values) {
-            offset = value.serialize(buffer, offset);
-        }
-        return offset;
-    }
-
     public static RowData deserialize(ByteBuffer buffer, int offset, Schema schema) {
         List<Value> values = new ArrayList<>();
         int size = offset;
@@ -53,8 +42,23 @@ public class RowData {
         return new RowData(values, size);
     }
 
+    public Value<?> getPrimaryKey() {
+        return values.get(0);
+    }
+
+    public int serialize(ByteBuffer buffer, int offset) {
+        for (var value : values) {
+            offset = value.serialize(buffer, offset);
+        }
+        return offset;
+    }
+
     public Value get(int index) {
         return values.get(index);
+    }
+
+    public List<Value> getValues() {
+        return new ArrayList<>(values);
     }
 
     public RowData concat(RowData rowData) {
@@ -71,7 +75,7 @@ public class RowData {
 
     @Override
     public String toString() {
-        return String.format("Record{primaryKey=%s, size=%d, values=%s}",getPrimaryKey(), size, values);
+        return String.format("Record{primaryKey=%s, size=%d, values=%s}", getPrimaryKey(), size, values);
     }
 
     @Override

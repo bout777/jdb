@@ -15,10 +15,10 @@ import static com.jdb.common.Constants.NULL_PAGE_ID;
 
 public class BPTree implements Index {
     private Table table;
-    private BufferPool bufferPool;
-    private RecoveryManager recoveryManager;
+    private final BufferPool bufferPool;
+    private final RecoveryManager recoveryManager;
     private Node root;
-    private IndexMetaData metaData;
+    private final IndexMetaData metaData;
 
     public BPTree(IndexMetaData metaData, BufferPool bp, RecoveryManager rm) {
         this.bufferPool = bp;

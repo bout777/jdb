@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 // Value 基类
 public abstract class Value<T> implements Comparable<Value> {
+    private static final Pattern INTEGER_PATTERN = Pattern.compile("-?\\d+");
     protected final DataType type;
     protected final T value;
 
@@ -26,7 +27,7 @@ public abstract class Value<T> implements Comparable<Value> {
             case STRING:
                 return StringValue.deserialize(buffer, offset);
             case BOOLEAN:
-                return BoolValue.deserialize(buffer,offset);
+                return BoolValue.deserialize(buffer, offset);
 //            case FLOAT:
 //                return FloatValue.deserialize(buffer);
 //            case NULL:
@@ -35,7 +36,7 @@ public abstract class Value<T> implements Comparable<Value> {
                 throw new IllegalArgumentException();
         }
     }
-    private static final Pattern INTEGER_PATTERN = Pattern.compile("-?\\d+");
+
     public static Value<?> fromString(String str) {
         if (str == null) {
             throw new IllegalArgumentException("Cannot convert null to Value");
@@ -81,12 +82,15 @@ public abstract class Value<T> implements Comparable<Value> {
         return new StringValue(value);
     }
 
-    public static Value<Boolean> of(boolean value) {return new BoolValue(value);}
+    public static Value<Boolean> of(boolean value) {
+        return new BoolValue(value);
+    }
 
     public abstract int getBytes();
     // 序列化为字节数组（包含类型标记）
 
     public abstract int serialize(ByteBuffer buffer, int offset);
+
     // 类型安全检查
     public <E> E getValue(Class<E> expectedType) {
         if (!expectedType.isAssignableFrom(value.getClass())) {

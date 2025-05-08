@@ -4,7 +4,6 @@ import com.jdb.Engine;
 import com.jdb.recovery.LogType;
 import com.jdb.storage.Page;
 import com.jdb.table.DataPage;
-import com.jdb.table.PagePointer;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
@@ -25,6 +24,16 @@ public class PageLinkLog extends LogRecord {
         this.afterNextPid = afterNextPid;
     }
 
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset);
+        long xid = buffer.getLong();
+        long prevLsn = buffer.getLong();
+        long pid = buffer.getLong();
+        long beforeNextPid = buffer.getLong();
+        long afterNextPid = buffer.getLong();
+        return new PageLinkLog(xid, prevLsn, pid, beforeNextPid, afterNextPid);
+    }
+
     @Override
     public long getPageId() {
         return pid;
@@ -40,8 +49,6 @@ public class PageLinkLog extends LogRecord {
         return prevLsn;
     }
 
-
-
     @Override
     protected int getPayloadSize() {
         return Long.BYTES * 5;
@@ -56,16 +63,6 @@ public class PageLinkLog extends LogRecord {
                 .putLong(beforeNextPid)
                 .putLong(afterNextPid);
         return buffer.position();
-    }
-
-    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
-        buffer.position(offset);
-        long xid = buffer.getLong();
-        long prevLsn = buffer.getLong();
-        long pid = buffer.getLong();
-        long beforeNextPid = buffer.getLong();
-        long afterNextPid = buffer.getLong();
-        return new PageLinkLog(xid, prevLsn, pid, beforeNextPid, afterNextPid);
     }
 
     @Override

@@ -25,6 +25,7 @@ import net.sf.jsqlparser.statement.update.Update;
 
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,8 +41,6 @@ public class Visitor extends StatementVisitorAdapter {
         this.out = out;
 //        exprVisitor = new JExpressionVisitor(engine);
     }
-
-
 
 
     @Override
@@ -79,7 +78,6 @@ public class Visitor extends StatementVisitorAdapter {
     public void visit(Select select) {
 
 
-
         PlainSelect plainSelect = (PlainSelect) select.getSelectBody();
 
         // 1. 扫描表
@@ -94,12 +92,26 @@ public class Visitor extends StatementVisitorAdapter {
         QueryOperator op = new SeqScanOperator(tableName, engine);
 
         Expression whereExpr = plainSelect.getWhere();
+        Schema schema = engine.getTableManager().getTable(tableName).getSchema();
+
         if (whereExpr != null) {
-            Schema schema = engine.getTableManager().getTable(tableName).getSchema();
             var exprVisitor = new JExpressionVisitor(schema);
             whereExpr.accept(exprVisitor);
             var expression = exprVisitor.getExpression();
             op = new ExprFilterOperator(op, expression);
+        }
+
+        List<String> columns = new ArrayList<>();
+
+        plainSelect.getSelectItems().forEach(selectItem -> {
+            columns.add(selectItem.toString());
+        });
+
+        if (!"*".equals(columns.get(0))) {
+            op = new ProjectOperator(op, columns);
+            new Printer(out).printRowData(columns, op.iterator());
+        } else {
+            new Printer(out).printRowData(op.getSchema().getColumnNames(), op.iterator());
         }
     }
 

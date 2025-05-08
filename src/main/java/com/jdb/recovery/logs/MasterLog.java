@@ -6,20 +6,20 @@ import com.jdb.recovery.LogType;
 import java.nio.ByteBuffer;
 
 public class MasterLog extends LogRecord {
-    private long lastCheckpointLsn;
+    private final long lastCheckpointLsn;
 
     public MasterLog(long lastCheckpointLsn) {
         super(LogType.MASTER);
         this.lastCheckpointLsn = lastCheckpointLsn;
     }
 
-    public long getLastCheckpointLsn() {
-        return lastCheckpointLsn;
-    }
-
     public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
         long lastCheckpointLsn = buffer.getLong(offset);
         return new MasterLog(lastCheckpointLsn);
+    }
+
+    public long getLastCheckpointLsn() {
+        return lastCheckpointLsn;
     }
 
     @Override

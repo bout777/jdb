@@ -19,15 +19,14 @@ import static com.jdb.common.Constants.*;
  * 由于日志页有固定的fid，所以每页只用保存pno
  * */
 public class LogManager {
-    private Engine engine;
-    public static int inCount = 0;
-
     private static final long MASTER_LOG_PAGE_ID = PageHelper.concatPid(LOG_FILE_ID, 0);
+    public static int inCount = 0;
+    private Engine engine;
     private BufferPool bufferPool;
-    private Deque<Integer> unflushedLogTail = new ArrayDeque<>();
+    private final Deque<Integer> unflushedLogTail = new ArrayDeque<>();
     private LogPage logTail;
 
-    private long nextPID = MASTER_LOG_PAGE_ID + 1;
+    private final long nextPID = MASTER_LOG_PAGE_ID + 1;
 
     public LogManager(BufferPool bp) {
         bufferPool = bp;
@@ -35,6 +34,10 @@ public class LogManager {
 
     public LogManager(Engine engine) {
         this.engine = engine;
+    }
+
+    static long makeLSN(long pid, int offset) {
+        return pid << Integer.SIZE | offset;
     }
 
     public void injectDependency() {
@@ -59,10 +62,6 @@ public class LogManager {
         return (MasterLog) masterLog;
     }
 
-    static long makeLSN(long pid, int offset) {
-        return pid << Integer.SIZE | offset;
-    }
-
     public synchronized long append(LogRecord log) {
 //        System.out.println(log);
         if (logTail == null || logTail.getFreeSpace() < log.getSize()) {
@@ -70,7 +69,7 @@ public class LogManager {
             // todo 更新nextpid？
             logTail.init();
         }
-        if(unflushedLogTail.isEmpty()|| logTail.getPageNo()!=unflushedLogTail.getLast())
+        if (unflushedLogTail.isEmpty() || logTail.getPageNo() != unflushedLogTail.getLast())
             unflushedLogTail.addLast(logTail.getPageNo());
         int offset = logTail.append(log);
         long lsn = makeLSN(logTail.getPageId(), offset);
@@ -270,7 +269,7 @@ public class LogManager {
                 long lsn = makeLSN(getPageId(), offset);
                 log.setLsn(lsn);
                 offset += log.getSize();
-            //    System.out.printf("iter out page: %d,off: %d,log: %s \n,", lsn>>32&Integer.MAX_VALUE,getLSNOffset(lsn), log.getPrevLsn());
+                //    System.out.printf("iter out page: %d,off: %d,log: %s \n,", lsn>>32&Integer.MAX_VALUE,getLSNOffset(lsn), log.getPrevLsn());
                 return log;
             }
         }

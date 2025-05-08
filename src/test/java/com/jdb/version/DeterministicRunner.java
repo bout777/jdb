@@ -12,13 +12,49 @@ public class DeterministicRunner {
     private final Worker[] workers;
     private Throwable error = null;
 
+    public DeterministicRunner(int numWorkers) {
+        this.workers = new Worker[numWorkers];
+        for (int i = 0; i < numWorkers; ++i) {
+            this.workers[i] = new Worker();
+            this.workers[i].start();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void rethrow(Throwable t) throws T {
+        // rethrows checked exceptions as unchecked
+        throw (T) t;
+    }
+
+    public void run(int thread, Runnable task) {
+        error = null;
+        this.workers[thread].runTask(task);
+        if (error != null) {
+            rethrow(error);
+        }
+    }
+
+    public void join(int thread) {
+        try {
+            this.workers[thread].join();
+        } catch (Throwable t) {
+            rethrow(t);
+        }
+    }
+
+    public void joinAll() {
+        for (int i = 0; i < this.workers.length; ++i) {
+            join(i);
+        }
+    }
+
     private class Worker implements Runnable {
-        private Thread thread;
         private final ReentrantLock lock = new ReentrantLock();
         private final Condition sleepCondition = lock.newCondition();
         private final Condition wakeCondition = lock.newCondition();
         private final AtomicBoolean awake = new AtomicBoolean(false);
         private final AtomicBoolean ready = new AtomicBoolean(false);
+        private final Thread thread;
         private Runnable nextTask = null;
 
         public Worker() {
@@ -93,42 +129,6 @@ public class DeterministicRunner {
             }
             thread.join();
         }
-    }
-
-    public DeterministicRunner(int numWorkers) {
-        this.workers = new Worker[numWorkers];
-        for (int i = 0; i < numWorkers; ++i) {
-            this.workers[i] = new Worker();
-            this.workers[i].start();
-        }
-    }
-
-    public void run(int thread, Runnable task) {
-        error = null;
-        this.workers[thread].runTask(task);
-        if (error != null) {
-            rethrow(error);
-        }
-    }
-
-    public void join(int thread) {
-        try {
-            this.workers[thread].join();
-        } catch (Throwable t) {
-            rethrow(t);
-        }
-    }
-
-    public void joinAll() {
-        for (int i = 0; i < this.workers.length; ++i) {
-            join(i);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T extends Throwable> void rethrow(Throwable t) throws T {
-        // rethrows checked exceptions as unchecked
-        throw (T) t;
     }
 
 }

@@ -3,7 +3,6 @@ package com.jdb.storage;
 
 import com.jdb.Engine;
 import com.jdb.recovery.RecoveryManager;
-import com.jdb.table.DataPage;
 import com.jdb.transaction.TransactionContext;
 
 import java.util.Map;
@@ -11,6 +10,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class BufferPool {
+    private final Map<Long, Page> buffers = new ConcurrentHashMap<>();
     Engine engine;
     //    private static volatile BufferPool instance;
     /*
@@ -18,7 +18,6 @@ public class BufferPool {
      * 后续要根据表空间来分配
      * 缓冲池内应该有多张表的页*/
     private Disk disk;
-    private final Map<Long, Page> buffers = new ConcurrentHashMap<>();
     private RecoveryManager recoveryManager;
 
 
@@ -62,7 +61,7 @@ public class BufferPool {
         buffers.put(page.pid, page);
         if (shouldLog) {
             long xid = TransactionContext.getTransaction().getXid();
-            long lsn= recoveryManager.logPageAlloc(xid, page.pid);
+            long lsn = recoveryManager.logPageAlloc(xid, page.pid);
             page.setLsn(lsn);
         }
         return page;

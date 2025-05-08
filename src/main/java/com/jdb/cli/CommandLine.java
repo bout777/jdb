@@ -14,6 +14,13 @@ public class CommandLine {
     Engine engine;
     InputStream in;
     PrintStream out;
+    boolean autoCommit = true;
+
+    public CommandLine(Engine engine, InputStream in, PrintStream out) {
+        this.engine = engine;
+        this.in = in;
+        this.out = out;
+    }
 
     public static void main(String[] args) {
         Engine engine = new Engine("demo");
@@ -23,11 +30,6 @@ public class CommandLine {
         engine.close();
     }
 
-    public CommandLine(Engine engine, InputStream in, PrintStream out) {
-        this.engine = engine;
-        this.in = in;
-        this.out = out;
-    }
     public void run() {
         this.out.println("Welcome to JDB!");
 
@@ -42,16 +44,48 @@ public class CommandLine {
                 return;
             }
             Statement stmt;
-            try{
-                stmt = CCJSqlParserUtil.parse(input);
-            }catch (JSQLParserException e){
-                this.out.println(e.getMessage());
+            if (input.startsWith("set autocommit")) {
+                if (input.startsWith("set autocommit true"))
+                    this.autoCommit = true;
+                else if (input.startsWith("set autocommit false"))
+                    this.autoCommit = false;
                 continue;
             }
+            try {
+                if (!this.autoCommit) {
+                    var s = input.toLowerCase();
+                    if (s.startsWith("commit")) {
+                        engine.commit();
+                        continue;
+                    } else if (s.startsWith("begin")) {
+                        engine.beginTransaction();
+                        continue;
+                    } else if (s.startsWith("abort")) {
+                        engine.abort();
+                        continue;
+                    }
+                }
+            } catch (DatabaseException e) {
+                out.println(e.getMessage());
+            }
+
+            try {
+                stmt = CCJSqlParserUtil.parse(input);
+            } catch (JSQLParserException e) {
+                this.out.println("未识别的sql语句");
+                continue;
+            }
+
             Visitor visitor = new Visitor(engine, in, out);
+
+            if (this.autoCommit) {
+                engine.beginTransaction();
+            }
+
             try {
                 stmt.accept(visitor);
-            }catch (DatabaseException e){
+                if (this.autoCommit) engine.commit();
+            } catch (DatabaseException e) {
                 this.out.println(e.getMessage());
             }
         }
@@ -59,36 +93,39 @@ public class CommandLine {
 
     public String bufferUserInput(Scanner s) {
         int numSingleQuote = 0;
-        this.out.print("=> ");
         StringBuilder result = new StringBuilder();
         boolean firstLine = true;
+        this.out.print(firstLine ? "=> " : ""); // 初始提示符仅在首次显示
         do {
             String curr = s.nextLine();
             if (firstLine) {
                 String trimmed = curr.trim().replaceAll("(;|\\s)*$", "");
-                if (curr.length() == 0) {
+                if (curr.isEmpty()) {
                     return "";
                 } else if (trimmed.startsWith("\\")) {
-                    return trimmed.replaceAll("", "");
-                } else if (trimmed.toLowerCase().equals("exit")) {
+                    return trimmed;
+                } else if (trimmed.equalsIgnoreCase("exit")) {
                     return "exit";
                 }
             }
-            for (int i = 0; i < curr.length(); i++) {
-                if (curr.charAt(i) == '\'') {
-                    numSingleQuote++;
-                }
+            // 统计单引号
+            for (char c : curr.toCharArray()) {
+                if (c == '\'') numSingleQuote++;
             }
-            result.append(curr);
+            result.append(curr).append("\n"); // 保留换行符以保持输入结构
 
-            if (numSingleQuote % 2 != 0)
+            // 检查是否需要继续输入
+            boolean endsWithSemicolon = curr.trim().endsWith(";");
+            if (numSingleQuote % 2 != 0) {
                 this.out.print("'> ");
-            else if (!curr.trim().endsWith(";"))
+            } else if (!endsWithSemicolon) {
                 this.out.print("-> ");
-            else
-                break;
+            } else {
+                break; // 输入结束
+            }
             firstLine = false;
         } while (true);
-        return result.toString();
+        // 返回时移除末尾的换行符和分号
+        return result.toString().trim().replaceAll(";\\s*$", "");
     }
 }

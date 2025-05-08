@@ -4,22 +4,8 @@ package com.jdb.version;
 import com.jdb.table.RowData;
 
 public class ReadResult {
-    public enum Visibility {
-        VISIBLE,
-        INVISIBLE,
-        NOT_PRESENT
-    }
-
     private Visibility visibility;
     private RowData rowData;
-
-    public Visibility getVisibility() {
-        return visibility;
-    }
-
-    public RowData getRowData() {
-        return rowData;
-    }
 
     public static ReadResult notPresent() {
         ReadResult result = new ReadResult();
@@ -38,5 +24,19 @@ public class ReadResult {
         result.visibility = Visibility.VISIBLE;
         result.rowData = rowData;
         return result;
+    }
+
+    public Visibility getVisibility() {
+        return visibility;
+    }
+
+    public RowData getRowData() {
+        return rowData;
+    }
+
+    public enum Visibility {
+        VISIBLE,
+        INVISIBLE,
+        NOT_PRESENT
     }
 }

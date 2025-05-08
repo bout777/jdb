@@ -26,6 +26,18 @@ public class IndexEntryInsertLog extends LogRecord {
         this.entryPid = entryPid;
     }
 
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset);
+        long xid = buffer.getLong();
+        long prevLsn = buffer.getLong();
+        long pid = buffer.getLong();
+        long entryPid = buffer.getLong();
+        DataType type = DataType.values()[buffer.get()];
+        offset = buffer.position();
+        Value<?> key = Value.deserialize(buffer, offset, type);
+        return new IndexEntryInsertLog(xid, prevLsn, pid, key, entryPid);
+    }
+
     @Override
     public long getPageId() {
         return pid;
@@ -55,18 +67,6 @@ public class IndexEntryInsertLog extends LogRecord {
                 .put((byte) key.getType().ordinal());
         offset = buffer.position();
         return key.serialize(buffer, offset);
-    }
-
-    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
-        buffer.position(offset);
-        long xid = buffer.getLong();
-        long prevLsn = buffer.getLong();
-        long pid = buffer.getLong();
-        long entryPid = buffer.getLong();
-        DataType type = DataType.values()[buffer.get()];
-        offset = buffer.position();
-        Value<?> key = Value.deserialize(buffer, offset, type);
-        return new IndexEntryInsertLog(xid, prevLsn, pid, key, entryPid);
     }
 
     @Override
@@ -102,8 +102,7 @@ public class IndexEntryInsertLog extends LogRecord {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof IndexEntryInsertLog)) return false;
-        IndexEntryInsertLog that = (IndexEntryInsertLog) o;
+        if (!(o instanceof IndexEntryInsertLog that)) return false;
         return xid == that.xid
                 && prevLsn == that.prevLsn
                 && pid == that.pid

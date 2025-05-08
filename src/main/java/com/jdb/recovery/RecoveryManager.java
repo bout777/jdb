@@ -31,6 +31,7 @@ public class RecoveryManager {
 //        return instance;
 //    }
 
+    long redoLsn;
     //private List<LogRecord> logBuffer;
     //脏页表 <pid->recLsn>
     //活跃事务表 <xid->lsn>
@@ -39,7 +40,6 @@ public class RecoveryManager {
     private LogManager logManager;
     private Map<Long, Long> dirtyPagesTable = new ConcurrentHashMap<>();
     private Map<Long, Long> transactionsTable = new ConcurrentHashMap<>();
-
 
     public RecoveryManager(BufferPool bp) {
         this.bufferPool = bp;
@@ -54,19 +54,17 @@ public class RecoveryManager {
         this.logManager = engine.getLogManager();
     }
 
+    public LogManager getLogManager() {
+        return logManager;
+    }
 
     public void setLogManager(LogManager logManager) {
         this.logManager = logManager;
     }
 
-    public LogManager getLogManager() {
-        return logManager;
-    }
-
     public void setEngine(Engine engine) {
         this.engine = engine;
     }
-
 
     public synchronized void registerTransaction(long xid) {
         transactionsTable.put(xid, 0L);
@@ -164,7 +162,6 @@ public class RecoveryManager {
         return lsn;
     }
 
-
     public long logIndexInsert(long xid, long pid, Value<?> key, long entryPid) {
         long lastLsn = transactionsTable.get(xid);
         LogRecord log = new IndexEntryInsertLog(xid, lastLsn, pid, key, entryPid);
@@ -211,6 +208,9 @@ public class RecoveryManager {
         return lsn;
     }
 
+
+    //====== 事务 api ======//
+
     public long logCreateFile(long xid, int fid, String fileName) {
         long lastLsn = transactionsTable.get(xid);
         LogRecord log = new CreateFileLog(xid, lastLsn, fid, fileName);
@@ -218,9 +218,6 @@ public class RecoveryManager {
         transactionsTable.put(xid, lsn);
         return lsn;
     }
-
-
-    //====== 事务 api ======//
 
     public void rollback(long xid) {
         rollback2lsn(xid, NULL_LSN);
@@ -236,6 +233,12 @@ public class RecoveryManager {
         dirtyPagesTable.computeIfPresent(pid, (k, v) -> Math.min(v, lsn));
     }
 
+    //在recover中的每次日志写入都要刷盘！
+
+    /*
+     * 最简单的实现就是undo时直接追加一条补偿记录
+     * 然后按照redo，undo阶段来执行
+     * 是可以保证一致性的*/
 
     private void rollback2lsn(long xid, long lsn) {
         var lastRecord = logManager.getLogRecord(transactionsTable.get(xid));
@@ -258,13 +261,6 @@ public class RecoveryManager {
         }
     }
 
-    //在recover中的每次日志写入都要刷盘！
-
-    /*
-     * 最简单的实现就是undo时直接追加一条补偿记录
-     * 然后按照redo，undo阶段来执行
-     * 是可以保证一致性的*/
-
     public synchronized void checkpoint() {
         //先实现只写一个检查点日志的版本，暂不考虑脏页表和事务表的数据超过单个日志页容量的情况
 
@@ -280,8 +276,6 @@ public class RecoveryManager {
         undo();
         checkpoint();
     }
-
-    long redoLsn;
 
     private long analyze() {
 
@@ -349,8 +343,8 @@ public class RecoveryManager {
             if (log.getLsn() <= page.getLsn())
                 continue;
 
-            if (log.getType() != LogType.INSERT)
-                System.out.println(log.getLsn() + " on redo: " + log);
+//            if (log.getType() != LogType.INSERT)
+//                System.out.println(log.getLsn() + " on redo: " + log);
             log.redo(engine);
         }
     }

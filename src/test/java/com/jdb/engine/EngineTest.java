@@ -20,10 +20,10 @@ import static org.junit.Assert.assertEquals;
 
 public class EngineTest {
     public static final String TEST_PATH = "testbase";
-    private Engine engine;
-    private String fileName;
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+    private Engine engine;
+    private String fileName;
 
     @Before
     public void init() throws Exception {
@@ -47,7 +47,7 @@ public class EngineTest {
     @Test
     public void testCreateTable() {
         Schema schema = TestUtil.recordSchema();
-        engine.createTable("student",schema);
+        engine.createTable("student", schema);
     }
 
     @Test
@@ -55,42 +55,41 @@ public class EngineTest {
         testCreateTable();
         var rowData = TestUtil.generateRecord(3);
 //        engine.beginTransaction();
-        engine.insert("student",rowData);
+        engine.insert("student", rowData);
 
         var tbm = engine.getTableManager();
         Table table = tbm.getTable("student");
 
         var row = table.getRowData(rowData.getPrimaryKey());
-        assertEquals(rowData,row);
+        assertEquals(rowData, row);
 
-        row =(RowData) table.getClusterIndex().searchEqual(rowData.getPrimaryKey()).getValue();
-        assertEquals(rowData,row);
-  //      System.out.println(row);
+        row = (RowData) table.getClusterIndex().searchEqual(rowData.getPrimaryKey()).getValue();
+        assertEquals(rowData, row);
+        //      System.out.println(row);
     }
 
     @Test
     public void testInsertAndSearch() {
         testCreateTable();
 //        engine.beginTransaction();
-        List<RowData> expected =new ArrayList<>();
+        List<RowData> expected = new ArrayList<>();
         List<RowData> actual = new ArrayList<>();
-        for(int i = 1; i <=1000; i++){
+        for (int i = 1; i <= 1000; i++) {
             var rowData = TestUtil.generateRecord(i);
             expected.add(rowData);
-            engine.insert("student",rowData);
+            engine.insert("student", rowData);
         }
 
         Table table = engine.getTableManager().getTable("student");
 
         var index = table.getClusterIndex();
 
-        for(int i = 1; i <=1000; i++){
+        for (int i = 1; i <= 1000; i++) {
             var row = (RowData) index.searchEqual(Value.of(i)).getValue();
             actual.add(row);
         }
-        assertEquals(expected,actual);
+        assertEquals(expected, actual);
     }
-
 
 
 }

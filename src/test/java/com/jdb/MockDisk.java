@@ -10,7 +10,8 @@ import static com.jdb.common.Constants.PAGE_SIZE;
 
 public class MockDisk extends Disk {
     //模拟磁盘中的页，供bufferPool存取
-    Map<Long ,Page> diskPages = new HashMap<>();
+    Map<Long, Page> diskPages = new HashMap<>();
+
     public MockDisk(String path) {
         super(path);
     }
@@ -18,12 +19,13 @@ public class MockDisk extends Disk {
     @Override
     public Page readPage(long pid) {
         Page page = diskPages.get(pid);
-        if(page==null){
+        if (page == null) {
             throw new NullPointerException("page not found");
         }
         return page;
     }
-//
+
+    //
     @Override
     public void writePage(Page page) {
         Page pageInDisk = new Page(page.pid);

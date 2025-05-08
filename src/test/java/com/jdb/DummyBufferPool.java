@@ -11,11 +11,17 @@ import java.util.Map;
 public class DummyBufferPool extends BufferPool {
     Map<Long, Page> pages = new HashMap<>();
     Map<Integer, Long> nextPages = new HashMap<>();
-    private Disk disk ;
+    private final Disk disk;
+
+    public DummyBufferPool() {
+        super(new MockDisk("aldksj"));
+        disk = getDisk();
+    }
+
     @Override
     public Page getPage(long pid) {
         Page page = pages.get(pid);
-        if(page==null){
+        if (page == null) {
             page = disk.readPage(pid);
             pages.put(pid, page);
         }
@@ -39,10 +45,5 @@ public class DummyBufferPool extends BufferPool {
     @Override
     public void close() {
         pages.clear();
-    }
-
-    public DummyBufferPool() {
-        super(new MockDisk("aldksj"));
-        disk = getDisk();
     }
 }

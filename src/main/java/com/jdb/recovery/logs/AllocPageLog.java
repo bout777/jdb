@@ -20,6 +20,13 @@ public class AllocPageLog extends LogRecord {
         this.pid = pid;
     }
 
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset);
+        long xid = buffer.getLong();
+        long prevLsn = buffer.getLong();
+        long pid = buffer.getLong();
+        return new AllocPageLog(xid, prevLsn, pid);
+    }
 
     @Override
     protected int getPayloadSize() {
@@ -33,14 +40,6 @@ public class AllocPageLog extends LogRecord {
                 .putLong(prevLsn)
                 .putLong(pid);
         return buffer.position();
-    }
-
-    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
-        buffer.position(offset);
-        long xid = buffer.getLong();
-        long prevLsn = buffer.getLong();
-        long pid = buffer.getLong();
-        return new AllocPageLog(xid, prevLsn, pid);
     }
 
     @Override
@@ -86,8 +85,7 @@ public class AllocPageLog extends LogRecord {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof AllocPageLog)) return false;
-        AllocPageLog that = (AllocPageLog) o;
+        if (!(o instanceof AllocPageLog that)) return false;
         return xid == that.xid &&
                 prevLsn == that.prevLsn &&
                 pid == that.pid;

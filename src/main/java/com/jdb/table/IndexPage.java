@@ -30,8 +30,8 @@ public class IndexPage {
 
     private final ByteBuffer bf;
     private final RecoveryManager recoveryManager;
-    private Page page;
-    private BufferPool bufferPool;
+    private final Page page;
+    private final BufferPool bufferPool;
 
 
     public IndexPage(Page page, BufferPool bp, RecoveryManager rm) {

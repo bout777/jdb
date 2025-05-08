@@ -7,9 +7,30 @@ import java.util.Iterator;
 
 public abstract class QueryOperator {
     protected Schema outSchema;
-    public abstract Iterator<RowData> iterator();
     protected OperatorType type;
     protected QueryOperator source;
+    protected QueryOperator(OperatorType type) {
+        this.type = type;
+    }
+
+    protected QueryOperator(OperatorType type, QueryOperator source) {
+        this.type = type;
+        this.source = source;
+        outSchema = computeSchema();
+    }
+
+    public abstract Iterator<RowData> iterator();
+
+    public Schema getSchema() {
+        return outSchema;
+    }
+
+    public void setSchema(Schema schema) {
+        outSchema = schema;
+    }
+
+    public abstract Schema computeSchema();
+
     public enum OperatorType {
         PROJECT,
         FILTER,
@@ -22,21 +43,4 @@ public abstract class QueryOperator {
         LIMIT,
         MATERIALIZE
     }
-    protected QueryOperator(OperatorType type) {
-        this.type = type;
-    }
-    protected QueryOperator(OperatorType type,QueryOperator source){
-        this.type = type;
-        this.source = source;
-        outSchema = computeSchema();
-    }
-    public Schema getSchema() {
-        return outSchema;
-    }
-
-    public void setSchema(Schema schema) {
-        outSchema = schema;
-    }
-
-    public abstract Schema computeSchema();
 }

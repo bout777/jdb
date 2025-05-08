@@ -26,17 +26,17 @@ public enum LogType {
     MASTER,
     CHECKPOINT;
 
-    private static LogType[] values = LogType.values();
+    private static final LogType[] values = LogType.values();
 
     public static LogType fromInt(int t) {
         if (t <= 0 || t > values.length) {
             String err = String.format("Unknown TypeId ordinal %d.", t);
             throw new IllegalArgumentException(err);
         }
-        return values[t-1];
+        return values[t - 1];
     }
 
     public int getValue() {
-        return ordinal()+1;
+        return ordinal() + 1;
     }
 }

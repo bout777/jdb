@@ -7,22 +7,22 @@ import com.jdb.transaction.TransactionContext;
 import java.nio.ByteBuffer;
 
 public class MasterPage {
-    private Page page;
     public static final int ROOT_OFFSET = 20;
-    private ByteBuffer buffer;
-    private RecoveryManager recoveryManager;
+    private final Page page;
+    private final ByteBuffer buffer;
+    private final RecoveryManager recoveryManager;
 
-    public MasterPage(Page page,RecoveryManager rm){
+    public MasterPage(Page page, RecoveryManager rm) {
         this.page = page;
         this.recoveryManager = rm;
         buffer = page.getBuffer();
     }
 
-    public long getRootPageId(){
+    public long getRootPageId() {
         return buffer.getLong(ROOT_OFFSET);
     }
 
-    public void setRootPageId(long rootPageId){
+    public void setRootPageId(long rootPageId) {
         long xid = TransactionContext.getTransaction().getXid();
         recoveryManager.logMasterPageUpdate(xid, page.pid, getRootPageId(), rootPageId);
         buffer.putLong(ROOT_OFFSET, rootPageId);

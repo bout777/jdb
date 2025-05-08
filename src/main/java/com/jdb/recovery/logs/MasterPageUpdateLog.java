@@ -2,7 +2,6 @@ package com.jdb.recovery.logs;
 
 import com.jdb.Engine;
 import com.jdb.recovery.LogType;
-import com.jdb.storage.Page;
 import com.jdb.table.MasterPage;
 
 import java.nio.ByteBuffer;
@@ -25,6 +24,16 @@ public class MasterPageUpdateLog extends LogRecord {
         this.afterRootPageId = afterRootPageId;
     }
 
+    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
+        buffer.position(offset);
+        long xid = buffer.getLong();
+        long prevLsn = buffer.getLong();
+        long pid = buffer.getLong();
+        long beforeRootPageId = buffer.getLong();
+        long afterRootPageId = buffer.getLong();
+        return new MasterPageUpdateLog(xid, prevLsn, pid, beforeRootPageId, afterRootPageId);
+    }
+
     @Override
     protected int serializePayload(ByteBuffer buffer, int offset) {
         buffer.position(offset)
@@ -34,16 +43,6 @@ public class MasterPageUpdateLog extends LogRecord {
                 .putLong(beforeRootPageId)
                 .putLong(afterRootPageId);
         return buffer.position();
-    }
-
-    public static LogRecord deserializePayload(ByteBuffer buffer, int offset) {
-        buffer.position(offset);
-        long xid = buffer.getLong();
-        long prevLsn = buffer.getLong();
-        long pid = buffer.getLong();
-        long beforeRootPageId = buffer.getLong();
-        long afterRootPageId = buffer.getLong();
-        return new MasterPageUpdateLog(xid, prevLsn, pid, beforeRootPageId, afterRootPageId);
     }
 
     @Override
@@ -98,8 +97,7 @@ public class MasterPageUpdateLog extends LogRecord {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof MasterPageUpdateLog)) return false;
-        MasterPageUpdateLog that = (MasterPageUpdateLog) o;
+        if (!(o instanceof MasterPageUpdateLog that)) return false;
         return xid == that.xid &&
                 prevLsn == that.prevLsn &&
                 pid == that.pid &&

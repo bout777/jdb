@@ -7,15 +7,16 @@ public enum DataType {
     BOOLEAN,    // 3
     FLOAT,
     BYTE_ARRAY;// 4
+
     public static DataType fromString(String s) {
         return switch (s.toUpperCase()) {
-            case "NULL"       -> NULL;
-            case "INTEGER"    -> INTEGER;
-            case "STRING"     -> STRING;
-            case "BOOLEAN"    -> BOOLEAN;
-            case "FLOAT"      -> FLOAT;
+            case "NULL" -> NULL;
+            case "INTEGER" -> INTEGER;
+            case "STRING" -> STRING;
+            case "BOOLEAN" -> BOOLEAN;
+            case "FLOAT" -> FLOAT;
             case "BYTE_ARRAY" -> BYTE_ARRAY;
-            default           -> null;
+            default -> null;
         };
     }
 }
