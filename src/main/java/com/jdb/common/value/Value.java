@@ -25,8 +25,8 @@ public abstract class Value<T> implements Comparable<Value> {
                 return IntValue.deserialize(buffer, offset);
             case STRING:
                 return StringValue.deserialize(buffer, offset);
-//            case BOOLEAN:
-//                return BooleanValue.deserialize(buffer);
+            case BOOLEAN:
+                return BoolValue.deserialize(buffer,offset);
 //            case FLOAT:
 //                return FloatValue.deserialize(buffer);
 //            case NULL:
@@ -73,13 +73,15 @@ public abstract class Value<T> implements Comparable<Value> {
         return new StringValue(s);
     }
 
-    public static Value of(int value) {
+    public static Value<Integer> of(int value) {
         return new IntValue(value);
     }
 
-    public static Value of(String value) {
+    public static Value<String> of(String value) {
         return new StringValue(value);
     }
+
+    public static Value<Boolean> of(boolean value) {return new BoolValue(value);}
 
     public abstract int getBytes();
     // 序列化为字节数组（包含类型标记）

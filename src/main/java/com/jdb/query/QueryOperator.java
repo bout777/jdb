@@ -12,6 +12,7 @@ public abstract class QueryOperator {
     protected QueryOperator source;
     public enum OperatorType {
         PROJECT,
+        FILTER,
         SEQ_SCAN,
         INDEX_SCAN,
         JOIN,
